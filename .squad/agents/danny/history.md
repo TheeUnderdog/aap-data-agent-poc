@@ -88,3 +88,27 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - Git commit: docs/overview.md + .squad/ changes
 
 **Document Ready For:** Immediate stakeholder review, Azure/AAP kickoff calls, team planning sessions
+
+### 2026-04-23: Implementation Plan Rewrite — Scripting Directive Compliance
+
+**What I Did:**
+- Rewrote `docs/implementation-plan.md` to eliminate all manual portal click-through steps
+- Converted UI-based procedures to fully scripted approach: Fabric REST API, Azure CLI, PowerShell
+- Added "Scripts Inventory" section mapping each phase to executable automation
+- Compressed document from 1,722 to 1,258 lines (27% reduction)
+- Aligned timeline estimates with script-based automation (weeks → hours)
+
+**Key Changes:**
+- Phase 1 (OneLake): Portal clicks → Fabric REST API + Azure CLI scripts
+- Phase 2 (Mirroring): Manual config → PowerShell automation
+- Phase 3 (Data Agent): Portal-based setup → REST API + ARM templates
+- Removed internal agent references for stakeholder clarity
+
+**Coordination:**
+- Coordinator updated `docs/overview.md` timeline table to reflect new scripted estimates
+- Scripting directive (copilot-directive-20260423T201700Z.md) fully applied
+
+**Records:**
+- Orchestration log: `.squad/orchestration-log/20260423T202700Z-danny.md`
+- Session log: `.squad/log/20260423T202700Z-impl-plan-rewrite.md`
+- Decision consolidated: `.squad/decisions/decisions.md`
