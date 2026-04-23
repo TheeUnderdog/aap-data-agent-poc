@@ -154,3 +154,20 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - View-based contract isolates schema migration complexity
 - Timeline unchanged: placeholder schema continues until AAP provides column-level DDL
 - No action needed in v3 implementation-plan.md; schema swap procedure already documented and ready
+
+### 2026-07: Strategic Build Plan Created
+
+**What I Did:**
+- Created `docs/build-plan.md` — strategic plan for what the squad builds, in what order, and what requires AAP access
+- ~280 lines, structured for Dave to use in AAP stakeholder conversations
+
+**Key Decisions:**
+1. **Two-phase build strategy (A/B):** Phase A builds everything locally (scripts, app, config, tests) with no AAP access needed. Phase B is scripted deployment when access is granted. This keeps the team productive regardless of AAP timeline.
+2. **Semantic model strategy:** Recommended "both" approach — Power BI semantic model AND Data Agent. AAP is a PBI shop; giving them a semantic model is a safety net even if Data Agent accuracy needs tuning.
+3. **Team sprint plan:** 3 weeks for Phase A (parallel tracks: Data Engineer on schema/views/agent config, Backend on scripts/API/infra, Frontend on React app, Tester on harness). Phase B is 1–2 weeks.
+4. **Web app is a real product, not a mockup:** Develops against mock Data Agent API during Phase A so it's fully functional before Fabric access.
+
+**Sequencing Insight:**
+- Everything before AAP access: provisioning scripts, Bicep, placeholder schema, semantic views, Data Agent config, web app, CI/CD, tests
+- Everything after AAP access: running scripts, connecting mirroring, Entra ID SSO, UAT with real data
+- This separation means Phase A demos are possible (mock data) to build AAP confidence while waiting for access
