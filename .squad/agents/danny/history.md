@@ -112,3 +112,45 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - Orchestration log: `.squad/orchestration-log/20260423T202700Z-danny.md`
 - Session log: `.squad/log/20260423T202700Z-impl-plan-rewrite.md`
 - Decision consolidated: `.squad/decisions/decisions.md`
+
+### 2026-04-25: Implementation Plan v3 — Strategy-Focused Rewrite
+
+**What I Did:**
+- Rewrote `docs/implementation-plan.md` from scratch (v3) per Dave's directive
+- Reduced from ~1,258 lines (v2) to 406 lines — 68% reduction
+- Eliminated all full script source code blocks (no 20-line bash/PowerShell blocks)
+- Converted from "runbook" style to "technical design doc" style
+
+**Key Changes from v2:**
+1. **Strategy narrative** replaces step-by-step commands — describes WHAT and WHY, not HOW to type it
+2. **Scripts referenced by name** with 1-line descriptions, but source code not pasted
+3. **API endpoints** mentioned as references (1-line), not full curl commands
+4. **Phase 4 (Web App)** is now high-level — 1 paragraph + diagram, no React/TypeScript code
+5. **Added sections:** Monitoring & Observability, Success Criteria, Prerequisites Summary table
+6. **Kept from v2:** Scripts inventory table, risk register, timeline, validation criteria
+
+**User Preferences Learned:**
+- Dave wants "technical design doc" not "runbook" — describe architecture, not paste scripts
+- Focus on automation *approach* without building the app in the doc
+- Target 400-600 lines for implementation docs (concise, scannable)
+- Use tables, diagrams, and bullets for scannability
+- Phase 4 should be high-level until we actually build it
+- No agent/squad names in customer-facing docs (use role titles)
+
+**File:** `docs/implementation-plan.md` (406 lines, ~27KB)
+**Old versions:** `docs/implementation-plan-scripted.md` (v2), `docs/implementation-plan-manual.md` (v1)
+
+### 2026-04-25: Real AAP Schema Analysis — Cross-Reference Update
+
+**What Livingston Found:**
+- Real AAP Loyalty Database schema received (from architecture diagram)
+- Documented in new `docs/aap-schema-reference.md` (203 lines)
+- Updated `docs/data-schema.md` with cross-reference note
+- Key findings: CrowdTwist external engine, Coupons as major domain, Audit/Fraud and CSR tracking as distinct domains
+- Recommendation: Two new semantic views (coupon_activity, audit_trail), four existing views need remapping
+
+**Implication for Implementation Plan:**
+- Schema abstraction strategy confirmed correct — three-layer approach (source → mirrored → semantic views) allows seamless swap
+- View-based contract isolates schema migration complexity
+- Timeline unchanged: placeholder schema continues until AAP provides column-level DDL
+- No action needed in v3 implementation-plan.md; schema swap procedure already documented and ready
