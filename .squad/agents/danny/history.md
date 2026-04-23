@@ -55,3 +55,36 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - Livingston (Data Engineer) has designed placeholder schema with comprehensive DDL and 20 NL→SQL examples
 - Livingston's view-based abstraction layer aligns perfectly with our schema abstraction strategy
 - View layer enables seamless schema swap when real AAP data arrives — implementation plan directly supports this
+
+### 2026-04-24: Executive Overview Document Created & Committed
+
+**What I Did:**
+- Created `docs/overview.md` — a 1,200-word executive summary for dual audience (AAP stakeholders + Microsoft field team)
+- Document synthesizes all three technical docs without rehashing details
+- Structured for 5–10 minute read with visual flow diagram, phased breakdown, and clear next steps
+
+**Content:**
+1. **The Opportunity** — Why we're building this (self-service NL analytics)
+2. **Solution Overview** — Four-phase approach with ASCII flow diagram
+3. **Phase Summaries** — 2–3 sentence description each, without technical jargon
+4. **Architecture Decision** — Schema abstraction strategy explained for business audience
+5. **Technology Table** — Why we chose each component (accessible rationale)
+6. **AAP Prerequisites** — Clear list of what AAP must provide (no ambiguity)
+7. **Schema Migration** — Concrete procedure for placeholder → production schema swap
+8. **Timeline & Risk Register** — Professional, executive-friendly risk mitigation
+9. **Success Criteria** — Measurable outcomes for stakeholder sign-off
+
+**Key Tone Decisions:**
+- No Squad/agent references (customer-facing document)
+- No time/date estimates (focused on approach, not scheduling)
+- Professional but accessible language (no deep Fabric/Azure jargon)
+- ASCII art flow diagrams (renders reliably everywhere)
+- Links to detailed docs for deep dives
+
+**Orchestration & Records:**
+- Orchestration log: `.squad/orchestration-log/2026-04-23T20-09-00Z-danny.md`
+- Session log: `.squad/log/2026-04-23T20-09-00Z-overview-document.md`
+- Decisions consolidated: `.squad/decisions.md` (merged inbox files, deduplicated)
+- Git commit: docs/overview.md + .squad/ changes
+
+**Document Ready For:** Immediate stakeholder review, Azure/AAP kickoff calls, team planning sessions
