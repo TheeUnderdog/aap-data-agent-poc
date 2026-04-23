@@ -1,0 +1,127 @@
+[
+  {
+    "question": "How many active Gold tier members do we have?",
+    "sql": "SELECT COUNT(*) AS gold_members FROM semantic.v_member_summary WHERE tier = 'Gold' AND member_status = 'active'",
+    "category": "membership"
+  },
+  {
+    "question": "What is the breakdown of members by tier?",
+    "sql": "SELECT tier, COUNT(*) AS member_count, ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) AS pct FROM semantic.v_member_summary WHERE member_status = 'active' GROUP BY tier ORDER BY member_count DESC",
+    "category": "membership"
+  },
+  {
+    "question": "Which members have the highest lifetime spend?",
+    "sql": "SELECT TOP 20 full_name, tier, total_spend, total_transactions, current_points_balance FROM semantic.v_member_summary WHERE member_status = 'active' ORDER BY total_spend DESC",
+    "category": "membership"
+  },
+  {
+    "question": "How many new members enrolled last month?",
+    "sql": "SELECT COUNT(*) AS new_members, enrollment_source, COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() AS pct FROM semantic.v_member_summary WHERE enrollment_date >= DATEADD(month, -1, CAST(GETDATE() AS DATE)) GROUP BY enrollment_source",
+    "category": "membership"
+  },
+  {
+    "question": "What is our total revenue this year?",
+    "sql": "SELECT SUM(total) AS total_revenue, COUNT(*) AS transaction_count, AVG(total) AS avg_transaction FROM semantic.v_transaction_history WHERE transaction_type = 'purchase' AND YEAR(transaction_date) = YEAR(GETDATE())",
+    "category": "transactions"
+  },
+  {
+    "question": "What are the top 10 stores by revenue?",
+    "sql": "SELECT TOP 10 store_name, city, state, region, total_revenue, purchase_count, unique_members FROM semantic.v_store_performance ORDER BY total_revenue DESC",
+    "category": "store_performance"
+  },
+  {
+    "question": "How do online vs in-store transactions compare?",
+    "sql": "SELECT channel, COUNT(*) AS transactions, SUM(total) AS revenue, AVG(total) AS avg_order_value FROM semantic.v_transaction_history WHERE transaction_type = 'purchase' GROUP BY channel ORDER BY revenue DESC",
+    "category": "transactions"
+  },
+  {
+    "question": "What is the monthly revenue trend for the past 12 months?",
+    "sql": "SELECT FORMAT(transaction_date, 'yyyy-MM') AS month, SUM(total) AS revenue, COUNT(*) AS transactions FROM semantic.v_transaction_history WHERE transaction_type = 'purchase' AND transaction_date >= DATEADD(month, -12, GETDATE()) GROUP BY FORMAT(transaction_date, 'yyyy-MM') ORDER BY month",
+    "category": "transactions"
+  },
+  {
+    "question": "What are the best selling product categories?",
+    "sql": "SELECT category, SUM(units_sold) AS total_units, SUM(total_revenue) AS total_revenue, COUNT(*) AS product_count FROM semantic.v_product_popularity GROUP BY category ORDER BY total_revenue DESC",
+    "category": "product"
+  },
+  {
+    "question": "Which products have the highest return rate?",
+    "sql": "SELECT TOP 15 product_name, brand, category, units_sold, units_returned, return_rate_pct FROM semantic.v_product_popularity WHERE units_sold >= 50 ORDER BY return_rate_pct DESC",
+    "category": "product"
+  },
+  {
+    "question": "How many points were earned and redeemed last quarter?",
+    "sql": "SELECT activity_type, SUM(ABS(points_amount)) AS total_points, COUNT(*) AS activity_count FROM semantic.v_points_activity WHERE activity_date >= DATEADD(quarter, -1, GETDATE()) GROUP BY activity_type ORDER BY total_points DESC",
+    "category": "points"
+  },
+  {
+    "question": "Which members have the most unredeemed points?",
+    "sql": "SELECT TOP 20 full_name, tier, points_balance, total_points_earned, total_points_redeemed, last_purchase_date FROM semantic.v_member_engagement WHERE member_status = 'active' ORDER BY points_balance DESC",
+    "category": "points"
+  },
+  {
+    "question": "What is the coupon redemption rate by campaign?",
+    "sql": "SELECT rule_name, total_issued, total_redeemed, redemption_rate_pct, revenue_from_redeemed_transactions FROM semantic.v_campaign_effectiveness WHERE total_issued > 0 ORDER BY redemption_rate_pct DESC",
+    "category": "coupons"
+  },
+  {
+    "question": "Which coupon campaigns generated the most revenue?",
+    "sql": "SELECT TOP 10 rule_name, discount_type, total_redeemed, revenue_from_redeemed_transactions, avg_transaction_value_at_redemption FROM semantic.v_campaign_effectiveness ORDER BY revenue_from_redeemed_transactions DESC",
+    "category": "coupons"
+  },
+  {
+    "question": "How many coupons are currently outstanding (issued but not yet redeemed)?",
+    "sql": "SELECT COUNT(*) AS outstanding_coupons, SUM(discount_value) AS total_potential_discount FROM semantic.v_coupon_activity WHERE status = 'issued' AND expiry_date >= CAST(GETDATE() AS DATE)",
+    "category": "coupons"
+  },
+  {
+    "question": "Who are our most engaged Platinum members?",
+    "sql": "SELECT TOP 20 full_name, transaction_count, total_spend, points_balance, coupons_redeemed, days_since_last_purchase FROM semantic.v_member_engagement WHERE tier = 'Platinum' AND member_status = 'active' ORDER BY total_spend DESC",
+    "category": "engagement"
+  },
+  {
+    "question": "Which members are at risk of churning?",
+    "sql": "SELECT full_name, tier, total_spend, last_purchase_date, days_since_last_purchase, points_balance FROM semantic.v_member_engagement WHERE member_status = 'active' AND days_since_last_purchase > 180 ORDER BY total_spend DESC",
+    "category": "engagement"
+  },
+  {
+    "question": "What is the average spend by tier?",
+    "sql": "SELECT tier, COUNT(*) AS members, AVG(total_spend) AS avg_lifetime_spend, AVG(transaction_count) AS avg_transactions, AVG(points_balance) AS avg_points FROM semantic.v_member_engagement WHERE member_status = 'active' GROUP BY tier ORDER BY avg_lifetime_spend DESC",
+    "category": "engagement"
+  },
+  {
+    "question": "Which regions have the most store activity?",
+    "sql": "SELECT region, COUNT(*) AS store_count, SUM(total_revenue) AS total_revenue, SUM(unique_members) AS total_members, AVG(avg_transaction_value) AS avg_txn_value FROM semantic.v_store_performance GROUP BY region ORDER BY total_revenue DESC",
+    "category": "store_performance"
+  },
+  {
+    "question": "What coupon actions did CSR agents perform this month?",
+    "sql": "SELECT agent_name, agent_department, activity_type, COUNT(*) AS action_count FROM semantic.v_audit_trail WHERE activity_date >= DATEADD(month, -1, CAST(GETDATE() AS DATE)) GROUP BY agent_name, agent_department, activity_type ORDER BY action_count DESC",
+    "category": "engagement"
+  },
+  {
+    "question": "What percentage of members have opted in to email and SMS?",
+    "sql": "SELECT SUM(CASE WHEN opt_in_email = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS email_opt_in_pct, SUM(CASE WHEN opt_in_sms = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*) AS sms_opt_in_pct FROM semantic.v_member_summary WHERE member_status = 'active'",
+    "category": "membership"
+  },
+  {
+    "question": "What are the top 10 brands by revenue?",
+    "sql": "SELECT TOP 10 brand, SUM(units_sold) AS total_units, SUM(total_revenue) AS total_revenue, COUNT(*) AS sku_count FROM semantic.v_product_popularity GROUP BY brand ORDER BY total_revenue DESC",
+    "category": "product"
+  },
+  {
+    "question": "Show me the points earning trend by month for Gold and Platinum members",
+    "sql": "SELECT FORMAT(activity_date, 'yyyy-MM') AS month, member_tier, SUM(points_amount) AS points_earned FROM semantic.v_points_activity WHERE activity_type = 'earn' AND member_tier IN ('Gold', 'Platinum') GROUP BY FORMAT(activity_date, 'yyyy-MM'), member_tier ORDER BY month",
+    "category": "points"
+  },
+  {
+    "question": "Which stores have the highest return rates?",
+    "sql": "SELECT TOP 15 store_name, city, state, purchase_count, return_count, CASE WHEN purchase_count = 0 THEN 0 ELSE CAST(return_count AS FLOAT) / purchase_count * 100 END AS return_rate_pct FROM semantic.v_store_performance WHERE total_transactions >= 20 ORDER BY return_rate_pct DESC",
+    "category": "store_performance"
+  },
+  {
+    "question": "How effective are tier-targeted coupon campaigns?",
+    "sql": "SELECT rule_name, target_tier, total_issued, total_redeemed, redemption_rate_pct, revenue_from_redeemed_transactions FROM semantic.v_campaign_effectiveness WHERE target_tier IS NOT NULL ORDER BY redemption_rate_pct DESC",
+    "category": "coupons"
+  }
+]

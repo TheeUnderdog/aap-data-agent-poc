@@ -9,3 +9,14 @@
 - **Customer context:** Marketing team will use natural language to query rewards/loyalty data. Sample query set will be provided.
 
 ## Learnings
+
+### Fabric REST API Provisioning (2026-04-25)
+- **Workspace API:** `GET /v1/workspaces?$filter=displayName eq '{name}'` for existence check, `POST /v1/workspaces` with `displayName` + `capacityId` to create
+- **Lakehouse API:** `GET /v1/workspaces/{id}/lakehouses` to list, `POST /v1/workspaces/{id}/lakehouses` to create. SQL endpoint available at `.properties.sqlEndpointProperties.connectionString`
+- **Auth pattern:** `az account get-access-token --resource https://api.fabric.microsoft.com` for management API; `--resource https://database.windows.net` for SQL endpoint access
+- **SQL endpoint delay:** Lakehouse SQL endpoint may not be immediately available after creation — script handles gracefully with warning
+- **Rate limits:** Fabric API returns 429 with Retry-After header; exponential backoff handles this
+- **View deployment:** Lakehouse SQL endpoint accepts AAD token auth via `Invoke-Sqlcmd -AccessToken` or `SqlClient.AccessToken` property
+- **409 handling:** Both workspace and lakehouse creation can return 409 Conflict if item already exists — scripts recover by fetching the existing item
+- **Scripts produced:** `scripts/setup-workspace.ps1`, `scripts/deploy-semantic-views.ps1`, `scripts/README.md`
+- **Config output:** `.env.fabric` stores workspace/lakehouse IDs and SQL endpoint for downstream scripts
