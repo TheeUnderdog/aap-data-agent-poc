@@ -12,6 +12,8 @@ Advanced Auto Parts' marketing team needs to answer questions about customer rew
 
 **Expected Outcome:** Marketing team members can type questions like "How many gold-tier customers purchased in the last month?" and instantly get accurate, AI-generated SQL results—no data engineering team needed.
 
+**Implementation Approach:** The entire POC is deployed via scripts (Fabric REST API, Azure CLI, Bicep)—no manual portal configuration. All automation lives in the project repository, making the deployment repeatable and auditable.
+
 ---
 
 ## How It Works: The Solution in Four Phases
@@ -34,17 +36,17 @@ Advanced Auto Parts' marketing team needs to answer questions about customer rew
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Phase 1: Fabric Workspace (3–5 days)
-Set up a dedicated Microsoft Fabric workspace with a Lakehouse for storing mirrored data. This is the foundation—a secured space within AAP's existing Fabric environment where all data and analytics components live.
+### Phase 1: Fabric Workspace (2–4 hours active)
+Set up a dedicated Microsoft Fabric workspace with a Lakehouse for storing mirrored data, fully automated via Fabric REST API and Azure CLI scripts. This is the foundation—a secured space within AAP's existing Fabric environment where all data and analytics components live.
 
-### Phase 2: PostgreSQL Mirroring (5–7 days)
-Configure Fabric Mirroring to automatically sync rewards and loyalty data from Azure PostgreSQL into Fabric's OneLake storage. Data updates in near-real-time (typically within minutes), so the Data Agent always works with fresh information. We deploy a placeholder schema to prove the architecture works.
+### Phase 2: PostgreSQL Mirroring (4–6 hours active)
+Configure Fabric Mirroring to automatically sync rewards and loyalty data from Azure PostgreSQL into Fabric's OneLake storage. Data updates in near-real-time (typically within minutes), so the Data Agent always works with fresh information. We deploy a placeholder schema to prove the architecture works. All provisioning is scripted.
 
-### Phase 3: Fabric Data Agent (5–7 days)
-Deploy a Fabric Data Agent configured with business context (e.g., "gold tier means $1,500+ annual spend"). The agent learns from sample questions and translates natural language into accurate SQL queries. It runs inside the Fabric workspace and returns results in seconds.
+### Phase 3: Fabric Data Agent (4–6 hours active)
+Deploy a Fabric Data Agent configured with business context (e.g., "gold tier means $1,500+ annual spend"). The agent learns from sample questions and translates natural language into accurate SQL queries. It runs inside the Fabric workspace and returns results in seconds. Configuration is stored as code and deployed via scripts.
 
-### Phase 4: Web Application (3–5 days)
-Build a lightweight React web app with a chat-like interface. Users authenticate via Azure Entra ID (SSO), ask questions in plain English, and see results with the generated SQL for transparency. The app runs in Azure Static Web Apps (serverless, low cost).
+### Phase 4: Web Application (1–2 days active)
+Build a lightweight React web app with a chat-like interface. Users authenticate via Azure Entra ID (SSO), ask questions in plain English, and see results with the generated SQL for transparency. The app deploys to Azure Static Web Apps via Bicep templates and CI/CD pipeline.
 
 ---
 
@@ -118,7 +120,7 @@ To move forward, AAP must deliver:
 4. **Run regression tests** with real data
 5. **Switch Data Agent to production** (single configuration update)
 
-**Effort:** 1–2 days for data engineer. **Code changes required:** Zero in the app, API, or Data Agent logic.
+**Effort:** 4–8 hours active work for data engineer. **Code changes required:** Zero in the app, API, or Data Agent logic.
 
 ---
 
