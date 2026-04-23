@@ -57,6 +57,27 @@
 - **Owner:** Danny (Lead/Architect)
 - **Status:** Approved & Documented in build-plan.md
 
+### Fabric Provisioning Script Design (2026-04-25)
+- **Decision:** Provisioning scripts use Fabric REST API (`api.fabric.microsoft.com/v1`) with Azure CLI token auth, idempotent create-or-reuse semantics, and output a shared `.env.fabric` config file
+- **Rationale:** Automation eliminates manual portal clicking. Idempotent semantics allow safe re-execution. Config bridge enables multi-stage provisioning with clear ownership boundaries
+- **Implementation:** Two PowerShell scripts: setup-workspace.ps1 (creates workspace/lakehouse), deploy-semantic-views.ps1 (executes SQL views). SqlClient fallback removes hard dependency on SqlServer module. `.env.fabric` in .gitignore keeps secrets local
+- **Owner:** Basher (Backend Developer)
+- **Status:** Implemented
+
+### Delta Sample Schema Design (2026-04-23)
+- **Decision:** Implement 10-table Delta schema with 9 semantic views as contract layer
+- **Rationale:** Stores table enables store-level analytics (key Data Agent use case). Coupon rules separated for campaign effectiveness analysis. Added v_coupon_activity, v_campaign_effectiveness, v_audit_trail views. T-SQL syntax for Fabric Lakehouse SQL endpoint compatibility
+- **Implementation:** Mirrored schema reserved for mirror output; applications query views only. 337K rows with realistic distributions. Date range 2025-01-01 through 2026-04-23 enables full year of testing
+- **Owner:** Livingston (Data Engineer)
+- **Status:** Implemented
+
+### User Directive: Phased Build Approach (2026-04-23)
+- **Decision:** Do not start web app yet. Focus on Fabric environment + sample schema with Delta data first, then Data Agent, then web app later
+- **Rationale:** User direction from Dave Grobleski — phased build approach reduces complexity and enables early validation
+- **Impact:** Team prioritizes infrastructure and schema validation in Phase A; web app deferred to later phase
+- **Owner:** Dave Grobleski
+- **Status:** Documented for Team Memory
+
 ## Governance
 
 - All meaningful changes require team consensus
