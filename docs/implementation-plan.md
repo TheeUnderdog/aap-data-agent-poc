@@ -1,81 +1,146 @@
 # AAP Data Agent POC — Implementation Plan
 
-**Version:** 1.0  
-**Date:** April 2026  
-**Project:** Advanced Auto Parts Data Agent Proof of Concept  
-**Owner:** Danny (Lead/Architect)
+**Version:** 2.0
+**Date:** April 2026
+**Project:** Advanced Auto Parts Data Agent Proof of Concept
 
 ---
 
 ## Executive Summary
 
-This implementation plan provides a detailed, phased approach to deploying the AAP Data Agent POC. The plan is structured around four sequential phases that align with the technical architecture: (1) Fabric workspace setup, (2) PostgreSQL mirroring configuration, (3) Data Agent deployment, and (4) web application development. Each phase includes step-by-step tasks, prerequisites, validation criteria, and estimated timelines. A dedicated section outlines the schema swap procedure for transitioning from placeholder to production data.
+This plan provides a fully scripted, phased approach to deploying the AAP Data Agent POC. Every provisioning step uses CLI commands, REST API calls, or deployment scripts — no portal click-through required. All scripts referenced here live (or will live) in this repository under `scripts/`, `config/`, and `infra/`.
 
-**Total Estimated Timeline:** 3-4 weeks (assuming no blockers on AAP prerequisites)
+**Total Estimated Active Work:** 3–5 days hands-on
+**Total Calendar Time:** 2–3 weeks (including wait time for AAP prerequisites and access grants)
+
+> **Convention:** Time estimates in this document are split into **active work time** (hands-on-keyboard) and **wait time** (blocked on external approvals, provisioning delays, data snapshot completion, etc.).
+
+---
+
+## Scripts Inventory
+
+All automation scripts referenced in this plan:
+
+| Script | Description |
+|--------|-------------|
+| `scripts/setup-workspace.ps1` | Creates Fabric workspace, Lakehouse, and role assignments via REST API |
+| `scripts/create-service-principal.sh` | Creates Entra ID app registration + service principal, stores secrets in Key Vault |
+| `scripts/configure-postgres.sh` | Sets PostgreSQL WAL parameters, creates mirroring user, configures firewall |
+| `scripts/setup-mirroring.ps1` | Creates Fabric mirrored database item via REST API / PowerShell |
+| `scripts/deploy-placeholder-schema.sh` | Deploys placeholder tables and sample data to PostgreSQL |
+| `scripts/create-semantic-views.sql` | SQL script to create all semantic views in Lakehouse |
+| `scripts/configure-data-agent.ps1` | Creates and configures Fabric Data Agent via REST API |
+| `scripts/test-data-agent.py` | Python test harness — runs sample queries against Data Agent API |
+| `scripts/deploy.sh` | End-to-end Azure resource deployment (wraps Bicep + app deploy) |
+| `scripts/register-entra-apps.sh` | Creates SPA and API app registrations via Azure CLI |
+| `scripts/schema-swap.ps1` | Orchestrates production schema cutover (views + mirroring update) |
+| `infra/main.bicep` | Bicep template for all Azure resources (Static Web App, Functions, Key Vault) |
+| `config/data-agent-instructions.md` | Data Agent system prompt / grounding instructions |
+| `config/sample-queries.json` | Sample question set for Data Agent training |
+| `config/fabric-workspace-config.json` | Runtime config with workspace IDs, endpoints, principal info |
+
+---
+
+## Prerequisites & Authentication
+
+All scripts authenticate using Azure CLI and Fabric REST API tokens.
+
+```bash
+# Login to Azure (interactive — run once per session)
+az login
+
+# Acquire a Fabric REST API token
+FABRIC_TOKEN=$(az account get-access-token \
+  --resource https://api.fabric.microsoft.com \
+  --query accessToken -o tsv)
+
+# Common header for all Fabric API calls
+AUTH_HEADER="Authorization: Bearer $FABRIC_TOKEN"
+FABRIC_BASE="https://api.fabric.microsoft.com/v1"
+```
 
 ---
 
 ## Phase 1: Fabric Workspace Setup
 
-**Objective:** Provision and configure a Microsoft Fabric workspace with Lakehouse for mirrored data storage.
+**Objective:** Provision Fabric workspace, Lakehouse, service principal, and role assignments — entirely via script.
 
-**Duration:** 3-5 days  
-**Owner:** Data Platform Team / DevOps  
-**Prerequisites:** 
-- Access to AAP's Fabric tenant (Fabric Admin or Capacity Admin role)
+**Active Work Time:** 2–4 hours
+**Wait Time:** 0–2 days (awaiting Fabric tenant access from AAP)
+**Owner:** Data Platform Team
+
+**Prerequisites:**
+- Access to AAP's Fabric tenant (Capacity Admin or Fabric Admin role)
 - Decision on which existing Fabric capacity to use
-- Naming conventions and resource tagging standards
+- Azure CLI installed and authenticated (`az login`)
 
-### Tasks
+### 1.1 Create Fabric Workspace
 
-#### 1.1 Workspace Provisioning
+**Script:** `scripts/setup-workspace.ps1`
 
-**Steps:**
-1. Log into [Microsoft Fabric portal](https://app.fabric.microsoft.com)
-2. Navigate to **Workspaces** → **New Workspace**
-3. Configure workspace:
-   - **Name:** `AAP-RewardsLoyalty-POC` (or per AAP naming convention)
-   - **Description:** "Proof of concept for natural language data querying over rewards/loyalty data"
-   - **License Mode:** Fabric Capacity (select from AAP's existing capacities)
-   - **Capacity:** Choose non-production capacity in same region as Azure PostgreSQL
-4. Set workspace admins:
-   - Add DevOps/Platform team members
-   - Add Danny (architect) for oversight
-5. Create workspace → Verify creation successful
+```bash
+# Create workspace
+curl -s -X POST "$FABRIC_BASE/workspaces" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "displayName": "AAP-RewardsLoyalty-POC",
+    "description": "POC for natural language data querying over rewards/loyalty data",
+    "capacityId": "<capacity-guid>"
+  }'
+# Response includes workspaceId — capture it
+```
 
-**Validation:**
-- Workspace appears in workspace list
-- Workspace settings show correct capacity assignment
-- Admins can access workspace
+```powershell
+# PowerShell equivalent (scripts/setup-workspace.ps1)
+$body = @{
+    displayName = "AAP-RewardsLoyalty-POC"
+    description = "POC for natural language data querying over rewards/loyalty data"
+    capacityId  = $CapacityId
+} | ConvertTo-Json
 
-**Estimated Time:** 30 minutes
+$workspace = Invoke-RestMethod -Uri "$FabricBase/workspaces" `
+    -Method POST -Headers $headers -Body $body -ContentType "application/json"
 
-#### 1.2 Lakehouse Creation
-
-**Steps:**
-1. Within workspace, click **New** → **Lakehouse**
-2. Configure Lakehouse:
-   - **Name:** `RewardsLoyaltyData`
-   - **Description:** "Mirrored PostgreSQL data for rewards and loyalty program"
-3. Create Lakehouse
-4. Navigate to Lakehouse → **Settings** → **SQL endpoint**
-5. Verify SQL endpoint is enabled (should be default)
-6. Note SQL endpoint connection string (format: `<workspace>.datawarehouse.fabric.microsoft.com`)
+$workspaceId = $workspace.id
+Write-Host "Workspace created: $workspaceId"
+```
 
 **Validation:**
-- Lakehouse visible in workspace items list
-- SQL endpoint shows "Running" status
-- Can connect to SQL endpoint via SQL Server Management Studio (SSMS) or Azure Data Studio
-  - Connection: Use Azure Active Directory authentication
-  - Database: `RewardsLoyaltyData`
 
-**Estimated Time:** 1 hour (including SQL endpoint validation)
+```bash
+# List workspaces — confirm AAP-RewardsLoyalty-POC exists
+curl -s "$FABRIC_BASE/workspaces" -H "$AUTH_HEADER" | jq '.value[] | select(.displayName == "AAP-RewardsLoyalty-POC")'
+```
 
-#### 1.3 Schema Creation in Lakehouse
+### 1.2 Create Lakehouse
 
-**Steps:**
-1. Connect to Lakehouse SQL endpoint (via SSMS, Azure Data Studio, or Fabric SQL editor)
-2. Create schemas for data organization:
+```bash
+# Create Lakehouse item in workspace
+curl -s -X POST "$FABRIC_BASE/workspaces/$WORKSPACE_ID/items" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "displayName": "RewardsLoyaltyData",
+    "description": "Mirrored PostgreSQL data for rewards and loyalty program",
+    "type": "Lakehouse"
+  }'
+# Response includes Lakehouse itemId and SQL endpoint info
+```
+
+**Validation:**
+
+```bash
+# List items in workspace — confirm Lakehouse exists
+curl -s "$FABRIC_BASE/workspaces/$WORKSPACE_ID/items?type=Lakehouse" \
+  -H "$AUTH_HEADER" | jq '.value[]'
+```
+
+SQL endpoint connection string format: `<workspace-name>.datawarehouse.fabric.microsoft.com`
+
+### 1.3 Schema Creation in Lakehouse
+
+Connect to Lakehouse SQL endpoint (via `sqlcmd`, Azure Data Studio, or Fabric SQL editor):
 
 ```sql
 -- Create schema for mirrored tables
@@ -85,68 +150,85 @@ GO
 -- Create schema for semantic views (contract layer)
 CREATE SCHEMA semantic;
 GO
-```
 
-3. Verify schema creation:
-
-```sql
+-- Verify
 SELECT name FROM sys.schemas WHERE name IN ('mirrored', 'semantic');
 ```
 
-**Validation:**
-- Both schemas exist in Lakehouse
-- Query returns two rows: `mirrored`, `semantic`
+### 1.4 Service Principal Setup
 
-**Estimated Time:** 15 minutes
+**Script:** `scripts/create-service-principal.sh`
 
-#### 1.4 Service Principal Setup
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-**Steps:**
-1. Navigate to [Azure Portal](https://portal.azure.com) → **Entra ID** → **App registrations**
-2. Click **New registration**:
-   - **Name:** `AAP-DataAgent-ServicePrincipal`
-   - **Supported account types:** Single tenant (AAP tenant only)
-   - **Redirect URI:** (none for service principal)
-3. Register → Note **Application (client) ID** and **Tenant ID**
-4. Navigate to **Certificates & secrets** → **New client secret**:
-   - **Description:** `Fabric access for Data Agent API`
-   - **Expires:** 6 months (or per AAP policy)
-   - Copy secret **Value** (only shown once)
-5. Store credentials in Azure Key Vault (created in Phase 4):
-   - For now, store securely in password manager or encrypted file
+APP_NAME="AAP-DataAgent-ServicePrincipal"
+KEYVAULT_NAME="aap-data-agent-kv"
 
-**Grant Service Principal Access to Fabric Workspace:**
-1. Return to Fabric portal → Workspace → **Manage access**
-2. Click **Add people or groups**
-3. Search for `AAP-DataAgent-ServicePrincipal` (app name)
-4. Assign role: **Contributor** (allows read/execute, not modify workspace settings)
-5. Save
+# Create Entra ID app registration
+APP_ID=$(az ad app create \
+  --display-name "$APP_NAME" \
+  --sign-in-audience AzureADMyOrg \
+  --query appId -o tsv)
 
-**Grant Service Principal Access to Lakehouse SQL Endpoint:**
-1. Connect to Lakehouse SQL endpoint as admin
-2. Grant read permission on `semantic` schema:
+# Create service principal for the app
+az ad sp create --id "$APP_ID"
+
+# Generate client secret (6-month expiry)
+CLIENT_SECRET=$(az ad app credential reset \
+  --id "$APP_ID" \
+  --years 0.5 \
+  --query password -o tsv)
+
+TENANT_ID=$(az account show --query tenantId -o tsv)
+
+echo "App ID:        $APP_ID"
+echo "Tenant ID:     $TENANT_ID"
+echo "Client Secret: (stored in Key Vault)"
+
+# Store credentials in Key Vault (created in Phase 4, or create early)
+az keyvault secret set --vault-name "$KEYVAULT_NAME" \
+  --name "FabricSPClientId" --value "$APP_ID"
+az keyvault secret set --vault-name "$KEYVAULT_NAME" \
+  --name "FabricSPClientSecret" --value "$CLIENT_SECRET"
+az keyvault secret set --vault-name "$KEYVAULT_NAME" \
+  --name "FabricSPTenantId" --value "$TENANT_ID"
+```
+
+### 1.5 Workspace Role Assignment
+
+Grant the service principal Contributor access to the workspace:
+
+```bash
+SP_OBJECT_ID=$(az ad sp show --id "$APP_ID" --query id -o tsv)
+
+curl -s -X POST "$FABRIC_BASE/workspaces/$WORKSPACE_ID/roleAssignments" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"principal\": {
+      \"id\": \"$SP_OBJECT_ID\",
+      \"type\": \"ServicePrincipal\"
+    },
+    \"role\": \"Contributor\"
+  }"
+```
+
+Grant SQL-level read access on semantic schema:
 
 ```sql
--- Create user for service principal
+-- Connect to Lakehouse SQL endpoint as admin
 CREATE USER [AAP-DataAgent-ServicePrincipal] FROM EXTERNAL PROVIDER;
 GO
 
--- Grant read access to semantic schema
 GRANT SELECT ON SCHEMA::semantic TO [AAP-DataAgent-ServicePrincipal];
 GO
 ```
 
-**Validation:**
-- Service principal appears in Fabric workspace access list
-- Can acquire token for service principal using client ID + secret
-- (Deferred validation: test in Phase 3 when Data Agent configured)
+### 1.6 Save Workspace Configuration
 
-**Estimated Time:** 1 hour
-
-#### 1.5 Workspace Configuration Documentation
-
-**Steps:**
-1. Create configuration document in source control: `config/fabric-workspace-config.json`
+Write outputs to `config/fabric-workspace-config.json` (committed to repo with placeholder GUIDs; actual values injected at deploy time or stored in Key Vault):
 
 ```json
 {
@@ -162,435 +244,427 @@ GO
     "schemas": ["mirrored", "semantic"]
   },
   "servicePrincipal": {
-    "clientId": "<client-id>",
+    "clientId": "<from-key-vault>",
     "displayName": "AAP-DataAgent-ServicePrincipal",
-    "tenantId": "<tenant-id>"
+    "tenantId": "<from-key-vault>"
   }
 }
 ```
 
-2. Document connection instructions for team: `docs/fabric-connection-guide.md`
-3. Add to README any prerequisites for accessing workspace
-
-**Validation:**
-- Config file committed to Git
-- Connection guide accessible to team members
-
-**Estimated Time:** 30 minutes
-
 ### Phase 1 Deliverables
 
-- [ ] Fabric workspace `AAP-RewardsLoyalty-POC` provisioned
+- [ ] Fabric workspace `AAP-RewardsLoyalty-POC` created via API
 - [ ] Lakehouse `RewardsLoyaltyData` with SQL endpoint enabled
 - [ ] Schemas `mirrored` and `semantic` created
-- [ ] Service principal created with Contributor role in workspace
-- [ ] Configuration documented in `config/fabric-workspace-config.json`
+- [ ] Service principal created, credentialed, and stored in Key Vault
+- [ ] Contributor role assigned via REST API
+- [ ] Configuration saved to `config/fabric-workspace-config.json`
 
 ### Phase 1 Risks & Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Capacity at max CU utilization | Medium | High | Monitor capacity metrics before assignment; request additional capacity if needed |
-| Service principal permissions insufficient | Medium | Medium | Test end-to-end in Phase 3; adjust permissions as needed |
-| Network connectivity issues to SQL endpoint | Low | Medium | Validate from developer workstation and Azure Functions (Phase 4) |
+| Fabric capacity at max CU utilization | Medium | High | Query capacity metrics via API before assignment; request additional capacity if needed |
+| Service principal permissions insufficient | Medium | Medium | Test end-to-end in Phase 3; adjust role assignments via API |
+| Network connectivity to SQL endpoint | Low | Medium | Validate from dev workstation and Azure Functions runtime |
 
 ---
 
 ## Phase 2: Data Mirroring
 
-**Objective:** Configure Fabric Mirroring to replicate Azure PostgreSQL rewards/loyalty data into Lakehouse, deploy placeholder schema, and create semantic views.
+**Objective:** Configure PostgreSQL for logical replication, set up Fabric Mirroring, deploy placeholder schema, and create semantic views.
 
-**Duration:** 5-7 days  
-**Owner:** Data Engineering Team + Livingston (Data Modeler)  
+**Active Work Time:** 4–6 hours
+**Wait Time:** 0–3 days (awaiting PostgreSQL access, server restart approval)
+**Owner:** Data Engineering Team
+
 **Prerequisites:**
-- Phase 1 complete (workspace and Lakehouse ready)
-- Access to Azure PostgreSQL server (admin credentials)
-- Network connectivity from Fabric to PostgreSQL (public endpoint or private link)
-- PostgreSQL `wal_level` set to `logical` (required for CDC)
+- Phase 1 complete
+- Azure PostgreSQL Flexible Server access (admin credentials)
+- Network connectivity from Fabric to PostgreSQL
+- Approval to set `wal_level = logical` (requires server restart)
 
-### Tasks
+### 2.1 PostgreSQL Configuration
 
-#### 2.1 PostgreSQL Prerequisites Validation
+**Script:** `scripts/configure-postgres.sh`
 
-**Steps:**
-1. **Verify PostgreSQL Version:**
-   - Connect to PostgreSQL server (via psql, pgAdmin, or Azure Portal)
-   - Run: `SELECT version();`
-   - Confirm version ≥ 11 (required for logical replication)
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-2. **Enable Logical Replication:**
-   - **Azure PostgreSQL Flexible Server:**
-     - Navigate to server in Azure Portal → **Server parameters**
-     - Set `wal_level` = `logical`
-     - Set `max_replication_slots` = `10` (or higher if multiple mirroring jobs)
-     - Set `max_wal_senders` = `10`
-     - **Save** → Server will restart (downtime ~2-5 minutes)
-   - **Azure PostgreSQL Single Server:**
-     - Same parameters, may require support ticket for some settings
+PG_SERVER="<server-name>"
+PG_RG="<resource-group>"
 
-3. **Create Mirroring User (Optional but Recommended):**
-   ```sql
-   -- As PostgreSQL admin
-   CREATE USER fabric_mirror WITH PASSWORD '<secure-password>';
-   GRANT CONNECT ON DATABASE <rewards_db> TO fabric_mirror;
-   GRANT USAGE ON SCHEMA public TO fabric_mirror;
-   GRANT SELECT ON ALL TABLES IN SCHEMA public TO fabric_mirror;
-   ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO fabric_mirror;
-   
-   -- Grant replication privilege
-   ALTER USER fabric_mirror REPLICATION;
-   ```
+# Enable logical replication (triggers server restart — ~2-5 min downtime)
+az postgres flexible-server parameter set \
+  --resource-group "$PG_RG" --server-name "$PG_SERVER" \
+  --name wal_level --value logical
 
-4. **Network Access:**
-   - **If public endpoint:**
-     - Azure Portal → PostgreSQL server → **Networking** → **Firewall rules**
-     - Add rule to allow Fabric service IPs (see [Fabric networking docs](https://learn.microsoft.com/en-us/fabric/admin/service-ip-addresses))
-     - Or allow all Azure services (less secure, but acceptable for POC)
-   - **If private endpoint:**
-     - Ensure private link configured
-     - Verify Fabric can resolve private DNS
-     - Test connectivity from Fabric workspace (use notebook with psycopg2)
+az postgres flexible-server parameter set \
+  --resource-group "$PG_RG" --server-name "$PG_SERVER" \
+  --name max_replication_slots --value 10
 
-**Validation:**
-- `wal_level` = `logical` (run `SHOW wal_level;`)
-- Mirroring user can connect and read tables
-- Fabric can reach PostgreSQL endpoint (test in Fabric notebook):
+az postgres flexible-server parameter set \
+  --resource-group "$PG_RG" --server-name "$PG_SERVER" \
+  --name max_wal_senders --value 10
 
-```python
-import psycopg2
-conn = psycopg2.connect(
-    host='<postgres-server>.postgres.database.azure.com',
-    database='<db>',
-    user='fabric_mirror',
-    password='<password>'
-)
-cursor = conn.cursor()
-cursor.execute('SELECT 1;')
-print(cursor.fetchone())  # Should print (1,)
-conn.close()
+# Restart server to apply wal_level change
+az postgres flexible-server restart \
+  --resource-group "$PG_RG" --server-name "$PG_SERVER"
+
+echo "Waiting for server restart..."
+az postgres flexible-server wait --name "$PG_SERVER" \
+  --resource-group "$PG_RG" --created
+
+# Add firewall rule for Fabric service
+az postgres flexible-server firewall-rule create \
+  --resource-group "$PG_RG" --name "$PG_SERVER" \
+  --rule-name AllowFabricServices \
+  --start-ip-address 0.0.0.0 --end-ip-address 0.0.0.0
+# Note: 0.0.0.0 allows all Azure services. For production, use specific Fabric IPs.
 ```
 
-**Estimated Time:** 2-3 hours (including server restart)
+**Create Mirroring User:**
 
-#### 2.2 Placeholder Schema Deployment (PostgreSQL)
-
-**Context:** Since AAP has not provided production schema, Livingston creates placeholder schema based on rewards/loyalty domain knowledge.
-
-**Steps:**
-1. **Review Placeholder Schema:** See `docs/data-schema.md` (created by Livingston)
-   - Tables: `customers`, `transactions`, `rewards`, `redemptions`, `products`, `stores`
-   - Relationships: Foreign keys defined
-   - Sample data generation scripts
-
-2. **Deploy Schema to PostgreSQL:**
-   - Option A: If AAP has a dev/sandbox PostgreSQL instance, deploy there
-   - Option B: Create new Azure PostgreSQL Flexible Server for POC (recommended to avoid impacting any existing systems)
-     - Cost: ~$50-100/month for POC
-     - Create server in Azure Portal → PostgreSQL flexible server
-     - Configure firewall, enable logical replication (as in 2.1)
-
-3. **Run Schema Creation Scripts:**
-   ```bash
-   # Assuming scripts in database/placeholder-schema/
-   psql -h <server> -U <admin-user> -d <db> -f database/placeholder-schema/01-create-tables.sql
-   psql -h <server> -U <admin-user> -d <db> -f database/placeholder-schema/02-create-indexes.sql
-   psql -h <server> -U <admin-user> -d <db> -f database/placeholder-schema/03-insert-sample-data.sql
-   ```
-
-4. **Verify Data Load:**
-   ```sql
-   SELECT 'customers' AS table_name, COUNT(*) FROM customers
-   UNION ALL
-   SELECT 'transactions', COUNT(*) FROM transactions
-   UNION ALL
-   SELECT 'rewards', COUNT(*) FROM rewards;
-   ```
-   - Expected: ~100K customers, ~1M transactions, ~100K rewards records
+```sql
+-- Run via psql or Azure Data Studio against PostgreSQL
+CREATE USER fabric_mirror WITH PASSWORD '<secure-password>';
+GRANT CONNECT ON DATABASE <rewards_db> TO fabric_mirror;
+GRANT USAGE ON SCHEMA public TO fabric_mirror;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO fabric_mirror;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO fabric_mirror;
+ALTER USER fabric_mirror REPLICATION;
+```
 
 **Validation:**
-- All placeholder tables exist in PostgreSQL
-- Sample data loaded (row counts match expectations)
-- Foreign key relationships intact (`SELECT * FROM information_schema.table_constraints WHERE constraint_type = 'FOREIGN KEY';`)
 
-**Estimated Time:** 2-4 hours (depending on data generation time)
+```bash
+# Verify WAL level
+psql -h "$PG_SERVER.postgres.database.azure.com" -U <admin> -d <db> \
+  -c "SHOW wal_level;"
+# Expected: logical
+```
 
-#### 2.3 Configure Fabric Mirroring
+### 2.2 Placeholder Schema Deployment
 
-**Steps:**
-1. **Create Mirroring Connection:**
-   - Fabric portal → Workspace → **New** → **Mirrored Database** → **Azure Database for PostgreSQL**
-   - Configure connection:
-     - **Connection name:** `AAP-PostgreSQL-RewardsLoyalty`
-     - **Server:** `<server>.postgres.database.azure.com`
-     - **Port:** 5432
-     - **Database:** `<db-name>`
-     - **Authentication:** SQL authentication (username: `fabric_mirror`, password: stored in Key Vault or entered directly)
-     - **Encryption:** Require (SSL/TLS)
-   - **Test connection** → Should succeed
-   - Save connection
+**Script:** `scripts/deploy-placeholder-schema.sh`
 
-2. **Select Tables to Mirror:**
-   - Fabric shows list of tables in PostgreSQL database
-   - Select tables: `customers`, `transactions`, `rewards`, `redemptions`, `products`, `stores`
-   - Deselect any system tables (e.g., `pg_*`)
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-3. **Configure Mirroring Destination:**
-   - **Target Lakehouse:** `RewardsLoyaltyData`
-   - **Target schema:** `mirrored` (create if not exists)
-   - **Table name mapping:** Use source table names (e.g., `customers` → `mirrored.customers`)
+PG_HOST="<server>.postgres.database.azure.com"
+PG_USER="<admin-user>"
+PG_DB="<rewards_db>"
 
-4. **Start Mirroring:**
-   - Review configuration
-   - Click **Start mirroring**
-   - Fabric begins initial snapshot (full table copy)
+# Deploy schema, indexes, and sample data
+psql -h "$PG_HOST" -U "$PG_USER" -d "$PG_DB" \
+  -f database/placeholder-schema/01-create-tables.sql
+psql -h "$PG_HOST" -U "$PG_USER" -d "$PG_DB" \
+  -f database/placeholder-schema/02-create-indexes.sql
+psql -h "$PG_HOST" -U "$PG_USER" -d "$PG_DB" \
+  -f database/placeholder-schema/03-insert-sample-data.sql
 
-**Validation (Initial Snapshot):**
-- Mirroring status shows "Running" in Fabric portal
-- After 10-30 minutes (depending on data size), status shows "Active"
-- Verify tables exist in Lakehouse:
+echo "Placeholder schema deployed. Verifying row counts..."
+psql -h "$PG_HOST" -U "$PG_USER" -d "$PG_DB" -c "
+  SELECT 'customers' AS table_name, COUNT(*) FROM customers
+  UNION ALL SELECT 'transactions', COUNT(*) FROM transactions
+  UNION ALL SELECT 'rewards', COUNT(*) FROM rewards
+  UNION ALL SELECT 'redemptions', COUNT(*) FROM redemptions
+  UNION ALL SELECT 'products', COUNT(*) FROM products
+  UNION ALL SELECT 'stores', COUNT(*) FROM stores;
+"
+```
+
+Expected counts: ~100K customers, ~1M transactions, ~100K rewards.
+
+### 2.3 Configure Fabric Mirroring
+
+**Script:** `scripts/setup-mirroring.ps1`
+
+Create a mirrored database item in Fabric via REST API:
+
+```bash
+# Create mirrored database item
+curl -s -X POST "$FABRIC_BASE/workspaces/$WORKSPACE_ID/items" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "displayName": "AAP-PostgreSQL-RewardsLoyalty",
+    "type": "MirroredDatabase",
+    "description": "Mirrored Azure PostgreSQL rewards/loyalty data"
+  }'
+```
+
+> **Note on Mirroring Configuration:** As of this writing, the Fabric REST API supports creating mirrored database items but detailed mirroring configuration (connection strings, table selection, target schema mapping) may require the Fabric PowerShell module or Python SDK. The script `scripts/setup-mirroring.ps1` implements the full setup:
+
+```powershell
+# scripts/setup-mirroring.ps1 — Fabric mirroring configuration
+param(
+    [string]$WorkspaceId,
+    [string]$PgServer,
+    [string]$PgDatabase,
+    [string]$PgUser,
+    [string]$PgPassword,
+    [string[]]$Tables = @("customers","transactions","rewards","redemptions","products","stores")
+)
+
+$headers = @{ Authorization = "Bearer $FabricToken"; "Content-Type" = "application/json" }
+
+# Step 1: Create mirrored database item
+$mirrorBody = @{
+    displayName = "AAP-PostgreSQL-RewardsLoyalty"
+    type        = "MirroredDatabase"
+    definition  = @{
+        parts = @(@{
+            path    = "mirroring.json"
+            payload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((@{
+                source = @{
+                    type             = "AzurePostgreSql"
+                    connectionString = "Host=$PgServer.postgres.database.azure.com;Port=5432;Database=$PgDatabase;Username=$PgUser;Password=$PgPassword;SSL Mode=Require"
+                }
+                target = @{
+                    lakehouseId = $LakehouseId
+                    schema      = "mirrored"
+                }
+                tables = $Tables | ForEach-Object { @{ sourceTable = $_; targetTable = "mirrored.$_" } }
+            } | ConvertTo-Json -Depth 10)))
+            payloadType = "InlineBase64"
+        })
+    }
+} | ConvertTo-Json -Depth 10
+
+$mirror = Invoke-RestMethod -Uri "$FabricBase/workspaces/$WorkspaceId/items" `
+    -Method POST -Headers $headers -Body $mirrorBody
+
+Write-Host "Mirrored database created: $($mirror.id)"
+Write-Host "Initial snapshot will begin automatically. Monitor status via:"
+Write-Host "  GET $FabricBase/workspaces/$WorkspaceId/mirroredDatabases/$($mirror.id)/getStatus"
+```
+
+> **Alternative approach:** If the REST API definition format changes, use the Fabric Python SDK (`azure-fabric`) or the `Invoke-FabricRestMethod` PowerShell cmdlet from the `FabricPS-PBIP` community module.
+
+**Validation (after initial snapshot completes):**
 
 ```sql
 -- Connect to Lakehouse SQL endpoint
-SELECT TABLE_SCHEMA, TABLE_NAME, CREATE_DATE
+SELECT TABLE_SCHEMA, TABLE_NAME
 FROM INFORMATION_SCHEMA.TABLES
 WHERE TABLE_SCHEMA = 'mirrored'
 ORDER BY TABLE_NAME;
-```
 
-- Verify row counts match source:
-
-```sql
+-- Verify row counts match source
 SELECT 'customers' AS table_name, COUNT(*) FROM mirrored.customers
-UNION ALL
-SELECT 'transactions', COUNT(*) FROM mirrored.transactions
-UNION ALL
-SELECT 'rewards', COUNT(*) FROM mirrored.rewards;
+UNION ALL SELECT 'transactions', COUNT(*) FROM mirrored.transactions
+UNION ALL SELECT 'rewards', COUNT(*) FROM mirrored.rewards;
 ```
 
-**Validation (CDC - Change Data Capture):**
-- Insert test row in PostgreSQL:
-  ```sql
-  INSERT INTO customers (customer_id, email, loyalty_tier, join_date)
-  VALUES (999999, 'test@example.com', 'Bronze', CURRENT_DATE);
-  ```
-- Wait 1-2 minutes
-- Check Lakehouse for new row:
-  ```sql
-  SELECT * FROM mirrored.customers WHERE customer_id = 999999;
-  ```
-- Should return the test row (confirms CDC working)
-
-**Estimated Time:** 2-3 hours (including initial snapshot wait)
-
-#### 2.4 Create Semantic Views (Contract Layer)
-
-**Steps:**
-1. **Review View Definitions:** See architecture doc section "Schema Abstraction Layer Design"
-2. **Create Views in Lakehouse:**
+**CDC Validation:**
 
 ```sql
--- Connect to Lakehouse SQL endpoint
+-- Insert test row in PostgreSQL source
+INSERT INTO customers (customer_id, email, loyalty_tier, join_date)
+VALUES (999999, 'test@example.com', 'Bronze', CURRENT_DATE);
+
+-- Wait 1-2 minutes, then check Lakehouse
+SELECT * FROM mirrored.customers WHERE customer_id = 999999;
+-- Should return the test row
+```
+
+### 2.4 Create Semantic Views (Contract Layer)
+
+**Script:** `scripts/create-semantic-views.sql`
+
+```sql
 USE RewardsLoyaltyData;
 GO
 
--- View 1: Customer Profile
 CREATE VIEW semantic.vw_CustomerProfile AS
 SELECT
-    customer_id AS CustomerID,
-    email AS Email,
-    first_name AS FirstName,
-    last_name AS LastName,
-    loyalty_tier AS LoyaltyTier,
+    customer_id   AS CustomerID,
+    email         AS Email,
+    first_name    AS FirstName,
+    last_name     AS LastName,
+    loyalty_tier  AS LoyaltyTier,
     lifetime_points AS LifetimePoints,
-    join_date AS JoinDate,
+    join_date     AS JoinDate,
     last_purchase_date AS LastPurchaseDate
 FROM mirrored.customers;
 GO
 
--- View 2: Transaction History
 CREATE VIEW semantic.vw_TransactionHistory AS
 SELECT
-    transaction_id AS TransactionID,
-    customer_id AS CustomerID,
+    transaction_id   AS TransactionID,
+    customer_id      AS CustomerID,
     transaction_date AS TransactionDate,
-    store_id AS StoreID,
-    total_amount AS TotalAmount,
-    points_earned AS PointsEarned
+    store_id         AS StoreID,
+    total_amount     AS TotalAmount,
+    points_earned    AS PointsEarned
 FROM mirrored.transactions;
 GO
 
--- View 3: Rewards Summary
 CREATE VIEW semantic.vw_RewardsSummary AS
 SELECT
-    customer_id AS CustomerID,
-    points_balance AS PointsBalance,
-    points_earned_lifetime AS PointsEarnedLifetime,
+    customer_id              AS CustomerID,
+    points_balance           AS PointsBalance,
+    points_earned_lifetime   AS PointsEarnedLifetime,
     points_redeemed_lifetime AS PointsRedeemedLifetime,
     last_points_activity_date AS LastActivityDate
 FROM mirrored.rewards;
 GO
 
--- View 4: Redemption History
 CREATE VIEW semantic.vw_RedemptionHistory AS
 SELECT
-    redemption_id AS RedemptionID,
-    customer_id AS CustomerID,
-    redemption_date AS RedemptionDate,
-    points_redeemed AS PointsRedeemed,
+    redemption_id      AS RedemptionID,
+    customer_id        AS CustomerID,
+    redemption_date    AS RedemptionDate,
+    points_redeemed    AS PointsRedeemed,
     reward_description AS RewardDescription
 FROM mirrored.redemptions;
 GO
 
--- View 5: Store Locations
 CREATE VIEW semantic.vw_StoreLocations AS
 SELECT
-    store_id AS StoreID,
+    store_id   AS StoreID,
     store_name AS StoreName,
-    city AS City,
-    state AS State,
-    zip_code AS ZipCode,
-    region AS Region
+    city       AS City,
+    state      AS State,
+    zip_code   AS ZipCode,
+    region     AS Region
 FROM mirrored.stores;
 GO
 ```
 
-3. **Document View Contracts:**
-   - Create `docs/schema-contract.md` listing view names, column names, types, descriptions
-   - Add to source control: `database/views/*.sql` (individual SQL files per view for maintainability)
-
-4. **Test Views:**
-   ```sql
-   -- Verify views return data
-   SELECT TOP 10 * FROM semantic.vw_CustomerProfile;
-   SELECT TOP 10 * FROM semantic.vw_TransactionHistory;
-   SELECT TOP 10 * FROM semantic.vw_RewardsSummary;
-   
-   -- Test join across views (Data Agent will do this)
-   SELECT 
-       cp.LoyaltyTier,
-       COUNT(DISTINCT th.CustomerID) AS CustomerCount,
-       AVG(th.TotalAmount) AS AvgTransactionAmount
-   FROM semantic.vw_TransactionHistory th
-   JOIN semantic.vw_CustomerProfile cp ON th.CustomerID = cp.CustomerID
-   WHERE th.TransactionDate >= DATEADD(month, -1, GETDATE())
-   GROUP BY cp.LoyaltyTier;
-   ```
-
 **Validation:**
-- All views created successfully (no SQL errors)
-- Views return expected data (sample queries execute)
-- View definitions stored in source control
 
-**Estimated Time:** 2 hours
-
-#### 2.5 Data Quality Validation
-
-**Steps:**
-1. **Row Count Validation:**
-   - Compare row counts between PostgreSQL source and Lakehouse mirrored tables
-   - Verify 100% match (initial snapshot should be exact copy)
-
-2. **Data Type Validation:**
-   - Check that data types mapped correctly (e.g., PostgreSQL `integer` → SQL `int`, `timestamp` → `datetime2`)
-
-3. **Null Handling:**
-   - Verify NULLs preserved (sample rows with NULL values in source)
-
-4. **Date Range Check:**
-   - Verify transaction dates span expected range (e.g., last 2 years for placeholder data)
-
-5. **Referential Integrity:**
-   - Test joins across views (as in 2.4 test queries)
-   - Verify foreign key relationships logically maintained (e.g., all `CustomerID` in transactions exist in customers)
-
-**Validation Queries:**
 ```sql
--- Check for orphaned transactions (customer doesn't exist)
+SELECT TOP 10 * FROM semantic.vw_CustomerProfile;
+SELECT TOP 10 * FROM semantic.vw_TransactionHistory;
+SELECT TOP 10 * FROM semantic.vw_RewardsSummary;
+
+-- Cross-view join (simulates Data Agent query)
+SELECT
+    cp.LoyaltyTier,
+    COUNT(DISTINCT th.CustomerID) AS CustomerCount,
+    AVG(th.TotalAmount) AS AvgTransactionAmount
+FROM semantic.vw_TransactionHistory th
+JOIN semantic.vw_CustomerProfile cp ON th.CustomerID = cp.CustomerID
+WHERE th.TransactionDate >= DATEADD(month, -1, GETDATE())
+GROUP BY cp.LoyaltyTier;
+```
+
+### 2.5 Data Quality Validation
+
+```sql
+-- Orphaned transactions check (should return 0)
 SELECT COUNT(*) AS OrphanedTransactions
 FROM semantic.vw_TransactionHistory th
 WHERE NOT EXISTS (
     SELECT 1 FROM semantic.vw_CustomerProfile cp WHERE cp.CustomerID = th.CustomerID
 );
--- Should return 0
 
--- Check for invalid loyalty tiers
+-- Invalid loyalty tier check (should return 0 rows)
 SELECT DISTINCT LoyaltyTier
 FROM semantic.vw_CustomerProfile
 WHERE LoyaltyTier NOT IN ('Bronze', 'Silver', 'Gold');
--- Should return 0 rows
 ```
-
-**Estimated Time:** 1 hour
 
 ### Phase 2 Deliverables
 
-- [ ] PostgreSQL source database configured with logical replication enabled
-- [ ] Placeholder schema deployed to PostgreSQL with sample data
-- [ ] Fabric Mirroring configured and actively syncing
-- [ ] Mirrored tables in `mirrored` schema with validated row counts
-- [ ] Semantic views in `semantic` schema (contract layer)
-- [ ] View definitions documented and source-controlled
-- [ ] Data quality validation passed
+- [ ] PostgreSQL configured for logical replication (`wal_level = logical`)
+- [ ] Mirroring user created with appropriate grants
+- [ ] Firewall rules set for Fabric connectivity
+- [ ] Placeholder schema deployed with sample data
+- [ ] Fabric Mirroring created and actively syncing (initial snapshot + CDC verified)
+- [ ] Semantic views created and validated in `semantic` schema
+- [ ] View definitions source-controlled in `database/views/`
 
 ### Phase 2 Risks & Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| PostgreSQL logical replication not supported on current version | Low | High | Verify version before starting; upgrade if needed |
-| Initial snapshot takes too long (>8 hours) | Medium | Medium | Use smaller sample data for POC; parallelize table mirroring if supported |
-| CDC latency too high (>5 minutes) | Medium | Medium | Monitor mirroring metrics; adjust `wal_sender` parameters; escalate to Microsoft support |
-| Schema mismatch between source and views | Medium | High | Automated tests for view queries; document contract in schema-contract.md |
+| PostgreSQL logical replication not supported | Low | High | Verify version ≥ 11 before starting; upgrade if needed |
+| Initial snapshot too slow (>8 hours) | Medium | Medium | Use smaller sample data for POC; monitor via API |
+| CDC latency >5 minutes | Medium | Medium | Monitor mirroring metrics; tune `max_wal_senders`; escalate to Microsoft support |
+| Schema mismatch between source and views | Medium | High | Automated validation queries; contract documented in `docs/schema-contract.md` |
 
 ---
 
 ## Phase 3: Fabric Data Agent
 
-**Objective:** Create and configure a Fabric Data Agent to translate natural language queries into SQL against semantic views, and expose via REST API.
+**Objective:** Create a Fabric Data Agent, configure it with domain instructions and sample queries, expose via REST API, and validate programmatically.
 
-**Duration:** 3-4 days  
-**Owner:** Data Engineering Team + Danny (Architect)  
+**Active Work Time:** 4–6 hours
+**Wait Time:** 0–1 day (if Data Agent feature requires enablement in tenant)
+**Owner:** Data Engineering Team
+
 **Prerequisites:**
-- Phase 2 complete (mirrored data and semantic views ready)
-- Sample query set from AAP marketing team (optional but highly recommended)
-- Service principal configured (from Phase 1)
+- Phase 2 complete (mirrored data + semantic views)
+- Service principal configured (Phase 1)
+- Sample queries prepared (see `config/sample-queries.json`)
 
-### Tasks
+### 3.1 Create Data Agent
 
-#### 3.1 Create Data Agent in Fabric
+**Script:** `scripts/configure-data-agent.ps1`
 
-**Steps:**
-1. **Navigate to Workspace:**
-   - Fabric portal → Workspace `AAP-RewardsLoyalty-POC`
+```bash
+# Create Data Agent item in workspace
+curl -s -X POST "$FABRIC_BASE/workspaces/$WORKSPACE_ID/items" \
+  -H "$AUTH_HEADER" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "displayName": "RewardsLoyaltyAgent",
+    "type": "DataAgent",
+    "description": "Natural language interface for AAP rewards and loyalty data"
+  }'
+```
 
-2. **Create Data Agent:**
-   - Click **New** → **Data Agent** (or **More options** → **Data Agent**)
-   - Configure agent:
-     - **Name:** `RewardsLoyaltyAgent`
-     - **Description:** "Natural language interface for AAP rewards and loyalty data"
-     - **Data source:** Lakehouse `RewardsLoyaltyData`
-     - **Schema scope:** Select `semantic` schema only (deselect `mirrored`)
-   - Create agent
+> **Note:** Fabric Data Agent is a newer feature. If the REST API item type `DataAgent` is not yet supported, use the Fabric PowerShell SDK or Python SDK approach:
 
-3. **Verify Agent Creation:**
-   - Agent appears in workspace items list
-   - Agent status: "Ready" or "Active"
+```powershell
+# Fallback: scripts/configure-data-agent.ps1
+param(
+    [string]$WorkspaceId,
+    [string]$LakehouseId
+)
 
-**Validation:**
-- Data Agent exists in workspace
-- Can open agent configuration page
+$headers = @{ Authorization = "Bearer $FabricToken"; "Content-Type" = "application/json" }
 
-**Estimated Time:** 15 minutes
+# Create Data Agent
+$agentBody = @{
+    displayName = "RewardsLoyaltyAgent"
+    type        = "DataAgent"
+    definition  = @{
+        parts = @(@{
+            path    = "agent-config.json"
+            payload = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((@{
+                dataSources = @(@{
+                    type   = "Lakehouse"
+                    itemId = $LakehouseId
+                    schemas = @("semantic")
+                })
+                instructions = (Get-Content "config/data-agent-instructions.md" -Raw)
+                sampleQueries = (Get-Content "config/sample-queries.json" -Raw | ConvertFrom-Json)
+            } | ConvertTo-Json -Depth 10)))
+            payloadType = "InlineBase64"
+        })
+    }
+} | ConvertTo-Json -Depth 10
 
-#### 3.2 Configure Data Agent Instructions
+$agent = Invoke-RestMethod -Uri "$FabricBase/workspaces/$WorkspaceId/items" `
+    -Method POST -Headers $headers -Body $agentBody
+$agentId = $agent.id
+Write-Host "Data Agent created: $agentId"
+```
 
-**Steps:**
-1. **System Instructions (Grounding Prompt):**
-   - Navigate to Data Agent → **Settings** → **Instructions**
-   - Paste system prompt (see architecture doc, Phase 3 section):
+### 3.2 Data Agent Instructions
+
+Store in `config/data-agent-instructions.md` (deployed via script, not manually pasted):
 
 ```markdown
-You are a data analyst assistant for Advanced Auto Parts' loyalty rewards program. 
-You help marketing team members query customer, transaction, and rewards data using natural language.
+You are a data analyst assistant for Advanced Auto Parts' loyalty rewards program.
+You help marketing team members query customer, transaction, and rewards data
+using natural language.
 
 Data Sources:
 - vw_CustomerProfile: Customer demographics, loyalty tier (Bronze/Silver/Gold), lifetime points
@@ -617,1105 +691,568 @@ Output Format:
 - Format numbers with appropriate units (e.g., $1,234.56 for currency, 1.2M for large counts)
 ```
 
-2. **Save instructions**
+### 3.3 Sample Queries
 
-**Validation:**
-- Instructions saved successfully
-- Can view instructions in agent settings
-
-**Estimated Time:** 30 minutes
-
-#### 3.3 Add Sample Queries for Training
-
-**Steps:**
-1. **Prepare Sample Query Set:**
-   - If AAP provided sample queries, use those
-   - Otherwise, use standard loyalty program queries (see architecture doc):
+Store in `config/sample-queries.json`:
 
 ```json
 [
-  {
-    "question": "How many customers are in each loyalty tier?",
-    "notes": "Basic aggregation, tier breakdown"
-  },
-  {
-    "question": "What is the average transaction amount in the last 30 days?",
-    "notes": "Time filter, aggregation"
-  },
-  {
-    "question": "Show me top 10 customers by lifetime points",
-    "notes": "Sorting, limit, no PII"
-  },
-  {
-    "question": "How many transactions were there last month by loyalty tier?",
-    "notes": "Multi-table join, time filter, group by"
-  },
-  {
-    "question": "What is the total points balance across all customers?",
-    "notes": "Sum aggregation"
-  },
-  {
-    "question": "Which stores had the most transactions in the last quarter?",
-    "notes": "Store analysis, time filter, top N"
-  },
-  {
-    "question": "How many gold tier customers joined in the last year?",
-    "notes": "Tier filter, date filter, count"
-  },
-  {
-    "question": "What is the average points earned per transaction by tier?",
-    "notes": "Join, group by tier, average"
-  },
-  {
-    "question": "Show me monthly transaction trends for the last 6 months",
-    "notes": "Time series, monthly aggregation"
-  },
-  {
-    "question": "How many customers have redeemed rewards in the last 90 days?",
-    "notes": "Redemption table, date filter, distinct count"
-  }
+  { "question": "How many customers are in each loyalty tier?" },
+  { "question": "What is the average transaction amount in the last 30 days?" },
+  { "question": "Show me top 10 customers by lifetime points" },
+  { "question": "How many transactions were there last month by loyalty tier?" },
+  { "question": "What is the total points balance across all customers?" },
+  { "question": "Which stores had the most transactions in the last quarter?" },
+  { "question": "How many gold tier customers joined in the last year?" },
+  { "question": "What is the average points earned per transaction by tier?" },
+  { "question": "Show me monthly transaction trends for the last 6 months" },
+  { "question": "How many customers have redeemed rewards in the last 90 days?" }
 ]
 ```
 
-2. **Add Sample Queries to Agent:**
-   - Data Agent → **Settings** → **Sample Queries** (or **Grounding**)
-   - Add each question one at a time, OR
-   - If bulk import supported, upload JSON file
-   - For each sample, optionally provide expected SQL (if agent supports training mode):
+### 3.4 API Access Configuration
 
-```sql
--- Example for "How many customers are in each loyalty tier?"
-SELECT LoyaltyTier, COUNT(*) AS CustomerCount
-FROM semantic.vw_CustomerProfile
-GROUP BY LoyaltyTier
-ORDER BY CustomerCount DESC;
-```
-
-3. **Save sample queries**
-
-**Validation:**
-- Sample queries visible in agent configuration
-- Agent can reference samples during query generation (implicit training)
-
-**Estimated Time:** 1-2 hours (depending on number of samples and whether SQL provided)
-
-#### 3.4 Test Data Agent with Sample Queries
-
-**Steps:**
-1. **Open Agent Test Interface:**
-   - Data Agent → **Test** or **Chat** tab
-
-2. **Run Sample Queries:**
-   - Enter each sample question from 3.3
-   - Verify agent returns:
-     - ✅ Correct SQL query
-     - ✅ Accurate results (row count, values)
-     - ✅ Natural language answer
-
-3. **Document Test Results:**
-   - Create test log: `docs/data-agent-test-results.md`
-   - For each query, log:
-     - Question asked
-     - SQL generated by agent
-     - Results returned
-     - ✅/❌ Pass/Fail (based on correctness)
-     - Notes on any issues
-
-**Example Test Case:**
-
-| # | Question | Generated SQL | Result | Pass/Fail | Notes |
-|---|----------|---------------|--------|-----------|-------|
-| 1 | How many customers are in each loyalty tier? | `SELECT LoyaltyTier, COUNT(*) FROM semantic.vw_CustomerProfile GROUP BY LoyaltyTier` | Bronze: 60,000; Silver: 30,000; Gold: 10,000 | ✅ | Correct |
-| 2 | What is the average transaction amount in the last 30 days? | `SELECT AVG(TotalAmount) FROM semantic.vw_TransactionHistory WHERE TransactionDate >= DATEADD(day, -30, GETDATE())` | $85.43 | ✅ | Correct |
-| 3 | Show me customers with most lifetime points | `SELECT TOP 10 Email, LifetimePoints FROM semantic.vw_CustomerProfile ORDER BY LifetimePoints DESC` | (list of emails) | ❌ | Exposed PII (email), should use CustomerID only |
-
-4. **Refine Instructions Based on Failures:**
-   - If agent fails tests (wrong SQL, incorrect results), update system instructions
-   - Example: Test 3 failed because agent returned `Email` instead of `CustomerID`
-   - Update instructions: "When showing customer lists, use CustomerID only (not Email)"
-   - Re-run failed tests
-
-5. **Iterate Until 90%+ Pass Rate:**
-   - Target: 9 out of 10 sample queries pass
-   - If pass rate <90%, add more specific guidance in instructions or sample queries
-
-**Validation:**
-- Test results documented
-- Pass rate ≥90% on sample queries
-- Known failure cases documented (edge cases)
-
-**Estimated Time:** 3-4 hours (including iterations)
-
-#### 3.5 Configure Data Agent API Access
-
-**Steps:**
-1. **Retrieve Data Agent API Endpoint:**
-   - Data Agent → **Settings** → **API** (or **Endpoint**)
-   - Copy API endpoint URL (format: `https://api.fabric.microsoft.com/v1/workspaces/{workspace-id}/datascience/dataagents/{agent-id}/query`)
-   - Note: Exact URL format may vary; check Fabric docs
-
-2. **Test API with Service Principal:**
-   - Use Postman, curl, or Python script to test API
-   - Acquire token for service principal:
+Retrieve the Data Agent API endpoint and test programmatically:
 
 ```bash
-# Using Azure CLI
-az login --service-principal \
-  --username <client-id> \
-  --password <client-secret> \
-  --tenant <tenant-id>
+# Acquire token for Fabric API via service principal
+TOKEN=$(curl -s -X POST \
+  "https://login.microsoftonline.com/$TENANT_ID/oauth2/v2.0/token" \
+  -d "client_id=$CLIENT_ID" \
+  -d "client_secret=$CLIENT_SECRET" \
+  -d "scope=https://api.fabric.microsoft.com/.default" \
+  -d "grant_type=client_credentials" | jq -r '.access_token')
 
-# Acquire token for Fabric API
-az account get-access-token --resource https://analysis.windows.net/powerbi/api
-# Copy access_token from output
-```
-
-   - Send test query to Data Agent API:
-
-```bash
-curl -X POST "https://api.fabric.microsoft.com/v1/workspaces/{workspace-id}/datascience/dataagents/{agent-id}/query" \
-  -H "Authorization: Bearer <access-token>" \
+# Call Data Agent query API
+curl -s -X POST \
+  "$FABRIC_BASE/workspaces/$WORKSPACE_ID/items/$AGENT_ID/dataAgentQuery" \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "How many customers are in the gold loyalty tier?"
-  }'
+  -d '{ "query": "How many customers are in the gold loyalty tier?" }'
 ```
 
-   - Verify response:
+### 3.5 Automated Test Suite
 
-```json
-{
-  "answer": "There are 10,000 customers in the Gold loyalty tier.",
-  "sql": "SELECT COUNT(*) FROM semantic.vw_CustomerProfile WHERE LoyaltyTier = 'Gold'",
-  "results": [{"count": 10000}]
-}
+**Script:** `scripts/test-data-agent.py`
+
+```python
+#!/usr/bin/env python3
+"""Automated test harness for Fabric Data Agent API."""
+
+import json, sys, time, requests
+from azure.identity import ClientSecretCredential
+
+# Config
+TENANT_ID    = "<tenant-id>"      # or read from env / Key Vault
+CLIENT_ID    = "<client-id>"
+CLIENT_SECRET = "<client-secret>"
+WORKSPACE_ID = "<workspace-id>"
+AGENT_ID     = "<agent-id>"
+FABRIC_BASE  = "https://api.fabric.microsoft.com/v1"
+
+credential = ClientSecretCredential(TENANT_ID, CLIENT_ID, CLIENT_SECRET)
+token = credential.get_token("https://api.fabric.microsoft.com/.default").token
+headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+# Load sample queries
+with open("config/sample-queries.json") as f:
+    queries = json.load(f)
+
+results = []
+for i, q in enumerate(queries, 1):
+    question = q["question"]
+    start = time.time()
+    try:
+        resp = requests.post(
+            f"{FABRIC_BASE}/workspaces/{WORKSPACE_ID}/items/{AGENT_ID}/dataAgentQuery",
+            headers=headers,
+            json={"query": question},
+            timeout=30
+        )
+        elapsed = time.time() - start
+        data = resp.json()
+        passed = resp.status_code == 200 and "answer" in data
+        results.append({"query": question, "pass": passed, "time_s": round(elapsed, 2),
+                        "status": resp.status_code, "sql": data.get("sql", "N/A")})
+        status = "PASS" if passed else "FAIL"
+        print(f"  [{status}] {i:2d}. {question} ({elapsed:.1f}s)")
+    except Exception as e:
+        results.append({"query": question, "pass": False, "error": str(e)})
+        print(f"  [FAIL] {i:2d}. {question} — {e}")
+
+passed = sum(1 for r in results if r["pass"])
+total = len(results)
+print(f"\nResults: {passed}/{total} passed ({100*passed/total:.0f}%)")
+if passed / total < 0.9:
+    print("WARN: Pass rate below 90% target. Review Data Agent instructions.")
+    sys.exit(1)
 ```
 
-3. **Store API Configuration:**
-   - Update `config/fabric-workspace-config.json`:
+Run: `python scripts/test-data-agent.py`
 
-```json
-{
-  "dataAgent": {
-    "name": "RewardsLoyaltyAgent",
-    "id": "<agent-guid>",
-    "apiEndpoint": "https://api.fabric.microsoft.com/v1/workspaces/{workspace-id}/datascience/dataagents/{agent-id}/query",
-    "authentication": {
-      "type": "ServicePrincipal",
-      "clientId": "<client-id>",
-      "scope": "https://analysis.windows.net/powerbi/api/.default"
-    }
-  }
-}
+Target: ≥90% pass rate on sample queries. If below target, iterate on `config/data-agent-instructions.md`.
+
+### 3.6 Performance Benchmarking
+
+The test script above captures latency per query. Targets:
+- Simple queries (aggregation, count): <5 seconds
+- Complex queries (multi-join, time series): <15 seconds
+- No query should timeout at 30 seconds
+
+For concurrent load testing:
+
+```bash
+# Simple concurrency test — 5 parallel requests
+for i in $(seq 1 5); do
+  curl -s -X POST "$FABRIC_BASE/workspaces/$WORKSPACE_ID/items/$AGENT_ID/dataAgentQuery" \
+    -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+    -d '{"query":"How many gold customers?"}' &
+done
+wait
 ```
-
-**Validation:**
-- Service principal can successfully call Data Agent API
-- API returns expected responses for test queries
-- API endpoint and auth config documented
-
-**Estimated Time:** 1-2 hours
-
-#### 3.6 Performance and Timeout Testing
-
-**Steps:**
-1. **Test Query Latency:**
-   - Run 10 sample queries, measure response time
-   - Target: <5 seconds for simple queries, <15 seconds for complex queries
-   - Log results in test document
-
-2. **Test Complex Queries:**
-   - Ask intentionally complex questions:
-     - "Show me monthly transaction trends by loyalty tier and store region for the last 12 months"
-   - Verify query completes within timeout (default 30 seconds)
-   - If timeout occurs frequently, optimize views (add indexes, materialized views)
-
-3. **Test Concurrent Requests:**
-   - Simulate multiple users querying simultaneously (5-10 concurrent requests)
-   - Verify no rate limiting or errors
-   - Check Fabric capacity metrics (CU utilization)
-
-**Validation:**
-- Average query latency <10 seconds
-- No timeouts on reasonable queries
-- Concurrent requests handled gracefully
-
-**Estimated Time:** 2 hours
 
 ### Phase 3 Deliverables
 
-- [ ] Data Agent `RewardsLoyaltyAgent` created in Fabric workspace
-- [ ] System instructions configured with domain context and guidelines
-- [ ] Sample queries added for training
-- [ ] Test results documented with ≥90% pass rate
-- [ ] Data Agent API accessible via service principal
-- [ ] API endpoint and auth config stored in `config/fabric-workspace-config.json`
-- [ ] Performance benchmarks documented
+- [ ] Data Agent `RewardsLoyaltyAgent` created via script
+- [ ] Instructions deployed from `config/data-agent-instructions.md`
+- [ ] Sample queries deployed from `config/sample-queries.json`
+- [ ] API access verified with service principal token
+- [ ] Automated test suite passing ≥90% (`scripts/test-data-agent.py`)
+- [ ] Performance benchmarks documented (latency per query)
 
 ### Phase 3 Risks & Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| Agent generates incorrect SQL | Medium | High | Extensive sample queries; iterative refinement of instructions; return SQL to user for review |
-| Query latency too high (>30 seconds) | Medium | Medium | Optimize views with indexes; use materialized views; set appropriate timeout; provide feedback to user |
-| Agent hallucinates columns/tables not in schema | Low | Medium | Strict schema scope (semantic only); validate SQL before execution; clear error messages |
-| PII exposed in results | Medium | High | Instructions emphasize no PII; test with PII-specific queries; implement column masking if needed |
+| Agent generates incorrect SQL | Medium | High | Extensive sample queries; iterative prompt refinement; return SQL for review |
+| Query latency >30 seconds | Medium | Medium | Optimize views; materialized views; timeout + user feedback |
+| Agent hallucinates columns/tables | Low | Medium | Restrict to `semantic` schema only; validate SQL before execution |
+| PII exposed in results | Medium | High | Instructions emphasize no PII; test with PII-specific queries; column masking |
+| Data Agent REST API not yet GA | Medium | Medium | Fallback to Python SDK or PowerShell; document alternative in script |
 
 ---
 
 ## Phase 4: Web Application
 
-**Objective:** Develop and deploy a React-based web application with backend API to expose Data Agent to AAP marketing team.
+**Objective:** Deploy a React SPA + Azure Functions backend with Entra ID authentication, all provisioned via Bicep/CLI.
 
-**Duration:** 1-2 weeks  
-**Owner:** Full-Stack Development Team  
+**Active Work Time:** 1–2 days
+**Wait Time:** 0–2 days (Entra ID admin consent, DNS propagation)
+**Owner:** Full-Stack Development Team
+
 **Prerequisites:**
 - Phase 3 complete (Data Agent API accessible)
-- Azure subscription for deployment (Static Web Apps, Functions, Key Vault)
-- Entra ID app registrations created
+- Azure subscription for deployment
+- Entra ID tenant admin access
 
-### Tasks
+### 4.1 Azure Resources (Bicep)
 
-#### 4.1 Project Scaffolding
+**Template:** `infra/main.bicep`
 
-**Steps:**
-1. **Create Git Repository Structure:**
-   ```
-   AAP-DataAgent-POC/
-   ├── frontend/          # React SPA
-   ├── backend/           # Azure Functions API
-   ├── config/            # Configuration files
-   ├── docs/              # Documentation
-   └── .github/workflows/ # CI/CD pipelines
-   ```
+All Azure resources are defined declaratively. Deploy with:
 
-2. **Frontend (React SPA):**
-   ```bash
-   npx create-react-app frontend --template typescript
-   cd frontend
-   npm install @azure/msal-browser @azure/msal-react axios
-   ```
+```bash
+# scripts/deploy.sh
+az group create --name aap-data-agent-rg --location eastus
 
-3. **Backend (Azure Functions - Node.js):**
-   ```bash
-   cd backend
-   func init --worker-runtime node --language typescript
-   func new --template "HTTP trigger" --name query
-   npm install @azure/identity @azure/keyvault-secrets axios
-   ```
-
-4. **Initialize Git:**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial project scaffolding"
-   ```
-
-**Validation:**
-- Frontend runs locally: `npm start` → http://localhost:3000
-- Backend runs locally: `func start` → http://localhost:7071
-
-**Estimated Time:** 2 hours
-
-#### 4.2 Azure Resources Provisioning
-
-**Steps:**
-1. **Create Resource Group:**
-   ```bash
-   az group create --name aap-data-agent-rg --location eastus
-   ```
-
-2. **Create Key Vault:**
-   ```bash
-   az keyvault create \
-     --name aap-data-agent-kv \
-     --resource-group aap-data-agent-rg \
-     --location eastus
-   ```
-
-3. **Store Secrets in Key Vault:**
-   ```bash
-   az keyvault secret set --vault-name aap-data-agent-kv \
-     --name FabricServicePrincipalClientId --value "<client-id>"
-   
-   az keyvault secret set --vault-name aap-data-agent-kv \
-     --name FabricServicePrincipalClientSecret --value "<client-secret>"
-   
-   az keyvault secret set --vault-name aap-data-agent-kv \
-     --name FabricDataAgentApiUrl --value "<api-endpoint>"
-   ```
-
-4. **Create Static Web App:**
-   ```bash
-   az staticwebapp create \
-     --name aap-data-agent-web \
-     --resource-group aap-data-agent-rg \
-     --location eastus2 \
-     --sku Free \
-     --app-location "frontend" \
-     --api-location "backend" \
-     --output-location "build"
-   ```
-
-5. **Create Function App (if standalone, else skip):**
-   - If using managed Functions with Static Web App, skip this
-   - If using standalone Function App:
-   ```bash
-   az functionapp create \
-     --name aap-data-agent-api \
-     --resource-group aap-data-agent-rg \
-     --consumption-plan-location eastus \
-     --runtime node \
-     --runtime-version 20 \
-     --storage-account <storage-account-name>
-   ```
-
-6. **Configure Managed Identity for Function App:**
-   ```bash
-   az functionapp identity assign \
-     --name aap-data-agent-api \
-     --resource-group aap-data-agent-rg
-   
-   # Grant Key Vault access
-   PRINCIPAL_ID=$(az functionapp identity show --name aap-data-agent-api --resource-group aap-data-agent-rg --query principalId -o tsv)
-   
-   az keyvault set-policy --name aap-data-agent-kv \
-     --object-id $PRINCIPAL_ID \
-     --secret-permissions get list
-   ```
-
-**Validation:**
-- Resource group exists: `az group show --name aap-data-agent-rg`
-- Key Vault accessible: `az keyvault secret list --vault-name aap-data-agent-kv`
-- Static Web App created: `az staticwebapp show --name aap-data-agent-web`
-
-**Estimated Time:** 1-2 hours
-
-#### 4.3 Entra ID App Registrations
-
-**Steps:**
-1. **SPA App Registration:**
-   - Azure Portal → Entra ID → **App registrations** → **New registration**
-   - Name: `AAP-DataAgent-SPA`
-   - Redirect URI: 
-     - Type: Single-page application (SPA)
-     - URI: `https://aap-data-agent-web.azurestaticapps.net` (update with actual Static Web App URL)
-   - Register
-   - Note **Application (client) ID**
-
-2. **Backend API App Registration:**
-   - New registration
-   - Name: `AAP-DataAgent-API`
-   - Expose an API:
-     - Application ID URI: `api://aap-data-agent-api` (or custom domain if available)
-     - Add scope:
-       - Scope name: `Query.Execute`
-       - Who can consent: Admins and users
-       - Description: "Execute queries via Data Agent"
-   - Note **Application (client) ID**
-
-3. **Configure API Permissions (SPA → API):**
-   - SPA app registration → **API permissions** → **Add a permission**
-   - **My APIs** → Select `AAP-DataAgent-API`
-   - Select `Query.Execute` scope
-   - Add permissions
-   - (Optional) Grant admin consent
-
-4. **Update Frontend Config:**
-   - `frontend/src/authConfig.ts`:
-
-```typescript
-export const msalConfig = {
-  auth: {
-    clientId: "<SPA-client-id>",
-    authority: "https://login.microsoftonline.com/<tenant-id>",
-    redirectUri: "https://aap-data-agent-web.azurestaticapps.net",
-  },
-};
-
-export const loginRequest = {
-  scopes: ["api://aap-data-agent-api/Query.Execute"],
-};
+az deployment group create \
+  --resource-group aap-data-agent-rg \
+  --template-file infra/main.bicep \
+  --parameters \
+    staticWebAppName=aap-data-agent-web \
+    functionAppName=aap-data-agent-api \
+    keyVaultName=aap-data-agent-kv \
+    location=eastus
 ```
 
-**Validation:**
-- Both app registrations visible in Entra ID
-- SPA has permission to call API (API permissions list shows `Query.Execute`)
-- Frontend config updated with correct client IDs
+The Bicep template provisions:
+- **Resource Group** (if not exists)
+- **Key Vault** with secrets for service principal credentials and Data Agent API URL
+- **Static Web App** (frontend hosting + managed Functions)
+- **Function App** (if standalone backend needed)
+- **Managed Identity** for Function App → Key Vault access
+- **Application Insights** for monitoring
 
-**Estimated Time:** 1 hour
+### 4.2 Entra ID App Registrations
 
-#### 4.4 Backend API Implementation
+**Script:** `scripts/register-entra-apps.sh`
 
-**Steps:**
-1. **Implement Query Endpoint (`backend/query/index.ts`):**
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-```typescript
-import { AzureFunction, Context, HttpRequest } from "@azure/functions";
-import { DefaultAzureCredential } from "@azure/identity";
-import { SecretClient } from "@azure/keyvault-secrets";
-import axios from "axios";
+TENANT_ID=$(az account show --query tenantId -o tsv)
 
-const httpTrigger: AzureFunction = async function (
-  context: Context,
-  req: HttpRequest
-): Promise<void> {
-  // 1. Validate authentication (Easy Auth handles this, user in req.headers)
-  const user = req.headers["x-ms-client-principal"];
-  if (!user) {
-    context.res = {
-      status: 401,
-      body: { error: "Unauthorized" },
-    };
-    return;
-  }
+# --- Backend API Registration ---
+API_APP_ID=$(az ad app create \
+  --display-name "AAP-DataAgent-API" \
+  --sign-in-audience AzureADMyOrg \
+  --identifier-uris "api://aap-data-agent-api" \
+  --query appId -o tsv)
 
-  // 2. Extract query from request
-  const { question } = req.body;
-  if (!question) {
-    context.res = {
-      status: 400,
-      body: { error: "Missing 'question' in request body" },
-    };
-    return;
-  }
-
-  try {
-    // 3. Get secrets from Key Vault
-    const keyVaultUrl = "https://aap-data-agent-kv.vault.azure.net";
-    const credential = new DefaultAzureCredential();
-    const client = new SecretClient(keyVaultUrl, credential);
-
-    const clientIdSecret = await client.getSecret("FabricServicePrincipalClientId");
-    const clientSecretSecret = await client.getSecret("FabricServicePrincipalClientSecret");
-    const apiUrlSecret = await client.getSecret("FabricDataAgentApiUrl");
-
-    // 4. Acquire token for Fabric API
-    const tokenResponse = await axios.post(
-      `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`,
-      new URLSearchParams({
-        client_id: clientIdSecret.value,
-        client_secret: clientSecretSecret.value,
-        scope: "https://analysis.windows.net/powerbi/api/.default",
-        grant_type: "client_credentials",
-      }),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-    );
-
-    const accessToken = tokenResponse.data.access_token;
-
-    // 5. Call Fabric Data Agent API
-    const agentResponse = await axios.post(
-      apiUrlSecret.value,
-      { query: question },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        timeout: 30000, // 30 second timeout
-      }
-    );
-
-    // 6. Return response to frontend
-    context.res = {
-      status: 200,
-      body: {
-        success: true,
-        answer: agentResponse.data.answer,
-        sql: agentResponse.data.sql,
-        results: agentResponse.data.results,
-        executionTime: agentResponse.data.executionTime,
-      },
-    };
-  } catch (error) {
-    context.log.error("Error calling Data Agent:", error);
-    context.res = {
-      status: 500,
-      body: {
-        success: false,
-        error: error.response?.data?.error || error.message,
-      },
-    };
-  }
-};
-
-export default httpTrigger;
-```
-
-2. **Configure Function App Settings:**
-   - If using standalone Function App, add app settings:
-     - `KEY_VAULT_URL=https://aap-data-agent-kv.vault.azure.net`
-     - `AZURE_TENANT_ID=<tenant-id>`
-
-3. **Enable Easy Auth (Azure Functions Authentication):**
-   - Azure Portal → Function App → **Authentication**
-   - Add identity provider: **Microsoft**
-   - App registration: Select `AAP-DataAgent-API`
-   - Require authentication: Yes
-   - Unauthenticated requests: Return 401
-
-**Validation:**
-- Deploy function: `func azure functionapp publish aap-data-agent-api`
-- Test endpoint with Postman:
-  - POST to `https://aap-data-agent-api.azurewebsites.net/api/query`
-  - Include Authorization header (acquire token as user via MSAL)
-  - Body: `{ "question": "How many gold customers?" }`
-  - Verify 200 response with answer
-
-**Estimated Time:** 4-6 hours
-
-#### 4.5 Frontend React Implementation
-
-**Steps:**
-1. **Implement Authentication (`frontend/src/App.tsx`):**
-
-```typescript
-import React from "react";
-import { MsalProvider, useMsal, useIsAuthenticated } from "@azure/msal-react";
-import { PublicClientApplication } from "@azure/msal-browser";
-import { msalConfig } from "./authConfig";
-import ChatInterface from "./components/ChatInterface";
-
-const msalInstance = new PublicClientApplication(msalConfig);
-
-function App() {
-  return (
-    <MsalProvider instance={msalInstance}>
-      <MainContent />
-    </MsalProvider>
-  );
-}
-
-function MainContent() {
-  const { instance } = useMsal();
-  const isAuthenticated = useIsAuthenticated();
-
-  const handleLogin = () => {
-    instance.loginPopup();
-  };
-
-  if (!isAuthenticated) {
-    return (
-      <div style={{ textAlign: "center", marginTop: "100px" }}>
-        <h1>AAP Data Agent</h1>
-        <button onClick={handleLogin}>Sign In with Microsoft</button>
-      </div>
-    );
-  }
-
-  return <ChatInterface />;
-}
-
-export default App;
-```
-
-2. **Implement Chat UI (`frontend/src/components/ChatInterface.tsx`):**
-
-```typescript
-import React, { useState } from "react";
-import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "../authConfig";
-import axios from "axios";
-
-interface Message {
-  role: "user" | "agent";
-  content: string;
-  sql?: string;
-}
-
-function ChatInterface() {
-  const { instance, accounts } = useMsal();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const sendQuery = async () => {
-    if (!input.trim()) return;
-
-    // Add user message
-    const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setLoading(true);
-
-    try {
-      // Acquire token
-      const response = await instance.acquireTokenSilent({
-        ...loginRequest,
-        account: accounts[0],
-      });
-
-      // Call backend API
-      const apiResponse = await axios.post(
-        "/api/query", // Proxied by Static Web App
-        { question: input },
-        {
-          headers: {
-            Authorization: `Bearer ${response.accessToken}`,
-          },
-        }
-      );
-
-      // Add agent response
-      const agentMessage: Message = {
-        role: "agent",
-        content: apiResponse.data.answer,
-        sql: apiResponse.data.sql,
-      };
-      setMessages((prev) => [...prev, agentMessage]);
-    } catch (error) {
-      const errorMessage: Message = {
-        role: "agent",
-        content: `Error: ${error.response?.data?.error || error.message}`,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setLoading(false);
+# Expose a scope for the API
+API_OBJECT_ID=$(az ad app show --id "$API_APP_ID" --query id -o tsv)
+az rest --method PATCH --uri "https://graph.microsoft.com/v1.0/applications/$API_OBJECT_ID" \
+  --body '{
+    "api": {
+      "oauth2PermissionScopes": [{
+        "adminConsentDescription": "Execute queries via Data Agent",
+        "adminConsentDisplayName": "Query.Execute",
+        "id": "'$(uuidgen)'",
+        "isEnabled": true,
+        "type": "User",
+        "value": "Query.Execute"
+      }]
     }
-  };
+  }'
 
-  return (
-    <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
-      <h1>AAP Rewards & Loyalty Data Agent</h1>
-      
-      <div style={{ border: "1px solid #ccc", minHeight: "400px", padding: "10px", marginBottom: "20px" }}>
-        {messages.map((msg, idx) => (
-          <div key={idx} style={{ marginBottom: "10px" }}>
-            <strong>{msg.role === "user" ? "You" : "Agent"}:</strong> {msg.content}
-            {msg.sql && (
-              <details style={{ marginTop: "5px", fontSize: "0.9em", color: "#666" }}>
-                <summary>View SQL</summary>
-                <pre>{msg.sql}</pre>
-              </details>
-            )}
-          </div>
-        ))}
-        {loading && <div>Agent is thinking...</div>}
-      </div>
+echo "API App ID: $API_APP_ID"
 
-      <div style={{ display: "flex" }}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && sendQuery()}
-          placeholder="Ask a question about rewards and loyalty data..."
-          style={{ flex: 1, padding: "10px", fontSize: "16px" }}
-        />
-        <button onClick={sendQuery} disabled={loading} style={{ padding: "10px 20px" }}>
-          Send
-        </button>
-      </div>
-    </div>
-  );
-}
+# --- SPA Frontend Registration ---
+SPA_APP_ID=$(az ad app create \
+  --display-name "AAP-DataAgent-SPA" \
+  --sign-in-audience AzureADMyOrg \
+  --query appId -o tsv)
 
-export default ChatInterface;
+SPA_OBJECT_ID=$(az ad app show --id "$SPA_APP_ID" --query id -o tsv)
+
+# Set redirect URI for SPA
+az rest --method PATCH --uri "https://graph.microsoft.com/v1.0/applications/$SPA_OBJECT_ID" \
+  --body '{
+    "spa": {
+      "redirectUris": ["https://aap-data-agent-web.azurestaticapps.net"]
+    }
+  }'
+
+# Grant SPA permission to call API
+az ad app permission add --id "$SPA_APP_ID" \
+  --api "$API_APP_ID" \
+  --api-permissions "<scope-id>=Scope"
+
+# Grant admin consent
+az ad app permission admin-consent --id "$SPA_APP_ID"
+
+echo "SPA App ID: $SPA_APP_ID"
+echo ""
+echo "Update frontend/src/authConfig.ts with:"
+echo "  clientId: $SPA_APP_ID"
+echo "  authority: https://login.microsoftonline.com/$TENANT_ID"
 ```
 
-3. **Build Frontend:**
-   ```bash
-   cd frontend
-   npm run build
-   ```
+### 4.3 Configure Easy Auth (Azure Functions)
 
-**Validation:**
-- Frontend builds successfully (no TypeScript errors)
-- Can run locally with mock API: `npm start`
+```bash
+# Enable Microsoft authentication on Function App
+az functionapp auth microsoft update \
+  --name aap-data-agent-api \
+  --resource-group aap-data-agent-rg \
+  --client-id "$API_APP_ID" \
+  --issuer "https://login.microsoftonline.com/$TENANT_ID/v2.0" \
+  --allowed-audiences "api://aap-data-agent-api"
 
-**Estimated Time:** 6-8 hours
+# Require authentication (reject unauthenticated requests)
+az functionapp auth update \
+  --name aap-data-agent-api \
+  --resource-group aap-data-agent-rg \
+  --unauthenticated-client-action Return401
+```
 
-#### 4.6 Deployment & CI/CD Pipeline
+### 4.4 Backend API Implementation
 
-**Steps:**
-1. **Configure GitHub Actions for Static Web App:**
-   - Static Web App creation auto-generates workflow file: `.github/workflows/azure-static-web-apps-<name>.yml`
-   - Verify workflow file exists and is configured correctly:
+The backend Azure Function (`backend/query/index.ts`) proxies authenticated requests to the Fabric Data Agent API. Key flow:
+
+1. Validate caller via Easy Auth (`x-ms-client-principal` header)
+2. Retrieve secrets from Key Vault (via managed identity)
+3. Acquire Fabric API token using service principal credentials
+4. Forward natural language query to Data Agent API
+5. Return structured response to frontend
+
+See `backend/query/index.ts` for full implementation. The function is already scaffolded in this repo.
+
+### 4.5 Frontend React Implementation
+
+The React SPA (`frontend/`) uses MSAL for Entra ID authentication and provides a chat-style interface. Key components:
+
+- `frontend/src/authConfig.ts` — MSAL configuration (client ID, scopes)
+- `frontend/src/App.tsx` — Auth wrapper + routing
+- `frontend/src/components/ChatInterface.tsx` — Query input + response display
+
+Build and test locally:
+
+```bash
+cd frontend && npm install && npm start   # http://localhost:3000
+cd backend  && npm install && func start  # http://localhost:7071
+```
+
+### 4.6 CI/CD Pipeline
+
+GitHub Actions workflow (auto-generated by Static Web Apps, customized):
 
 ```yaml
-name: Azure Static Web Apps CI/CD
+# .github/workflows/deploy.yml
+name: Deploy to Azure
 
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
 
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Build And Deploy
-        uses: Azure/static-web-apps-deploy@v1
+      - uses: actions/checkout@v4
+      - uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: "upload"
-          app_location: "frontend"
-          api_location: "backend"
-          output_location: "build"
+          action: upload
+          app_location: frontend
+          api_location: backend
+          output_location: build
 ```
 
-2. **Deploy to Azure:**
-   - Commit code: `git add . && git commit -m "Initial deployment" && git push origin main`
-   - GitHub Actions triggers automatically
-   - Monitor deployment: GitHub repo → **Actions** tab
-
-3. **Verify Deployment:**
-   - Navigate to Static Web App URL (e.g., `https://aap-data-agent-web.azurestaticapps.net`)
-   - Should see login page
-   - Sign in with AAP credentials
-   - Test query: "How many customers are in the gold loyalty tier?"
-   - Verify response received
-
-**Validation:**
-- GitHub Actions workflow succeeds (green checkmark)
-- Static Web App accessible at public URL
-- Can sign in and execute queries
-- Backend API accessible from frontend
-
-**Estimated Time:** 2-3 hours
-
-#### 4.7 Custom Domain & SSL (Optional)
-
-**Steps:**
-1. **Configure Custom Domain:**
-   - Azure Portal → Static Web App → **Custom domains**
-   - Add custom domain: `dataagent.advanceautoparts.com`
-   - Verify domain ownership (add TXT record to DNS)
-   - Wait for SSL provisioning (auto-managed by Azure)
-
-2. **Update Entra ID Redirect URIs:**
-   - Update SPA app registration redirect URI to custom domain
-   - Update `frontend/src/authConfig.ts` with custom domain
-
-**Validation:**
-- Custom domain resolves to Static Web App
-- HTTPS works with valid certificate
-- Authentication works with custom domain
-
-**Estimated Time:** 1-2 hours (if custom domain available)
+Deploy: `git push origin main` → GitHub Actions builds and deploys automatically.
 
 ### Phase 4 Deliverables
 
-- [ ] React SPA with MSAL authentication
-- [ ] Backend API (Azure Functions) with Data Agent integration
-- [ ] Azure resources provisioned (Static Web App, Key Vault, Entra ID apps)
-- [ ] CI/CD pipeline configured (GitHub Actions)
-- [ ] Application deployed to Azure and accessible
-- [ ] End-to-end test passed (user can sign in and query data)
+- [ ] Azure resources provisioned via Bicep (`infra/main.bicep`)
+- [ ] Entra ID app registrations created via CLI script
+- [ ] Easy Auth configured on Function App
+- [ ] React SPA with MSAL authentication deployed
+- [ ] Backend API proxying to Data Agent API
+- [ ] CI/CD pipeline active on `main` branch
+- [ ] End-to-end test passed (sign in → query → response)
 
 ### Phase 4 Risks & Mitigations
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| CORS issues between frontend and backend | Medium | Medium | Configure CORS in Function App settings; use Static Web App managed API (auto-configured) |
-| Token acquisition fails (MSAL errors) | Medium | High | Thorough testing of auth flow; clear error messages; fallback to login redirect if popup blocked |
-| Backend timeout calling Data Agent | Medium | Medium | Set appropriate timeout (30s); show loading indicator; handle timeout gracefully |
-| Key Vault access denied (managed identity issue) | Low | High | Verify managed identity assigned; test Key Vault access independently; check access policies |
+| CORS issues between frontend and backend | Medium | Medium | Static Web App managed API auto-configures CORS |
+| MSAL token acquisition failures | Medium | High | Test auth flow thoroughly; fallback to redirect if popup blocked |
+| Backend timeout calling Data Agent | Medium | Medium | 30s timeout; loading indicator; graceful error handling |
+| Key Vault access denied | Low | High | Verify managed identity; test independently; check RBAC policies |
 
 ---
 
 ## Schema Swap Procedure
 
-**Objective:** Replace placeholder schema with production schema when AAP provides real data, with minimal impact to deployed application.
+**Objective:** Replace placeholder schema with production AAP schema — zero application code changes required (views absorb all mapping changes).
 
-**Duration:** 2-3 days  
-**Owner:** Data Engineering Team + Livingston (Data Modeler)  
+**Active Work Time:** 4–8 hours
+**Wait Time:** 0–2 days (production credentials, UAT approval)
+**Owner:** Data Engineering Team
+
 **Prerequisites:**
 - AAP provides production PostgreSQL connection details
-- Production schema documented (table names, column names, relationships)
-- UAT environment available for testing swap before production
+- Production schema documented (tables, columns, relationships)
+- UAT window for testing
 
-### Steps
+### Step 1: Schema Gap Analysis
 
-#### Step 1: Production Schema Analysis
+1. Receive production DDL / ER diagram from AAP
+2. Run comparison script to generate mapping document:
 
-**Tasks:**
-1. **Receive Production Schema Documentation:**
-   - AAP provides: ER diagram, DDL scripts, data dictionary
-   - Review schema: table names, column names, data types, relationships
-
-2. **Gap Analysis:**
-   - Compare production schema to placeholder schema
-   - Identify differences:
-     - Different table names? (e.g., `prod_customers` vs `customers`)
-     - Different column names? (e.g., `cust_id` vs `customer_id`)
-     - Different data types? (e.g., `varchar(100)` vs `text`)
-     - Additional columns? (new attributes not in placeholder)
-     - Missing columns? (placeholder had columns production doesn't)
-
-3. **Create Mapping Document:**
-   - `docs/schema-mapping.md`:
-
-| Production Table | Production Column | Placeholder Table | Placeholder Column | Notes |
-|------------------|-------------------|-------------------|--------------------|-------|
-| loyalty_customers | cust_id | customers | customer_id | Rename in view |
-| loyalty_customers | email_addr | customers | email | Rename in view |
-| loyalty_customers | tier | customers | loyalty_tier | Rename in view |
-| purchase_history | trans_id | transactions | transaction_id | Rename in view |
-| ... | ... | ... | ... | ... |
-
-**Estimated Time:** 4 hours
-
-#### Step 2: Configure Mirroring for Production Data
-
-**Tasks:**
-1. **Update Fabric Mirroring Connection:**
-   - Fabric portal → Mirroring → `AAP-PostgreSQL-RewardsLoyalty` → Settings
-   - Update connection string to production PostgreSQL server
-   - Update credentials (production user/password)
-   - Test connection
-
-2. **Select Production Tables:**
-   - Deselect placeholder tables (if using same mirroring, OR create new mirroring)
-   - Select production tables (e.g., `loyalty_customers`, `purchase_history`, ...)
-   - Configure destination: Still `mirrored` schema (keep consistent)
-
-3. **Start Mirroring (Initial Snapshot):**
-   - Start mirroring
-   - Wait for initial snapshot to complete (may take hours depending on data volume)
-   - Validate row counts match production source
-
-**Estimated Time:** 2-4 hours (plus snapshot wait time)
-
-#### Step 3: Update Semantic Views
-
-**Tasks:**
-1. **Update View Definitions:**
-   - For each view in `semantic` schema, update SQL to map production tables/columns to contract:
-
-**Before (Placeholder):**
-```sql
-CREATE VIEW semantic.vw_CustomerProfile AS
-SELECT
-    customer_id AS CustomerID,
-    email AS Email,
-    loyalty_tier AS LoyaltyTier,
-    lifetime_points AS LifetimePoints,
-    join_date AS JoinDate
-FROM mirrored.customers;
+```bash
+# Connect to production PostgreSQL and dump schema metadata
+psql -h <prod-server> -U <user> -d <db> -c "
+  SELECT table_name, column_name, data_type
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+  ORDER BY table_name, ordinal_position;
+" > prod-schema-metadata.csv
 ```
 
-**After (Production):**
+3. Create `docs/schema-mapping.md` with column-level mappings between production and placeholder
+
+### Step 2: Update Mirroring for Production
+
+```powershell
+# scripts/schema-swap.ps1 — Update mirroring connection to production
+
+# Option A: Update existing mirrored database connection
+$updateBody = @{
+    source = @{
+        connectionString = "Host=$ProdServer;Port=5432;Database=$ProdDb;Username=$ProdUser;Password=$ProdPassword;SSL Mode=Require"
+    }
+    tables = $ProdTables | ForEach-Object { @{ sourceTable = $_; targetTable = "mirrored.$_" } }
+} | ConvertTo-Json -Depth 5
+
+Invoke-RestMethod -Uri "$FabricBase/workspaces/$WorkspaceId/mirroredDatabases/$MirrorId" `
+    -Method PATCH -Headers $headers -Body $updateBody -ContentType "application/json"
+
+# Option B: Create new mirrored database (if changing connection not supported)
+# Use same approach as Phase 2.3 with production connection details
+```
+
+### Step 3: Update Semantic Views
+
+The key benefit of the abstraction layer — only views change, not the application:
+
 ```sql
+-- Example: production table is loyalty_customers, not customers
 CREATE OR ALTER VIEW semantic.vw_CustomerProfile AS
 SELECT
-    cust_id AS CustomerID,
-    email_addr AS Email,
-    tier AS LoyaltyTier,
-    total_points AS LifetimePoints,
-    registration_date AS JoinDate
+    cust_id           AS CustomerID,
+    email_addr        AS Email,
+    first_nm          AS FirstName,
+    last_nm           AS LastName,
+    tier              AS LoyaltyTier,
+    total_points      AS LifetimePoints,
+    registration_date AS JoinDate,
+    last_purchase_dt  AS LastPurchaseDate
 FROM mirrored.loyalty_customers;
+GO
+
+-- Repeat for all views, mapping production columns to contract names
+-- Store updated SQL in database/views/ and run via sqlcmd
 ```
 
-2. **Deploy Updated Views:**
-   - Connect to Lakehouse SQL endpoint
-   - Run `ALTER VIEW` statements for each view
-   - Verify no SQL errors
+### Step 4: Update Data Agent Config
 
-3. **Handle New/Missing Columns:**
-   - If production has new columns not in contract, add new views (e.g., `vw_CustomerExtended`)
-   - If production missing columns from placeholder, use default values or remove from contract (breaking change, coordinate with app team)
+```bash
+# Update instructions if business terminology changed (e.g., tier names)
+# Edit config/data-agent-instructions.md, then redeploy:
+python scripts/configure-data-agent.ps1 -WorkspaceId $WS -AgentId $AGENT -UpdateInstructions
+```
 
-**Estimated Time:** 2-4 hours
+### Step 5: Validate with Production Data
 
-#### Step 4: Update Data Agent Instructions
+```bash
+# Re-run the automated test suite against production data
+python scripts/test-data-agent.py
 
-**Tasks:**
-1. **Review Sample Queries:**
-   - Check if sample queries still valid with production data
-   - Update if business semantics changed (e.g., tier names: "Gold" → "Platinum")
+# Run end-to-end: open web app → sign in → query
+```
 
-2. **Update Entity Descriptions:**
-   - Update `entityDescriptions` in Data Agent config to reflect production terminology
+### Step 6: Cutover
 
-3. **Re-deploy Data Agent Configuration:**
-   - Update agent settings in Fabric portal
-   - Or, if using config file, re-run deployment script
-
-**Estimated Time:** 1-2 hours
-
-#### Step 5: Test with Production Data
-
-**Tasks:**
-1. **Run Data Agent Tests:**
-   - Re-run all sample queries from Phase 3 test plan
-   - Verify SQL still generates correctly
-   - Verify results make sense (row counts, values)
-
-2. **Test Application End-to-End:**
-   - Open web app
-   - Sign in as test user
-   - Run queries: "How many gold customers?", "Average transaction amount?", etc.
-   - Verify responses correct based on production data
-
-3. **Smoke Test New Columns (if any):**
-   - If production has new attributes, test queries that reference them
-   - Example: "Show me customers with email domain 'gmail.com'" (if email domain now available)
-
-**Estimated Time:** 2-3 hours
-
-#### Step 6: Cutover & Validation
-
-**Tasks:**
-1. **Schedule Cutover:**
-   - Plan cutover during low-usage window (e.g., evening or weekend)
-   - Notify marketing team (brief downtime if switching Fabric workspace)
-
-2. **Execute Cutover:**
-   - If using separate workspace for prod: Update backend API config to point to prod Data Agent
-   - If using same workspace: Views already updated in Step 3, no app changes needed
-
-3. **Post-Cutover Validation:**
-   - Verify marketing team can access app
-   - Run queries, verify results
-   - Monitor for errors in logs (Function App, Data Agent)
-
-4. **Rollback Plan:**
-   - If issues detected, revert view definitions to placeholder mappings
-   - Or switch backend API back to placeholder workspace
-   - Document issues, iterate on view mappings
-
-**Estimated Time:** 2 hours (plus monitoring)
+- If using same workspace: views already updated — no app changes needed
+- If using separate workspace: update `FabricDataAgentApiUrl` in Key Vault → restart Function App
+- Rollback: revert view definitions to placeholder SQL (`git checkout database/views/`)
 
 ### Schema Swap Checklist
 
-- [ ] Production schema documented and analyzed
-- [ ] Schema mapping document created (`docs/schema-mapping.md`)
-- [ ] Fabric Mirroring configured for production PostgreSQL
-- [ ] Initial snapshot completed and validated
-- [ ] Semantic views updated with production table/column mappings
-- [ ] Views tested (all queries return expected results)
-- [ ] Data Agent instructions updated (if needed)
-- [ ] Application tested end-to-end with production data
-- [ ] Cutover executed (views deployed to production)
-- [ ] Post-cutover validation passed
-- [ ] Marketing team notified and trained on any differences
+- [ ] Production schema documented and gap analysis complete
+- [ ] Schema mapping in `docs/schema-mapping.md`
+- [ ] Fabric Mirroring pointed to production PostgreSQL
+- [ ] Initial snapshot completed and row counts validated
+- [ ] Semantic views updated with production column mappings
+- [ ] Data Agent instructions updated (if terminology changed)
+- [ ] `scripts/test-data-agent.py` passing ≥90% on production data
+- [ ] End-to-end app test passed
+- [ ] Cutover executed
+- [ ] Rollback plan documented and tested
 
 ---
 
 ## Risk Register
 
-**Project-Wide Risks & Mitigations**
-
-| Risk | Likelihood | Impact | Mitigation | Owner |
-|------|------------|--------|------------|-------|
-| **AAP delays providing production schema** | High | Medium | Proceed with placeholder; ensure abstraction layer solid; communicate timeline impact | Danny |
-| **Fabric capacity insufficient (CU throttling)** | Medium | High | Monitor capacity metrics during POC; request additional capacity or upgrade if needed; optimize queries | DevOps |
-| **PostgreSQL network connectivity issues** | Medium | High | Validate network access early (Phase 2); use private link if required; test from Fabric notebook | Data Eng |
-| **Data Agent generates incorrect SQL frequently** | Medium | High | Extensive sample queries; iterative refinement; return SQL to users for validation; escalate to Microsoft support | Data Eng |
-| **Marketing team finds UI not intuitive** | Medium | Medium | User testing during Phase 4; gather feedback; iterate on UX | Frontend Dev |
-| **Authentication issues (MSAL, Entra ID)** | Medium | High | Test auth flow early and often; clear error messages; involve AAP IT for Entra ID config | Full-Stack Dev |
-| **Schema swap introduces breaking changes** | Medium | High | Rigorous gap analysis; UAT environment for testing; rollback plan; contract views mitigate risk | Livingston, Danny |
-| **Production data contains PII, compliance concerns** | Medium | High | Implement column masking; update Data Agent instructions; audit logging; consult AAP legal/compliance | Danny, Data Eng |
-| **Query performance too slow (>30 seconds)** | Medium | Medium | Optimize views with indexes; materialized views; set timeout; provide progress indicator | Data Eng |
-| **Scope creep (AAP requests additional features)** | High | Medium | Clear SOW; change request process; track in backlog; prioritize MVP first | Danny |
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| AAP delays providing production schema | High | Medium | Proceed with placeholder; abstraction layer isolates impact |
+| Fabric capacity throttling (CU limits) | Medium | High | Monitor via API; request additional capacity; optimize queries |
+| PostgreSQL network connectivity issues | Medium | High | Validate early in Phase 2; private link if required |
+| Data Agent generates incorrect SQL | Medium | High | Sample queries + iterative prompt tuning; return SQL for user review |
+| Marketing team finds UI not intuitive | Medium | Medium | User testing in Phase 4; gather feedback; iterate |
+| Authentication issues (MSAL/Entra ID) | Medium | High | Test auth flow early; clear error messages; involve AAP IT |
+| Schema swap introduces breaking changes | Medium | High | Rigorous gap analysis; UAT testing; rollback via git revert |
+| Production data has PII/compliance concerns | Medium | High | Column masking; Data Agent instructions; audit logging |
+| Scope creep | High | Medium | Clear SOW; change request process; prioritize MVP |
 
 ---
 
 ## Dependencies & Prerequisites
 
-**What AAP Needs to Provide:**
+### What AAP Needs to Provide
 
-### Phase 1 (Fabric Workspace)
-- [ ] Access to Fabric tenant (Capacity Admin or Fabric Admin role for project team)
-- [ ] Decision on which Fabric capacity to use for POC
-- [ ] Naming conventions for Azure and Fabric resources
+**Phase 1 (Fabric Workspace)**
+- [ ] Fabric tenant access (Capacity Admin or Fabric Admin role)
+- [ ] Decision on which Fabric capacity to use
+- [ ] Naming conventions for resources
 
-### Phase 2 (Data Mirroring)
-- [ ] Azure PostgreSQL connection details:
-  - Server hostname
-  - Database name
-  - User credentials (with SELECT and REPLICATION privileges)
+**Phase 2 (Data Mirroring)**
+- [ ] Azure PostgreSQL connection details (server, database, credentials)
 - [ ] Network access approval (firewall rules or private link)
 - [ ] Approval to enable logical replication (requires server restart)
-- [ ] (Optional) Production schema documentation (if available early)
+- [ ] (Optional) Production schema documentation if available early
 
-### Phase 3 (Data Agent)
-- [ ] Sample query set from marketing team (common questions they want to ask)
-- [ ] Business context: loyalty tier definitions, points rules, geographic regions
-- [ ] Stakeholder for UAT (marketing team member to test agent)
+**Phase 3 (Data Agent)**
+- [ ] Sample query set from marketing team
+- [ ] Business context: loyalty tier definitions, points rules, regions
+- [ ] Stakeholder for UAT
 
-### Phase 4 (Web Application)
-- [ ] Azure subscription for deployment (or approval to use existing sub)
-- [ ] Entra ID tenant admin access (for app registrations)
-- [ ] List of authorized users (marketing team members)
-- [ ] (Optional) Custom domain for web app (e.g., `dataagent.advanceautoparts.com`)
+**Phase 4 (Web Application)**
+- [ ] Azure subscription for deployment
+- [ ] Entra ID tenant admin access
+- [ ] List of authorized users (marketing team)
+- [ ] (Optional) Custom domain for web app
 
-### Schema Swap
+**Schema Swap**
 - [ ] Production schema documentation (ER diagram, DDL, data dictionary)
 - [ ] Production PostgreSQL connection details
-- [ ] UAT window for testing swap before production
-- [ ] Approval to cutover to production data
+- [ ] UAT window and cutover approval
 
 ---
 
 ## Success Criteria
 
-**How We Know the POC is Successful:**
+**Technical:**
+- [ ] Fabric Mirroring replicates data with <5 minute latency
+- [ ] Data Agent generates correct SQL for ≥90% of sample queries
+- [ ] Average query response time <10 seconds
+- [ ] Web app loads in <3 seconds with Entra ID authentication
+- [ ] Schema swap completed in <1 day with zero application code changes
 
-1. **Technical Criteria:**
-   - [ ] Fabric Mirroring replicates PostgreSQL data to OneLake with <5 minute latency
-   - [ ] Data Agent generates correct SQL for ≥90% of sample queries
-   - [ ] Average query response time <10 seconds
-   - [ ] Web application loads in <3 seconds, authenticated via Entra ID
-   - [ ] Schema swap completed in <1 day with zero application code changes
+**Business:**
+- [ ] Marketing team can answer business questions without IT involvement
+- [ ] Positive user feedback from marketing team
+- [ ] ≥5 distinct active users
+- [ ] ≥50 successful queries in first week
 
-2. **Business Criteria:**
-   - [ ] Marketing team can answer business questions without involving IT
-   - [ ] Marketing team reports positive experience (survey or feedback)
-   - [ ] At least 5 distinct users actively use the tool
-   - [ ] At least 50 queries executed successfully in first week
-
-3. **Architectural Criteria:**
-   - [ ] Schema abstraction layer works as designed (real schema swapped with minimal effort)
-   - [ ] System is secure (no unauthorized access, PII protected)
-   - [ ] System is maintainable (documentation complete, code in source control)
-   - [ ] System is scalable (can handle 20+ concurrent users if needed)
+**Architectural:**
+- [ ] Schema abstraction layer validated (swap with minimal effort)
+- [ ] Secure: no unauthorized access, PII protected
+- [ ] Maintainable: documentation complete, all config in source control
+- [ ] All provisioning reproducible via scripts (no portal dependencies)
 
 ---
 
 ## Timeline Summary
 
-| Phase | Duration | Dependencies | Deliverables |
-|-------|----------|--------------|--------------|
-| **Phase 1: Fabric Workspace** | 3-5 days | Fabric access, capacity decision | Workspace, Lakehouse, service principal |
-| **Phase 2: Data Mirroring** | 5-7 days | PostgreSQL access, network, logical replication | Mirrored data, semantic views, placeholder schema |
-| **Phase 3: Data Agent** | 3-4 days | Phase 2 complete, sample queries | Configured Data Agent, API access, test results |
-| **Phase 4: Web Application** | 1-2 weeks | Phase 3 complete, Azure sub, Entra ID | Deployed web app, CI/CD pipeline |
-| **Schema Swap** | 2-3 days | Production schema, UAT approval | Production data live, views updated |
+| Phase | Active Work | Wait Time | Total Calendar | Key Deliverables |
+|-------|-------------|-----------|----------------|------------------|
+| **Phase 1: Fabric Workspace** | 2–4 hours | 0–2 days | 1–2 days | Workspace, Lakehouse, service principal |
+| **Phase 2: Data Mirroring** | 4–6 hours | 0–3 days | 1–4 days | Mirrored data, semantic views |
+| **Phase 3: Data Agent** | 4–6 hours | 0–1 day | 1–2 days | Configured agent, API access, tests |
+| **Phase 4: Web Application** | 1–2 days | 0–2 days | 2–4 days | Deployed app, CI/CD |
+| **Schema Swap** | 4–8 hours | 0–2 days | 1–3 days | Production data live |
 
-**Total: 3-4 weeks** (excluding waiting on AAP prerequisites)
+**Total Active Work:** 3–5 days
+**Total Calendar Time:** 2–3 weeks (including AAP prerequisites and access grants)
 
-**Recommended Approach:** Run Phases 1-2 in parallel (platform setup + data engineering), then Phase 3 (Data Agent), then Phase 4 (app development). Schema swap happens post-POC demo or when production schema available.
+**Recommended Approach:** Run Phases 1–2 in parallel (workspace + data setup). Phase 3 follows immediately. Phase 4 can overlap with Phase 3 (frontend/backend scaffolding). Schema swap executes when AAP provides production schema.
 
 ---
 
 ## Next Steps
 
-**Immediate Actions (Week 1):**
-1. **Kickoff Meeting:** Danny schedules with AAP stakeholders, review plan, confirm prerequisites
-2. **Access Provisioning:** AAP grants Fabric and PostgreSQL access to project team
-3. **Phase 1 Start:** DevOps begins Fabric workspace provisioning
-4. **Placeholder Schema Design:** Livingston creates `docs/data-schema.md` (if not already done)
+**Immediate Actions:**
+1. Kickoff meeting with AAP stakeholders — review plan, confirm prerequisites
+2. AAP grants Fabric tenant and PostgreSQL access
+3. Run `scripts/setup-workspace.ps1` (Phase 1)
+4. Run `scripts/configure-postgres.sh` + `scripts/deploy-placeholder-schema.sh` (Phase 2, parallel)
 
 **Weekly Checkpoints:**
-- Every Monday: Status review (what's done, what's blocked, what's next)
+- Status review: what's done, what's blocked, what's next
 - Track progress against deliverables checklist
-- Update risk register with new risks or mitigations
+- Update risk register
 
 **Demo Plan:**
-- End of Phase 2: Demo mirrored data and semantic views to AAP
-- End of Phase 3: Demo Data Agent via Fabric portal (test queries)
+- End of Phase 2: Demo mirrored data + semantic views
+- End of Phase 3: Demo Data Agent via API (test queries)
 - End of Phase 4: Demo web application to marketing team
 - Post-Schema-Swap: Final demo with production data
 
 ---
 
-**Document End**
-
-*This implementation plan is maintained by Danny (Lead/Architect). For questions, updates, or to report blockers, contact the project team via `.squad/agents/danny/`.*
+*This implementation plan is maintained by the project team. For questions or to report blockers, contact the project leads.*
