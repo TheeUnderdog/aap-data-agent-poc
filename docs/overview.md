@@ -124,16 +124,18 @@ To move forward, AAP must deliver:
 
 ## Project Timeline & Effort
 
-| Phase | Description | Duration | Owner |
-|-------|-------------|----------|-------|
-| **1** | Fabric workspace setup | 3–5 days | Data Platform Team |
-| **2** | PostgreSQL mirroring & placeholder schema | 5–7 days | Data Engineer |
-| **3** | Data Agent configuration & testing | 5–7 days | Data Engineer, Architect |
-| **4** | Web app development & deployment | 3–5 days | Frontend + Backend Engineers |
-| **Integration & UAT** | End-to-end testing, security review | 3–5 days | Full Team |
-| **Total** | — | **3–4 weeks** | — |
+All provisioning is fully scripted (Fabric REST API, Azure CLI, Bicep). Estimates below separate **active work** from **wait time** (blocked on AAP access grants, data snapshots, etc.).
 
-*Timelines assume AAP provides PostgreSQL access and Fabric capacity assignment immediately.*
+| Phase | Description | Active Work | Wait Time | Calendar |
+|-------|-------------|-------------|-----------|----------|
+| **1** | Fabric workspace setup | 2–4 hours | 0–2 days | 1–2 days |
+| **2** | PostgreSQL mirroring & placeholder schema | 4–6 hours | 0–3 days | 1–4 days |
+| **3** | Data Agent configuration & testing | 4–6 hours | 0–1 day | 1–2 days |
+| **4** | Web app development & deployment | 1–2 days | 0–2 days | 2–4 days |
+| **Schema Swap** | Cutover to production data | 4–8 hours | 0–2 days | 1–3 days |
+| **Total** | — | **3–5 days** | — | **2–3 weeks** |
+
+*Calendar time includes wait for AAP prerequisites (Fabric access, PostgreSQL credentials, Entra ID permissions). Active work can be compressed if access is pre-staged.*
 
 ---
 
