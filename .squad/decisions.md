@@ -21,7 +21,6 @@
   8. Entra ID SSO authentication — Existing identity infrastructure, security, compliance
 - **Owner:** Danny (Lead/Architect)
 - **Status:** Approved for Implementation
-- **Reference:** `.squad/decisions/inbox/danny-architecture-decisions.md`
 
 ### Executive Overview Document (2026-04-24)
 - **Decision:** Create `docs/overview.md` as primary executive summary for AAP Data Agent POC
@@ -29,7 +28,6 @@
 - **Content:** 1,200-word document synthesizing technical architecture into business-friendly narrative with ASCII flow diagram, prerequisite checklist, risk register, and cross-references
 - **Owner:** Danny (Lead/Architect)
 - **Status:** Delivered & Ready for Stakeholder Review
-- **Reference:** `.squad/decisions/inbox/danny-overview-doc.md`
 
 ### Placeholder Schema with View-Based Abstraction (2026-04-23)
 - **Decision:** Implement view-based abstraction layer as schema contract with 9-table placeholder design
@@ -37,7 +35,27 @@
 - **Implementation:** 7 contract views provide stable query surfaces; documented 7-step swap procedure
 - **Owner:** Livingston (Data Engineer)
 - **Status:** Implemented
-- **Reference:** `.squad/decisions/inbox/livingston-schema-design.md`
+
+### Two-Phase Build Strategy + Semantic Model Approach (2026-04-25)
+- **Decision:** Split all work into Phase A (build locally, no AAP access) and Phase B (deploy to AAP environment)
+- **Rationale:** AAP access timeline uncertain — team shouldn't be blocked. All scripts, code, configs written and tested without target environment. Phase A produces demos (mock data) to build AAP confidence. Phase B becomes scripted deployment measured in hours.
+- **Impact:** Team sprint plan follows Phase A (weeks 1–3) then Phase B (weeks 4–5). All agents begin work immediately.
+- **Owner:** Danny (Lead/Architect)
+- **Status:** Approved & Documented in build-plan.md
+
+### Semantic Model + Data Agent (Both)
+- **Decision:** Build both a Power BI semantic model AND configure the Fabric Data Agent. Recommend Data Agent queries through semantic model.
+- **Rationale:** AAP is heavy PBI user — semantic model immediately valuable. Data Agent accuracy may need tuning; semantic model is safety net. Data Agent querying through semantic model gets better results on calculated measures. Maximum demo value.
+- **Impact:** Data Engineer authors TMDL definition in Phase A. Adds ~1 day work but significantly de-risks POC.
+- **Owner:** Danny (Lead/Architect)
+- **Status:** Approved & Documented in build-plan.md
+
+### Web App Develops Against Mock Agent
+- **Decision:** Frontend and backend develop against local mock of Data Agent API during Phase A
+- **Rationale:** Web app fully functional and testable before Fabric access. Mock returns realistic responses. Switch mock→real agent = configuration change only.
+- **Impact:** Frontend Developer unblocked from day 1. No dependency on Fabric environment for app development.
+- **Owner:** Danny (Lead/Architect)
+- **Status:** Approved & Documented in build-plan.md
 
 ## Governance
 
