@@ -22,3 +22,12 @@
 - Danny (Lead/Architect) has created technical architecture and phased implementation plan covering all 4 phases
 - Danny's schema abstraction strategy documentation directly references our view-based contract approach
 - Architecture includes detailed Phase 2 (PostgreSQL mirroring) and Phase 3 (Data Agent) guidance that will consume our schema contract views
+
+### Real AAP Schema Received (July 2025)
+- **AAP Loyalty Database has 8 core table groups**: Transaction Details, Loyalty Member Details, Member Points Details, Coupons Details, Audit and Fraud Details, Agent Details, SKU Details, and campaign-adjacent data via CrowdTwist
+- **6 source systems feed the DB**: POS, Ecomm (B2C + mobile), Sterling OMS, Customer First, CrowdTwist (loyalty engine), GK Coupon Management
+- **Key differences from placeholder**: CrowdTwist is a full external loyalty engine (not a simple points ledger); coupons are a major first-class domain; audit/fraud and CSR agent tracking exist as distinct tables; no explicit stores table; SKU Details is separate from product catalog
+- **New semantic views likely needed**: `v_coupon_activity` (coupons are a primary domain), `v_audit_trail` (audit/fraud/agent activity)
+- **Existing views needing significant remap**: `v_points_activity` (CrowdTwist-sourced), `v_reward_catalog` (no direct table match), `v_store_performance` (no stores table), `v_campaign_effectiveness` (CrowdTwist-managed)
+- **Documented in**: `docs/aap-schema-reference.md` with Mermaid data flow diagram, mapping table, and gap analysis
+- **Still needed from AAP**: Column-level DDL, CrowdTwist data model, store identification approach, data volumes, connection details

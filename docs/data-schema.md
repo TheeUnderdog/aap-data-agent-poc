@@ -1,8 +1,14 @@
 # AAP Data Agent POC — Data Schema Design
 
-**Document Owner:** Livingston 📊 (Data Engineer)  
-**Last Updated:** 2024  
-**Status:** PLACEHOLDER SCHEMA — Awaiting Real Schema from AAP
+**Document Owner:** Data Engineer  
+**Last Updated:** 2025-07  
+**Status:** PLACEHOLDER SCHEMA — Awaiting Production Access
+
+> **📋 Update (July 2025):** The real AAP Loyalty Database schema has been received and documented
+> in [`docs/aap-schema-reference.md`](aap-schema-reference.md). That document includes the actual
+> table structure (8 table groups, 6 source systems), a preliminary mapping to our contract views,
+> and a gap analysis. **This placeholder schema remains active** until production database access
+> is available and the semantic views are remapped to real tables.
 
 ---
 
