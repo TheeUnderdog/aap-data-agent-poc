@@ -152,7 +152,12 @@ $workspaces = Invoke-FabricApi -Method GET -Uri "$FabricBaseUrl/workspaces?`$fil
 
 $workspace = $null
 if ($workspaces.value -and $workspaces.value.Count -gt 0) {
-    $workspace = $workspaces.value[0]
+    # Filter client-side: exact name match, exclude personal workspaces
+    $workspace = $workspaces.value | Where-Object {
+        $_.displayName -eq $WorkspaceName -and $_.type -ne 'Personal'
+    } | Select-Object -First 1
+}
+if ($workspace) {
     Write-Status "Workspace already exists: $($workspace.id)"
 }
 else {
@@ -167,7 +172,13 @@ else {
         if ($workspace.StatusCode -eq 409) {
             Write-Warn "Workspace creation returned 409 (conflict). Fetching existing workspace..."
             $workspaces = Invoke-FabricApi -Method GET -Uri "$FabricBaseUrl/workspaces?`$filter=$filter" -Headers $headers
-            $workspace = $workspaces.value[0]
+            $workspace = $workspaces.value | Where-Object {
+                $_.displayName -eq $WorkspaceName -and $_.type -ne 'Personal'
+            } | Select-Object -First 1
+            if (-not $workspace) {
+                Write-Err "Could not find workspace '$WorkspaceName' after 409 conflict."
+                exit 1
+            }
         }
         Write-Status "Workspace ready: $($workspace.id)"
     }
