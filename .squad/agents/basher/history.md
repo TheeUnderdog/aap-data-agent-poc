@@ -10,6 +10,16 @@
 
 ## Learnings
 
+### Agent Config Verification (2026-04-26)
+- **Scope:** Audited all 5 AI agent configurations (customer-service, loyalty-program-manager, marketing-promotions, merchandising, store-operations) plus config/sample-queries.json
+- **CSR naming:** ✅ All SQL in sample-queries.json uses `csr_name`, `csr_department` — no legacy `agent_id`, `agent_name`, `agent_email`, `agent_department` column references found anywhere
+- **Semantic views:** ✅ All 15 agent files (5× config.json, examples.json, instructions.md) reference only `semantic.v_*` views. No raw Delta table references (members, transactions, stores, products, coupons, coupon_rules, points, csr, agent_activities) found
+- **sample-queries.json:** ✅ All 24 queries use `semantic.*` schema prefix. CSR-related query correctly uses `csr_name`, `csr_department`
+- **View coverage:** All 9 semantic views are referenced across the agent configs: v_member_summary, v_member_engagement, v_store_performance, v_transaction_history, v_product_popularity, v_campaign_effectiveness, v_coupon_activity, v_audit_trail, v_points_activity
+- **No fixes required** — configs were already correctly aligned with the CSR rename and semantic view contract
+- **Note:** Agent example answers use "Agent" as a markdown table header for CSR staff names (natural language presentation, not SQL). This is acceptable — the word "agent" in prose refers to the human CSR, not a database entity
+
+
 ### Fabric REST API Provisioning (2026-04-25)
 - **Workspace API:** `GET /v1/workspaces?$filter=displayName eq '{name}'` for existence check, `POST /v1/workspaces` with `displayName` + `capacityId` to create
 - **Lakehouse API:** `GET /v1/workspaces/{id}/lakehouses` to list, `POST /v1/workspaces/{id}/lakehouses` to create. SQL endpoint available at `.properties.sqlEndpointProperties.connectionString`
@@ -20,6 +30,7 @@
 - **409 handling:** Both workspace and lakehouse creation can return 409 Conflict if item already exists — scripts recover by fetching the existing item
 - **Scripts produced:** `scripts/setup-workspace.ps1`, `scripts/deploy-semantic-views.ps1`, `scripts/README.md`
 - **Config output:** `.env.fabric` stores workspace/lakehouse IDs and SQL endpoint for downstream scripts
+- **Semantic Model Credentials:** Livingston identified that TMDL-deployed models need post-deploy credential binding. Pattern: use Fabric REST API `TakeOver` endpoint + Power BI API datasource patching. Consider incorporating into Phase 2 provisioning automation (`scripts/bind-model-credentials.py`)
 
 ### Pre-Deployment Script Review (2026-04-25)
 - **Context:** Workspace manually created (ID: 82f53636-206f-4825-821b-bdaa8e089893) due to Microsoft tenant API limitations. Reviewed scripts for compatibility with existing workspace scenario.
