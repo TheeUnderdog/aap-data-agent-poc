@@ -1,10 +1,12 @@
 # %% [markdown]
 # # AAP Loyalty Program — Sample Data Generator
 # 
-# **Purpose:** Creates Delta tables in the `mirrored` schema that simulate what a
+# **Purpose:** Creates Delta tables in the default Lakehouse that simulate what a
 # PostgreSQL mirror from AAP's loyalty database would produce in Fabric OneLake.
 #
 # **Usage:** Import into a Fabric Lakehouse notebook, attach a Lakehouse, and Run All.
+# Tables are written to the default Lakehouse database (no schema prefix — Fabric
+# Lakehouse Spark does not support CREATE SCHEMA or custom schema prefixes).
 #
 # **Tables created (10):**
 # | Table | ~Rows | Description |
@@ -32,7 +34,6 @@ from pyspark.sql.types import *
 from pyspark.sql import functions as F
 
 spark = SparkSession.builder.getOrCreate()
-spark.sql("CREATE SCHEMA IF NOT EXISTS mirrored")
 
 SEED = 42
 random.seed(SEED)
@@ -110,7 +111,7 @@ stores_schema = StructType([
     StructField("opened_date", DateType()),
 ])
 df_stores = spark.createDataFrame(stores_data, stores_schema)
-df_stores.write.format("delta").mode("overwrite").saveAsTable("mirrored.stores")
+df_stores.write.format("delta").mode("overwrite").saveAsTable("stores")
 print(f"✅ stores: {df_stores.count()} rows")
 
 # %% [markdown]
@@ -199,7 +200,7 @@ sku_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_skus = spark.createDataFrame(sku_data, sku_schema)
-df_skus.write.format("delta").mode("overwrite").saveAsTable("mirrored.sku_reference")
+df_skus.write.format("delta").mode("overwrite").saveAsTable("sku_reference")
 print(f"✅ sku_reference: {df_skus.count()} rows")
 
 # Build lookup for transaction item generation
@@ -280,7 +281,7 @@ members_schema = StructType([
     StructField("created_at", TimestampType()), StructField("updated_at", TimestampType()),
 ])
 df_members = spark.createDataFrame(members_data, members_schema)
-df_members.write.format("delta").mode("overwrite").saveAsTable("mirrored.loyalty_members")
+df_members.write.format("delta").mode("overwrite").saveAsTable("loyalty_members")
 print(f"✅ loyalty_members: {df_members.count()} rows")
 
 # %% [markdown]
@@ -340,7 +341,7 @@ txn_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_txn = spark.createDataFrame(transactions_data, txn_schema)
-df_txn.write.format("delta").mode("overwrite").saveAsTable("mirrored.transactions")
+df_txn.write.format("delta").mode("overwrite").saveAsTable("transactions")
 print(f"✅ transactions: {df_txn.count()} rows")
 
 # %% [markdown]
@@ -372,7 +373,7 @@ items_schema = StructType([
     StructField("line_total", DoubleType()), StructField("is_return", BooleanType()),
 ])
 df_items = spark.createDataFrame(items_data, items_schema)
-df_items.write.format("delta").mode("overwrite").saveAsTable("mirrored.transaction_items")
+df_items.write.format("delta").mode("overwrite").saveAsTable("transaction_items")
 print(f"✅ transaction_items: {df_items.count()} rows")
 
 # %% [markdown]
@@ -450,7 +451,7 @@ points_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_points = spark.createDataFrame(points_data, points_schema)
-df_points.write.format("delta").mode("overwrite").saveAsTable("mirrored.member_points")
+df_points.write.format("delta").mode("overwrite").saveAsTable("member_points")
 print(f"✅ member_points: {df_points.count()} rows")
 
 # %% [markdown]
@@ -501,7 +502,7 @@ rules_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_rules = spark.createDataFrame(rules_data, rules_schema)
-df_rules.write.format("delta").mode("overwrite").saveAsTable("mirrored.coupon_rules")
+df_rules.write.format("delta").mode("overwrite").saveAsTable("coupon_rules")
 print(f"✅ coupon_rules: {df_rules.count()} rows")
 
 # %% [markdown]
@@ -548,7 +549,7 @@ coupons_schema = StructType([
     StructField("source_system", StringType()), StructField("created_at", TimestampType()),
 ])
 df_coupons = spark.createDataFrame(coupons_data, coupons_schema)
-df_coupons.write.format("delta").mode("overwrite").saveAsTable("mirrored.coupons")
+df_coupons.write.format("delta").mode("overwrite").saveAsTable("coupons")
 print(f"✅ coupons: {df_coupons.count()} rows")
 
 # %% [markdown]
@@ -574,7 +575,7 @@ agents_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_agents = spark.createDataFrame(agents_data, agents_schema)
-df_agents.write.format("delta").mode("overwrite").saveAsTable("mirrored.agents")
+df_agents.write.format("delta").mode("overwrite").saveAsTable("agents")
 print(f"✅ agents: {df_agents.count()} rows")
 
 # %% [markdown]
@@ -627,7 +628,7 @@ aa_schema = StructType([
     StructField("details", StringType()), StructField("created_at", TimestampType()),
 ])
 df_aa = spark.createDataFrame(activities_data, aa_schema)
-df_aa.write.format("delta").mode("overwrite").saveAsTable("mirrored.agent_activities")
+df_aa.write.format("delta").mode("overwrite").saveAsTable("agent_activities")
 print(f"✅ agent_activities: {df_aa.count()} rows")
 
 # %% [markdown]
@@ -645,8 +646,8 @@ tables = [
 ]
 total = 0
 for t in tables:
-    count = spark.sql(f"SELECT COUNT(*) as cnt FROM mirrored.{t}").collect()[0]["cnt"]
-    print(f"  mirrored.{t:25s} → {count:>10,} rows")
+    count = spark.sql(f"SELECT COUNT(*) as cnt FROM {t}").collect()[0]["cnt"]
+    print(f"  {t:25s} → {count:>10,} rows")
     total += count
 
 print(f"\n  {'TOTAL':25s} → {total:>10,} rows")

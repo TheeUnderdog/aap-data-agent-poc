@@ -29,3 +29,17 @@
   - deploy-semantic-views.ps1 reads: FABRIC_SQL_ENDPOINT, FABRIC_LAKEHOUSE_NAME (both present in output)
   - Deployment sequence correct: setup-workspace → import/run notebook → deploy-semantic-views
 - **Recommendation**: Deployment-ready with one cosmetic fix optional (commented code typo)
+
+### Schema Reference Fix — mirrored → dbo (2026-07-24)
+- **Context**: Livingston removing `mirrored.` schema prefix from PySpark notebook (Fabric Spark doesn't support CREATE SCHEMA). Semantic views needed matching update.
+- **Action**: Replaced all 27 `mirrored.tablename` references with `dbo.tablename` in `scripts/create-semantic-views.sql`
+- **Verified clean**:
+  - `config/sample-queries.json` — no `mirrored.` refs (queries use `semantic.v_*` views only) ✅
+  - `scripts/deploy-views.py` — no `mirrored.` refs ✅
+  - `scripts/deploy-semantic-views.ps1` — no `mirrored.` refs ✅
+- **Schema syntax**: `CREATE SCHEMA semantic` with `IF NOT EXISTS` check via `sys.schemas` is valid T-SQL for Fabric SQL endpoint ✅
+- **Learnings**:
+  - Fabric SQL endpoint exposes default Lakehouse tables under `dbo` schema
+  - Fabric Spark writes to default Lakehouse (no schema prefix supported)
+  - SQL endpoint supports `CREATE SCHEMA` (T-SQL), but Spark does not
+  - The `semantic` schema creation is unaffected — only source table references needed updating

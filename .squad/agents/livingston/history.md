@@ -54,3 +54,9 @@
 - **Verified 25 sample queries in config/sample-queries.json** — All view names, column names, and SQL syntax correct
 - **Notebook review**: No issues found in `notebooks/01-create-sample-data.py` — PySpark syntax correct, Delta schema matches view expectations, data generation logic sound
 - **Deployment cleared**: All artifacts ready for Fabric deployment
+
+### Fabric Lakehouse Spark Limitations (July 2025)
+- **Fabric Lakehouse Spark does NOT support `CREATE SCHEMA`** — attempting it throws `java.lang.RuntimeException: Feature not supported on Apache Spark in Microsoft Fabric`
+- **Tables must be written to default Lakehouse without schema prefix** — use `saveAsTable("tablename")` not `saveAsTable("schema.tablename")`
+- **Fixed notebook** (`notebooks/01-create-sample-data.py`): Removed `CREATE SCHEMA IF NOT EXISTS mirrored`, replaced all 13 `mirrored.tablename` references with plain `tablename` throughout (10 saveAsTable calls + 2 verification cell references + header comments)
+- **Lesson learned**: The Contoso Fabric reference project writes tables directly without schema prefixes — should have caught this pattern earlier during reference study

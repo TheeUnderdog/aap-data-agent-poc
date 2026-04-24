@@ -202,7 +202,6 @@ def convert_jupytext_to_fabric(source: str, workspace_id: str, lakehouse_id: str
                 cells.append(current_cell)
             current_cell = {"type": "code", "lines": []}
         elif current_cell is not None:
-            cells.append(current_cell) if False else None  # no-op
             if current_cell["type"] == "markdown":
                 # Markdown lines are prefixed with "# "
                 if line.startswith("# "):

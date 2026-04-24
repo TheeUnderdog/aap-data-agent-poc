@@ -40,14 +40,14 @@ SELECT
     ts.last_purchase_date,
     m.created_at,
     m.updated_at
-FROM mirrored.loyalty_members m
+FROM dbo.loyalty_members m
 LEFT JOIN (
     SELECT
         member_id,
         SUM(CASE WHEN points_amount > 0 THEN points_amount ELSE 0 END) AS lifetime_earned,
         SUM(CASE WHEN points_amount < 0 THEN ABS(points_amount) ELSE 0 END) AS lifetime_redeemed,
         SUM(points_amount) AS current_balance
-    FROM mirrored.member_points
+    FROM dbo.member_points
     GROUP BY member_id
 ) pb ON m.member_id = pb.member_id
 LEFT JOIN (
@@ -57,7 +57,7 @@ LEFT JOIN (
         SUM(CASE WHEN transaction_type = 'purchase' THEN total ELSE 0 END) AS total_spend,
         MIN(transaction_date) AS first_purchase_date,
         MAX(transaction_date) AS last_purchase_date
-    FROM mirrored.transactions
+    FROM dbo.transactions
     GROUP BY member_id
 ) ts ON m.member_id = ts.member_id;
 GO
@@ -85,9 +85,9 @@ SELECT
     t.channel,
     t.order_id,
     t.created_at
-FROM mirrored.transactions t
-JOIN mirrored.loyalty_members m ON t.member_id = m.member_id
-JOIN mirrored.stores s ON t.store_id = s.store_id;
+FROM dbo.transactions t
+JOIN dbo.loyalty_members m ON t.member_id = m.member_id
+JOIN dbo.stores s ON t.store_id = s.store_id;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -107,8 +107,8 @@ SELECT
     p.reference_id,
     p.description,
     p.created_at
-FROM mirrored.member_points p
-JOIN mirrored.loyalty_members m ON p.member_id = m.member_id;
+FROM dbo.member_points p
+JOIN dbo.loyalty_members m ON p.member_id = m.member_id;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -134,9 +134,9 @@ SELECT
     cr.min_purchase,
     cr.target_tier,
     c.created_at
-FROM mirrored.coupons c
-JOIN mirrored.coupon_rules cr ON c.coupon_rule_id = cr.rule_id
-LEFT JOIN mirrored.loyalty_members m ON c.member_id = m.member_id;
+FROM dbo.coupons c
+JOIN dbo.coupon_rules cr ON c.coupon_rule_id = cr.rule_id
+LEFT JOIN dbo.loyalty_members m ON c.member_id = m.member_id;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -160,7 +160,7 @@ SELECT
     COALESCE(ta.unique_members, 0) AS unique_members,
     ta.first_transaction_date,
     ta.last_transaction_date
-FROM mirrored.stores s
+FROM dbo.stores s
 LEFT JOIN (
     SELECT
         store_id,
@@ -172,7 +172,7 @@ LEFT JOIN (
         COUNT(DISTINCT member_id) AS unique_members,
         MIN(transaction_date) AS first_transaction_date,
         MAX(transaction_date) AS last_transaction_date
-    FROM mirrored.transactions
+    FROM dbo.transactions
     GROUP BY store_id
 ) ta ON s.store_id = ta.store_id;
 GO
@@ -199,7 +199,7 @@ SELECT
     END AS return_rate_pct,
     COALESCE(ti.transaction_count, 0) AS transaction_count,
     COALESCE(ti.unique_buyers, 0) AS unique_buyers
-FROM mirrored.sku_reference sr
+FROM dbo.sku_reference sr
 LEFT JOIN (
     SELECT
         i.sku,
@@ -208,8 +208,8 @@ LEFT JOIN (
         SUM(CASE WHEN i.is_return = 1 THEN i.quantity ELSE 0 END) AS units_returned,
         COUNT(DISTINCT i.transaction_id) AS transaction_count,
         COUNT(DISTINCT t.member_id) AS unique_buyers
-    FROM mirrored.transaction_items i
-    JOIN mirrored.transactions t ON i.transaction_id = t.transaction_id
+    FROM dbo.transaction_items i
+    JOIN dbo.transactions t ON i.transaction_id = t.transaction_id
     GROUP BY i.sku
 ) ti ON sr.sku = ti.sku;
 GO
@@ -228,7 +228,7 @@ SELECT
     ta.total_spend,
     ta.avg_spend_per_transaction,
     ta.last_purchase_date,
-    DATEDIFF(day, ta.last_purchase_date, GETDATE()) AS days_since_last_purchase,
+    COALESCE(DATEDIFF(day, ta.last_purchase_date, GETDATE()), 999999) AS days_since_last_purchase,
     COALESCE(pa.total_points_earned, 0) AS total_points_earned,
     COALESCE(pa.total_points_redeemed, 0) AS total_points_redeemed,
     COALESCE(pa.points_balance, 0) AS points_balance,
@@ -243,7 +243,7 @@ SELECT
         ELSE CAST(ca.coupons_redeemed AS FLOAT) / ca.coupons_issued * 100
     END AS coupon_redemption_rate_pct,
     ta.preferred_channel
-FROM mirrored.loyalty_members m
+FROM dbo.loyalty_members m
 LEFT JOIN (
     SELECT
         t.member_id,
@@ -251,10 +251,10 @@ LEFT JOIN (
         SUM(CASE WHEN transaction_type = 'purchase' THEN total ELSE 0 END) AS total_spend,
         AVG(CASE WHEN transaction_type = 'purchase' THEN total END) AS avg_spend_per_transaction,
         MAX(transaction_date) AS last_purchase_date,
-        (SELECT TOP 1 channel FROM mirrored.transactions t2
+        (SELECT TOP 1 channel FROM dbo.transactions t2
          WHERE t2.member_id = t.member_id
          GROUP BY channel ORDER BY COUNT(*) DESC) AS preferred_channel
-    FROM mirrored.transactions t
+    FROM dbo.transactions t
     GROUP BY t.member_id
 ) ta ON m.member_id = ta.member_id
 LEFT JOIN (
@@ -263,7 +263,7 @@ LEFT JOIN (
         SUM(CASE WHEN points_amount > 0 THEN points_amount ELSE 0 END) AS total_points_earned,
         SUM(CASE WHEN points_amount < 0 THEN ABS(points_amount) ELSE 0 END) AS total_points_redeemed,
         SUM(points_amount) AS points_balance
-    FROM mirrored.member_points
+    FROM dbo.member_points
     GROUP BY member_id
 ) pa ON m.member_id = pa.member_id
 LEFT JOIN (
@@ -271,7 +271,7 @@ LEFT JOIN (
         member_id,
         COUNT(*) AS coupons_issued,
         SUM(CASE WHEN status = 'redeemed' THEN 1 ELSE 0 END) AS coupons_redeemed
-    FROM mirrored.coupons
+    FROM dbo.coupons
     GROUP BY member_id
 ) ca ON m.member_id = ca.member_id;
 GO
@@ -301,7 +301,7 @@ SELECT
     COALESCE(cs.revenue_from_redeemed, 0) AS revenue_from_redeemed_transactions,
     cs.avg_transaction_value_at_redemption,
     cr.created_at
-FROM mirrored.coupon_rules cr
+FROM dbo.coupon_rules cr
 LEFT JOIN (
     SELECT
         c.coupon_rule_id,
@@ -311,8 +311,8 @@ LEFT JOIN (
         SUM(CASE WHEN c.status = 'voided' THEN 1 ELSE 0 END) AS total_voided,
         SUM(CASE WHEN c.status = 'redeemed' THEN t.total ELSE 0 END) AS revenue_from_redeemed,
         AVG(CASE WHEN c.status = 'redeemed' THEN t.total END) AS avg_transaction_value_at_redemption
-    FROM mirrored.coupons c
-    LEFT JOIN mirrored.transactions t ON c.redeemed_transaction_id = t.transaction_id
+    FROM dbo.coupons c
+    LEFT JOIN dbo.transactions t ON c.redeemed_transaction_id = t.transaction_id
     GROUP BY c.coupon_rule_id
 ) cs ON cr.rule_id = cs.coupon_rule_id;
 GO
@@ -333,9 +333,9 @@ SELECT
     aa.activity_date,
     aa.details,
     aa.created_at
-FROM mirrored.agent_activities aa
-JOIN mirrored.agents a ON aa.agent_id = a.agent_id
-JOIN mirrored.loyalty_members m ON aa.member_id = m.member_id;
+FROM dbo.agent_activities aa
+JOIN dbo.agents a ON aa.agent_id = a.agent_id
+JOIN dbo.loyalty_members m ON aa.member_id = m.member_id;
 GO
 
 -- ============================================================================
