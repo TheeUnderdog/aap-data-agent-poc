@@ -8,30 +8,33 @@ Automated setup for the AAP Data Agent POC Fabric environment. **No portal click
 
 | Requirement | Version | Check |
 |---|---|---|
+| Python | 3.10+ | `python --version` |
 | PowerShell | 7.0+ | `$PSVersionTable.PSVersion` |
-| Azure CLI | 2.50+ | `az --version` |
-| Azure subscription | With Fabric capacity | `az account show` |
-| Fabric capacity | F64 or higher recommended | Get ID from Fabric admin portal |
+| azure-identity | latest | `pip install azure-identity requests` |
 | SqlServer module | **Recommended** for view deployment | `Install-Module SqlServer -Scope CurrentUser` |
+| Fabric capacity | F64 or higher recommended | Get ID from Fabric admin portal |
 
 ## Quick Start
 
 ```powershell
-# 1. Login to Azure
-az login
-
-# 2. Install SqlServer module (recommended)
+# 1. Install dependencies
+pip install azure-identity requests
 Install-Module SqlServer -Scope CurrentUser -Force
 
-# 3. Provision workspace + Lakehouse (idempotent — safe to re-run)
-./scripts/setup-workspace.ps1 -CapacityId "YOUR-CAPACITY-GUID"
+# 2. Provision Lakehouse (opens browser for auth — works in Microsoft corporate tenants)
+python scripts/provision-lakehouse.py --workspace-id "YOUR-WORKSPACE-GUID"
 
-# 4. Import and run the data generation notebook in the Fabric workspace
-#    (see docs/data-schema.md for notebook details)
+# 3. Import and run the data generation notebook in the Fabric workspace
+#    (see notebooks/README.md for details)
 
-# 5. Deploy semantic views
-./scripts/deploy-semantic-views.ps1
+# 4. Deploy semantic views (opens browser for auth)
+python scripts/deploy-views.py
 ```
+
+> **Why browser auth?** Azure CLI tokens (`az account get-access-token`) cannot access
+> portal-created workspaces in some Microsoft corporate tenants. The Python scripts use
+> `InteractiveBrowserCredential` which authenticates through your browser — the same way
+> the Fabric portal does — ensuring full workspace visibility.
 
 ---
 
