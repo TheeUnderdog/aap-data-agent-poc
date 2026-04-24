@@ -2,43 +2,43 @@
   {
     "question": "What's the coupon redemption rate by campaign?",
     "answer": "Here's the campaign performance summary for all coupon campaigns:\n\n| Campaign | Issued | Redeemed | Expired | Voided | Redemption Rate | Revenue Generated |\n|----------|--------|----------|---------|--------|-----------------|-------------------|\n| Spring Oil Change Bonus | 2,400 | 864 | 1,392 | 144 | 36.0% | $482,100 |\n| Battery Rewards $20 Off | 1,800 | 594 | 1,080 | 126 | 33.0% | $387,400 |\n| Platinum Exclusive 15% | 450 | 189 | 216 | 45 | 42.0% | $198,700 |\n| Gold Member $10 Off | 980 | 333 | 578 | 69 | 34.0% | $176,200 |\n| New Member Welcome 10% | 3,200 | 832 | 2,112 | 256 | 26.0% | $312,600 |\n| Brake Service BOGO | 1,600 | 480 | 992 | 128 | 30.0% | $289,400 |\n| DIY Account Activation | 1,200 | 300 | 780 | 120 | 25.0% | $134,800 |\n| Holiday Double Points | 2,800 | 980 | 1,596 | 224 | 35.0% | $521,300 |\n\n**Program average redemption rate: 31.4%**\n\n**Top performer:** Platinum Exclusive 15% — highest redemption rate (42%) despite small audience, generating $198K. Tier-targeted campaigns for engaged members significantly outperform broad-audience promotions.\n\n**Lowest performer:** DIY Account Activation (25%) — this campaign targets new DIY account holders who may not yet be engaged with the rewards program. Consider pairing with a stronger incentive or follow-up sequence.",
-    "views_used": ["semantic.v_campaign_effectiveness"],
+    "tables_used": ["coupon_rules", "coupons", "transactions"],
     "category": "campaign-performance"
   },
   {
     "question": "How effective are tier-targeted coupon campaigns?",
     "answer": "Here are campaigns with explicit tier targeting:\n\n| Campaign | Target Tier | Issued | Redeemed | Redemption Rate | Revenue | Avg Txn at Redemption |\n|----------|-------------|--------|----------|-----------------|---------|----------------------|\n| Platinum Exclusive 15% | Platinum | 450 | 189 | 42.0% | $198,700 | $1,052 |\n| Gold Member $10 Off | Gold | 980 | 333 | 34.0% | $176,200 | $529 |\n| Silver Upgrade Incentive | Silver | 1,400 | 392 | 28.0% | $187,400 | $478 |\n| Bronze Welcome Back | Bronze | 2,200 | 484 | 22.0% | $165,300 | $342 |\n\n**Clear tier-to-redemption correlation:**\n- Platinum: 42% redemption → these members are deeply engaged and responsive\n- Gold: 34% → strong response, high basket value at redemption\n- Silver: 28% → moderate response, good for tier upgrade motivation\n- Bronze: 22% → lowest response, but largest audience generates meaningful revenue\n\n**Average transaction value at redemption scales with tier** — Platinum members spend $1,052 per redeemed transaction vs. $342 for Bronze. This confirms that tier-targeted campaigns for upper tiers deliver disproportionate ROI despite smaller audience size.",
-    "views_used": ["semantic.v_campaign_effectiveness"],
+    "tables_used": ["coupon_rules", "coupons", "transactions"],
     "category": "tier-targeting"
   },
   {
     "question": "Which coupon campaigns generated the most revenue?",
     "answer": "Here are the top campaigns ranked by revenue generated from redeemed transactions:\n\n| Rank | Campaign | Discount Type | Redeemed | Revenue | Avg Txn Value | ROI Context |\n|------|----------|--------------|----------|---------|---------------|-------------|\n| 1 | Holiday Double Points | Points multiplier | 980 | $521,300 | $531.94 | High volume + high basket |\n| 2 | Spring Oil Change Bonus | Percent off | 864 | $482,100 | $557.99 | Seasonal timing |\n| 3 | Battery Rewards $20 Off | Fixed dollar | 594 | $387,400 | $652.19 | High-value category |\n| 4 | New Member Welcome 10% | Percent off | 832 | $312,600 | $375.72 | Acquisition driver |\n| 5 | Brake Service BOGO | Buy-one-get-one | 480 | $289,400 | $602.92 | Service-oriented |\n\n**Key insight:** Holiday Double Points generated the most revenue ($521K) through high redemption volume (980). But **Battery Rewards $20 Off** had the highest per-redemption value ($652) — the fixed-dollar discount on a high-value category drives larger baskets.\n\nNote that revenue figures reflect the total transaction value when the coupon was redeemed, not the discount amount itself. For true ROI, the discount cost would need to be netted against incremental revenue driven by the promotion.",
-    "views_used": ["semantic.v_campaign_effectiveness"],
+    "tables_used": ["coupon_rules", "coupons", "transactions"],
     "category": "campaign-revenue"
   },
   {
     "question": "How many coupons are currently outstanding?",
     "answer": "Here's the current coupon liability snapshot:\n\n| Status | Count | % of Total |\n|--------|-------|------------|\n| Issued (active, not yet redeemed) | 3,842 | 100% |\n\n**Breakdown by discount type:**\n\n| Discount Type | Outstanding | Avg Discount Value | Est. Max Liability |\n|---------------|-------------|-------------------|--------------------|\n| Percent Off (10-15%) | 2,187 | ~12% avg | $124,200* |\n| Fixed Dollar ($5-$20) | 1,247 | $11.40 avg | $14,216 |\n| Points Multiplier | 408 | 2x points | N/A (points cost) |\n| **Total** | **3,842** | — | **$138,416+** |\n\n*Percent-off liability estimated using avg transaction value of $71 × avg discount of 12% × outstanding count.*\n\n**Expiration timeline:**\n- Expiring within 30 days: 847 coupons (22%)\n- Expiring within 31-60 days: 1,124 coupons (29%)\n- Expiring 60+ days out: 1,871 coupons (49%)\n\nThe 847 coupons expiring within 30 days represent a window for reminder communications — historically, 18% of near-expiry reminders convert to redemptions.",
-    "views_used": ["semantic.v_coupon_activity"],
+    "tables_used": ["coupons", "coupon_rules"],
     "category": "coupon-liability"
   },
   {
     "question": "How do percent-off vs. fixed-dollar coupons compare?",
     "answer": "Here's the performance comparison by discount type:\n\n| Metric | Percent Off | Fixed Dollar | Points Multiplier |\n|--------|------------|-------------|-------------------|\n| Total Issued | 6,480 | 4,380 | 3,540 |\n| Total Redeemed | 2,009 | 1,358 | 1,204 |\n| Redemption Rate | 31.0% | 31.0% | 34.0% |\n| Avg Txn at Redemption | $78.42 | $89.14 | $84.67 |\n| Total Revenue from Redemptions | $1.12M | $0.87M | $0.72M |\n| Avg Discount Given | ~$9.41 | $11.40 | N/A |\n\n**Key findings:**\n- **Redemption rates are nearly identical** between percent-off and fixed-dollar (31% each), with points multipliers slightly higher at 34%.\n- **Fixed-dollar coupons drive higher basket values** ($89.14 vs. $78.42) — the anchoring effect of \"$20 off\" encourages members to build larger baskets.\n- **Points multipliers** are the cheapest incentive (no direct discount cost) while maintaining the best redemption rate — members value earning more points.\n- Percent-off coupons have the highest total volume issued (6,480) and generate the most aggregate revenue ($1.12M).",
-    "views_used": ["semantic.v_campaign_effectiveness", "semantic.v_coupon_activity"],
+    "tables_used": ["coupon_rules", "coupons", "transactions", "coupons", "coupon_rules"],
     "category": "discount-type-analysis"
   },
   {
     "question": "What's the coupon redemption trend by month?",
     "answer": "Here's the monthly coupon activity for the past 6 months:\n\n| Month | Issued | Redeemed | Expired | Redemption Rate | Revenue from Redemptions |\n|-------|--------|----------|---------|-----------------|-------------------------|\n| 2026-01 | 2,140 | 642 | 1,284 | 30.0% | $341,200 |\n| 2026-02 | 1,890 | 548 | 1,134 | 29.0% | $287,400 |\n| 2026-03 | 2,420 | 774 | 1,404 | 32.0% | $412,600 |\n| 2026-04 | 2,680 | 884 | 1,501 | 33.0% | $478,200 |\n| 2026-05 | 2,540 | 838 | 1,397 | 33.0% | $451,800 |\n| 2026-06 | 2,210 | 686 | 1,281 | 31.0% | $367,900 |\n\n**Observations:**\n- **Redemption rates improved from 29-30% in Jan/Feb to 33% in Apr/May** — correlating with the spring auto maintenance season when members have higher purchase intent.\n- **March-April showed the strongest performance** — both in issuance volume and redemption rate. This aligns with seasonal demand for oil changes, wipers, and battery replacements.\n- **June pullback** is consistent with post-spring normalization. Consider planning summer-specific campaigns (coolant, road trip accessories) to maintain momentum.",
-    "views_used": ["semantic.v_coupon_activity", "semantic.v_campaign_effectiveness"],
+    "tables_used": ["coupons", "coupon_rules", "coupon_rules", "coupons", "transactions"],
     "category": "redemption-trends"
   },
   {
     "question": "How did the Spring Oil Change Bonus campaign perform?",
     "answer": "Here's the detailed performance of the **Spring Oil Change Bonus** campaign:\n\n| Metric | Value |\n|--------|-------|\n| Campaign Type | Percent Off (10%) |\n| Target Tier | All tiers |\n| Min Purchase | $25.00 |\n| Total Issued | 2,400 |\n| Redeemed | 864 (36.0%) |\n| Expired | 1,392 (58.0%) |\n| Voided | 144 (6.0%) |\n| Revenue from Redemptions | $482,100 |\n| Avg Transaction at Redemption | $557.99 |\n\n**Redemption by tier:**\n\n| Tier | Issued | Redeemed | Redemption Rate |\n|------|--------|----------|----------------|\n| Platinum | 120 | 58 | 48.3% |\n| Gold | 240 | 101 | 42.1% |\n| Silver | 600 | 228 | 38.0% |\n| Bronze | 1,440 | 477 | 33.1% |\n\n**Assessment:** The Spring Oil Change Bonus was one of the strongest campaigns at 36% overall redemption — 4.6 points above program average. The broad targeting (all tiers) generated the most volume from Bronze members (477 redemptions), while upper tiers showed characteristically higher response rates. The $482K in associated revenue makes this one of our top revenue-generating campaigns.\n\nFor product-level sales impact during this campaign period, I'd recommend checking with the **Merchandising** agent.",
-    "views_used": ["semantic.v_campaign_effectiveness", "semantic.v_coupon_activity"],
+    "tables_used": ["coupon_rules", "coupons", "transactions", "coupons", "coupon_rules"],
     "category": "campaign-deep-dive"
   }
 ]

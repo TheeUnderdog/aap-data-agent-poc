@@ -2,37 +2,37 @@
   {
     "question": "What are the best-selling product categories?",
     "answer": "Here's the category performance breakdown across the AAP catalog:\n\n| Category | Units Sold | Revenue | SKU Count | Unique Buyers | Avg Return Rate |\n|----------|-----------|---------|-----------|---------------|----------------|\n| Oil | 42,180 | $8.94M | 320 | 3,847 | 2.1% |\n| Batteries | 28,340 | $7.21M | 180 | 2,914 | 4.8% |\n| Brakes | 24,890 | $6.47M | 260 | 2,631 | 5.2% |\n| Filters | 38,720 | $3.87M | 290 | 3,421 | 1.4% |\n| Wipers | 31,460 | $2.83M | 150 | 2,987 | 3.7% |\n| Lighting | 18,940 | $2.46M | 210 | 1,876 | 6.1% |\n| Coolant | 15,670 | $1.88M | 120 | 1,654 | 1.9% |\n| Spark Plugs | 21,340 | $1.71M | 140 | 2,143 | 2.3% |\n| Accessories | 12,890 | $1.54M | 280 | 1,432 | 8.4% |\n| Electrical | 9,470 | $1.23M | 170 | 987 | 7.2% |\n\n**Top 3 by revenue:** Oil ($8.94M), Batteries ($7.21M), and Brakes ($6.47M) account for 58% of total product revenue.\n\n**Watch list:** Accessories (8.4%) and Electrical (7.2%) have the highest return rates. Lighting at 6.1% also warrants review — fitment issues are a common driver of returns in these categories.",
-    "views_used": ["semantic.v_product_popularity"],
+    "tables_used": ["products"],
     "category": "category-performance"
   },
   {
     "question": "What are the top 10 brands by revenue?",
     "answer": "Here are the top 10 brands across the AAP catalog:\n\n| Rank | Brand | Units Sold | Revenue | SKU Count | Unique Buyers |\n|------|-------|-----------|---------|-----------|---------------|\n| 1 | Mobil 1 | 18,420 | $4.24M | 45 | 2,841 |\n| 2 | DieHard | 14,230 | $3.89M | 62 | 2,147 |\n| 3 | Bosch | 12,870 | $3.21M | 78 | 1,984 |\n| 4 | ACDelco | 11,940 | $2.87M | 94 | 1,876 |\n| 5 | Fram | 16,340 | $2.45M | 52 | 2,431 |\n| 6 | Rain-X | 13,280 | $1.79M | 38 | 2,087 |\n| 7 | Duralast | 9,870 | $1.67M | 86 | 1,543 |\n| 8 | NGK | 11,240 | $1.35M | 42 | 1,687 |\n| 9 | Prestone | 8,430 | $1.18M | 34 | 1,234 |\n| 10 | Sylvania | 7,890 | $1.14M | 48 | 1,098 |\n\n**Key observations:**\n- **Mobil 1** leads in revenue despite fewer SKUs (45) than many competitors — high unit price and brand loyalty drive this.\n- **DieHard** performs strongly in batteries, a high-value category.\n- **Fram** has the most units sold of any brand in the top 10 but ranks 5th in revenue — reflects the lower unit price of filters.\n- **ACDelco** has the broadest SKU range (94) in the top 10, spanning multiple categories.",
-    "views_used": ["semantic.v_product_popularity"],
+    "tables_used": ["products"],
     "category": "brand-analysis"
   },
   {
     "question": "Which products have the highest return rates?",
     "answer": "Here are products with the highest return rates (minimum 50 units sold to filter low-volume noise):\n\n| Product | Brand | Category | Units Sold | Units Returned | Return Rate |\n|---------|-------|----------|-----------|----------------|-------------|\n| LED Interior Kit - Universal | BrightMax | Accessories | 287 | 48 | 16.7% |\n| HID Conversion Kit H11 | Xenon Pro | Lighting | 124 | 19 | 15.3% |\n| Bluetooth OBD2 Scanner | AutoScan | Electrical | 198 | 28 | 14.1% |\n| Universal Roof Rack Mount | CargoMax | Accessories | 89 | 12 | 13.5% |\n| LED Headlight Bulb 9006 | BrightMax | Lighting | 342 | 41 | 12.0% |\n| Trailer Wiring Harness | TowReady | Electrical | 156 | 18 | 11.5% |\n| Custom Fit Floor Mats | WeatherGuard | Accessories | 231 | 25 | 10.8% |\n| Halogen Headlight Kit H7 | Sylvania | Lighting | 412 | 43 | 10.4% |\n\n**Pattern analysis:**\n- **Accessories** and **Lighting** dominate the high-return list — 3 products each in the top 8.\n- **Fitment issues are likely the primary driver.** LED/HID conversion kits and universal-fit accessories have inherent compatibility challenges.\n- **BrightMax** appears twice — the brand may have quality or fitment specification issues worth investigating with the supplier.\n- The network average return rate is 4.2%, so all of these are 2.5–4x above normal.",
-    "views_used": ["semantic.v_product_popularity"],
+    "tables_used": ["products"],
     "category": "return-rates"
   },
   {
     "question": "How are bonus-eligible products performing?",
     "answer": "Here's the performance comparison between bonus-eligible and standard products:\n\n| Category | Bonus Eligible | Standard | Bonus Revenue Share |\n|----------|---------------|----------|--------------------|\n| Oil | $3.21M | $5.73M | 35.9% |\n| Batteries | $2.89M | $4.32M | 40.1% |\n| Brakes | $2.14M | $4.33M | 33.1% |\n| Filters | $1.42M | $2.45M | 36.7% |\n| Spark Plugs | $0.68M | $1.03M | 39.8% |\n| All Other | $1.87M | $5.97M | 23.9% |\n| **Total** | **$12.21M** | **$23.83M** | **33.9%** |\n\nBonus-eligible products account for **33.9% of total product revenue** but represent only 22% of SKUs — meaning they outperform on a per-SKU basis.\n\n**Batteries** have the highest bonus revenue share (40.1%), suggesting the bonus point incentive is particularly effective for high-consideration purchases where members may choose the bonus-eligible option. This is valuable data for the loyalty team when designing future bonus point promotions.",
-    "views_used": ["semantic.v_product_popularity"],
+    "tables_used": ["products"],
     "category": "bonus-products"
   },
   {
     "question": "What's the revenue breakdown by category this quarter vs. last quarter?",
     "answer": "Here's the quarter-over-quarter category performance:\n\n| Category | This Quarter | Last Quarter | Change | % Change |\n|----------|-------------|-------------|--------|----------|\n| Oil | $2.41M | $2.18M | +$230K | +10.6% |\n| Batteries | $1.94M | $1.72M | +$220K | +12.8% |\n| Brakes | $1.78M | $1.54M | +$240K | +15.6% |\n| Filters | $1.08M | $0.92M | +$160K | +17.4% |\n| Wipers | $0.81M | $0.64M | +$170K | +26.6% |\n| Lighting | $0.67M | $0.58M | +$90K | +15.5% |\n| Coolant | $0.52M | $0.44M | +$80K | +18.2% |\n| Spark Plugs | $0.48M | $0.41M | +$70K | +17.1% |\n| Accessories | $0.42M | $0.37M | +$50K | +13.5% |\n| Electrical | $0.34M | $0.29M | +$50K | +17.2% |\n\n**All categories grew this quarter.** The strongest growth came from:\n- **Wipers (+26.6%)** — seasonal demand as spring rain season kicks in\n- **Coolant (+18.2%)** and **Filters (+17.4%)** — spring maintenance cycle driving preventive maintenance purchases\n- **Brakes (+15.6%)** — consistently strong, likely driven by both seasonal need and bonus point promotions\n\nTotal product revenue this quarter: **$10.45M** (up from $9.09M, +15.0% QoQ).",
-    "views_used": ["semantic.v_product_popularity", "semantic.v_transaction_history"],
+    "tables_used": ["products", "transactions", "stores"],
     "category": "category-trends"
   },
   {
     "question": "Which categories have the most unique buyers?",
     "answer": "Here's the buyer penetration across product categories:\n\n| Category | Unique Buyers | % of Total Members (4,936) | Units/Buyer | Revenue/Buyer |\n|----------|--------------|---------------------------|-------------|---------------|\n| Oil | 3,847 | 77.9% | 11.0 | $2,324 |\n| Filters | 3,421 | 69.3% | 11.3 | $1,131 |\n| Wipers | 2,987 | 60.5% | 10.5 | $948 |\n| Batteries | 2,914 | 59.0% | 9.7 | $2,474 |\n| Brakes | 2,631 | 53.3% | 9.5 | $2,459 |\n| Spark Plugs | 2,143 | 43.4% | 10.0 | $798 |\n| Lighting | 1,876 | 38.0% | 10.1 | $1,311 |\n| Coolant | 1,654 | 33.5% | 9.5 | $1,137 |\n| Accessories | 1,432 | 29.0% | 9.0 | $1,075 |\n| Electrical | 987 | 20.0% | 9.6 | $1,246 |\n\n**Oil has the highest penetration** at 78% — nearly 4 in 5 rewards members have purchased oil. This makes it an excellent cross-sell trigger category.\n\n**Batteries and Brakes** stand out with the highest revenue per buyer ($2,474 and $2,459) despite moderate penetration — these are high-value, less-frequent purchases. Targeted promotions for members who haven't bought in these categories could drive significant incremental revenue.",
-    "views_used": ["semantic.v_product_popularity"],
+    "tables_used": ["products"],
     "category": "buyer-penetration"
   }
 ]

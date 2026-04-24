@@ -10,14 +10,16 @@
     "path": "../semantic-models/RewardsLoyaltyData.SemanticModel"
   },
   "capabilities": {
-    "primaryViews": [
-      "semantic.v_audit_trail",
-      "semantic.v_member_summary"
+    "primaryTables": [
+      "csr_activities",
+      "csr",
+      "loyalty_members",
+      "audit_log"
     ],
-    "secondaryViews": [
-      "semantic.v_points_activity",
-      "semantic.v_coupon_activity",
-      "semantic.v_member_engagement"
+    "secondaryTables": [
+      "points_ledger",
+      "coupons",
+      "transactions"
     ],
     "domains": [
       "member-lookup",

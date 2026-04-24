@@ -10,14 +10,13 @@
     "path": "../semantic-models/RewardsLoyaltyData.SemanticModel"
   },
   "capabilities": {
-    "primaryViews": [
-      "semantic.v_member_summary",
-      "semantic.v_member_engagement",
-      "semantic.v_points_activity"
+    "primaryTables": [
+      "loyalty_members",
+      "points_ledger"
     ],
-    "secondaryViews": [
-      "semantic.v_transaction_history",
-      "semantic.v_coupon_activity"
+    "secondaryTables": [
+      "transactions",
+      "coupons"
     ],
     "domains": [
       "member-profiles",

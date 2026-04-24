@@ -10,13 +10,13 @@
     "path": "../semantic-models/RewardsLoyaltyData.SemanticModel"
   },
   "capabilities": {
-    "primaryViews": [
-      "semantic.v_product_popularity",
-      "semantic.v_transaction_history"
+    "primaryTables": [
+      "products",
+      "transactions"
     ],
-    "secondaryViews": [
-      "semantic.v_store_performance",
-      "semantic.v_member_engagement"
+    "secondaryTables": [
+      "stores",
+      "loyalty_members"
     ],
     "domains": [
       "category-performance",

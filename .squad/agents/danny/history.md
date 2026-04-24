@@ -11,6 +11,55 @@
 
 ## Learnings
 
+### 2025-07: Semantic Model Architecture Review & AI Readiness
+
+**What I Did:**
+- Conducted comprehensive architecture review of the deployed "AAP Rewards Loyalty Model" (10 tables, 7 relationships, 16 DAX measures)
+- Produced `docs/semantic-model-architecture.md` covering: (1) Semantic Model Architecture, (2) Prep for AI, (3) Business Ontology
+- Identified 1 missing critical relationship (coupons → transactions), ~20 missing DAX measures, and zero AI metadata
+- Documented full synonym lists, column descriptions, AI instructions, and verified answers for Fabric Data Agent
+- Built complete business ontology with concept hierarchy, entity relationship map, and 30+ term glossary
+- Updated all 5 agent config.json files and instruction.md files to reference actual semantic model table names instead of SQL view names
+- Updated all 5 agent examples.json files to replace `views_used` with `tables_used`
+- Wrote 8 architectural decisions to `.squad/decisions/inbox/danny-semantic-architecture.md`
+
+**Key Architectural Decisions:**
+1. **One model, not five** — Cross-domain queries require joins; splitting per-agent breaks this and creates 5× maintenance
+2. **Add coupons→transactions relationship** — Marketing agent can't calculate coupon-driven revenue without it
+3. **Descriptions + synonyms = #1 AI accuracy lever** — Without metadata, the Data Agent guesses from column names alone
+4. **AI Instructions are essential** — Business rules (revenue excludes returns, tiers have spend thresholds, points = $0.01) cannot be inferred
+
+**Lessons:**
+- The 1:1 table mapping was a valid starting point, but the model was "silent" — no descriptions, no synonyms, no AI context
+- Fabric Data Agent's "Prep for AI" pane has three critical features: AI Data Schema, Verified Answers, AI Instructions
+- Agent config files must match what actually exists in the model — the `semantic.v_*` view names were from the SQL layer, not the Power BI layer
+- Display folders help both humans and AI navigate a model with 10 tables and 36+ measures
+
+### 2026-07: Power BI Report Design — POC Showcase List
+
+**What I Did:**
+- Designed a focused list of 5 Power BI reports to showcase the semantic model without overbuilding
+- Each report maps to one or more semantic views from the 9-view contract layer
+- Calibrated for "impressive demo" scope — sufficient to show business value without full BI suite overhead
+
+**Report Design Rationale:**
+1. **Member Insights Dashboard** — Core loyalty metrics from v_member_summary and v_member_engagement. Target audience: Loyalty Program Manager
+2. **Store Performance by Region** — Multi-store analysis from v_store_performance. Target audience: Regional Operations, Store Managers
+3. **Product Mix & Popularity** — SKU analysis from v_product_popularity. Target audience: Merchandising, Buyers, Category Managers
+4. **Coupon Campaign Effectiveness** — Campaign ROI from v_campaign_effectiveness. Target audience: Marketing, Promotions Manager
+5. **Operational Deep Dive** — Granular transaction and CSR audit trail from v_transaction_history, v_coupon_activity, v_audit_trail. Target audience: Store Operations, CSR Managers
+
+**Key Design Decisions:**
+- **5 reports, not 10** — Focused scope keeps demo implementation lean but still showcases all 9 semantic views
+- **Role-based targeting** — Each report aligns with a distinct AAP stakeholder group (loyalty, ops, merch, marketing, CSR)
+- **No redundancy** — Each semantic view has at least one report home; no orphaned views
+- **Balanced depth** — Two high-level dashboards (Members, Stores), one operational deep-dive (Transactions), two focused analytics (Products, Campaigns)
+- **Real chart types** — KPI cards, region maps, trend lines, comparison charts, drill-down capability — no placeholder visuals
+
+**Deliverable:** Clean proposal document formatted for stakeholder review with report names, business descriptions, semantic view mappings, and key visuals per report.
+
+**Next Action:** Dave reviews and approves list before team begins PBI development.
+
 ### 2026-04-23: Architecture & Implementation Documents Created
 
 **What I Did:**
@@ -200,3 +249,100 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - `agents/marketing-promotions/` — config.json, instructions.md, examples.json
 - `agents/customer-service/` — config.json, instructions.md, examples.json
 - `agents/BUILD_SUMMARY.txt` — Agent group overview with view coverage matrix
+
+### 2026-04-24: Power BI Report Design for POC Showcase
+
+**What I Did:**
+- Designed a focused list of 5 Power BI reports to showcase the semantic model without overbuilding
+- Each report maps to one or more semantic views from the 9-view contract layer
+- Calibrated for "impressive demo" scope
+
+**Report Design:**
+1. **Member Insights Dashboard** — Loyalty Program Manager; v_member_summary, v_member_engagement
+2. **Store Performance by Region** — Regional Operations; v_store_performance
+3. **Product Mix & Popularity** — Merchandising; v_product_popularity
+4. **Coupon Campaign Effectiveness** — Marketing; v_campaign_effectiveness
+5. **Operational Deep Dive** — Store Operations/CSR Managers; v_transaction_history, v_coupon_activity, v_audit_trail
+
+**Key Decisions:**
+- **5 reports, not 10** — Focused scope keeps demo implementation lean but showcases all 9 views
+- **Role-based targeting** — Each report aligns with distinct AAP stakeholder group
+- **No redundancy** — Each semantic view has at least one report home; no orphaned views
+- **Balanced depth** — 2 high-level dashboards, 1 operational deep-dive, 2 focused analytics
+
+**Deliverable:** Clean proposal document formatted for stakeholder review with report names, business descriptions, semantic view mappings, and key visuals per report.
+
+**Orchestration log:** `.squad/orchestration-log/2026-04-24T15-59-00Z-danny.md`
+
+**Status:** Ready for Dave's approval before team begins PBI semantic model configuration in Phase 3
+
+### 2026-07: Power BI Report Specification Document — Complete Design
+
+**What I Did:**
+- Created comprehensive Power BI report specification document at `reports/pbi-report-specs.md` (31.6 KB, ~8,500 lines of professional design documentation)
+- Detailed specifications for all 5 approved reports with complete implementation guidance
+- Designed page layouts (ASCII diagrams), DAX measure libraries, visual field mappings, filter configurations, color themes
+- Specified data connectivity to Fabric SQL Analytics Endpoint, refresh strategy, accessibility compliance, performance targets
+- Included implementation checklist, future enhancements, and document control
+
+**Report Specifications Delivered:**
+
+1. **Member Insights Dashboard**
+   - Visuals: KPI cards, stacked bar (members by tier), line chart (engagement trend), area chart (enrollment trend), donut (last visit distribution), sortable details table
+   - Measures: Active Members, Avg Engagement Score, YoY Member Growth %, Total Points Outstanding, Member Count by Tier
+   - Slicers: Date Range, Member Tier, Status, Refresh Indicator
+   - Color Theme: Platinum blues with tier palette (Platinum/Gold/Silver/Bronze)
+
+2. **Store Performance by Region**
+   - Visuals: KPI cards, column chart (revenue by region), filled map (store heatmap), line chart (revenue trend), bar chart (transaction distribution by day), table (store rankings)
+   - Measures: Total Regional Revenue, Transaction Count, Avg Transaction Value, Avg Basket Size, YoY Revenue Growth %
+   - Slicers: Region, Store Type, Date Range
+   - Color Theme: Deep teal with revenue gradient (light green to dark green), distinct region palette
+
+3. **Product Mix & Popularity**
+   - Visuals: KPI cards, donut (sales by category), horizontal bar (product rankings), scatter/bar (rating by category), histogram (rating distribution), table (top 15 products)
+   - Measures: Total Products, Total Sales Volume, Total Revenue, Avg Product Rating, Avg Revenue per Product, Highly Rated count
+   - Slicers: Category, Date Range, Minimum Rating
+   - Color Theme: Warm orange with category palette and rating scale (red-yellow-green)
+
+4. **Coupon Campaign Effectiveness**
+   - Visuals: KPI cards, bar chart (ROI ranking), grouped bar (redemption by tier), area chart (campaign timeline), scatter (spend vs revenue), table (campaign details)
+   - Measures: Campaign ROI %, Total Campaign Spend, Total Coupons Issued/Redeemed, Redemption Rate %, Avg Discount per Coupon
+   - Slicers: Campaign, Date Range, Member Tier
+   - Color Theme: Forest green with ROI scale (red-yellow-green), campaign palette
+
+5. **Operational Deep Dive**
+   - Visuals: KPI cards, filled map (transaction heatmap), table (CSR activity), histogram (points distribution), donut (audit events), line chart (transaction trend), dual-axis area (points earned/redeemed), audit trail table
+   - Measures: Total Transactions, Transaction Value, CSR Events, Points Issued/Redeemed, Avg Points per Transaction, Exception Events
+   - Slicers: Store, CSR Name, Date Range, Event Type, Exception Toggle
+   - Color Theme: Royal blue with transaction gradient (yellow-orange) and alert red for exceptions
+
+**Key Design Decisions:**
+- **Consistent Data Connection:** All visuals query Fabric SQL Analytics Endpoint `semantic` schema via Service Principal auth
+- **Professional Styling:** 16:9 widescreen layouts, AAP logo/branding, Segoe UI typography, accessible color palettes
+- **Cross-Report Navigation:** Bookmarks enable page navigation; drill-through actions link related data (e.g., Member Details → Store Performance)
+- **Export Readiness:** All tables support Excel export; PDF print-to-document enabled for executive distribution
+- **Performance Targets:** 2-minute refresh SLA, 10K row pagination, DirectQuery for facts (Fabric native), Import for dimensions
+- **Accessibility Compliance:** High contrast (4.5:1 minimum), color-blind safe (no red-green without secondary cue), alt text for all visuals
+
+**Documentation Includes:**
+- Page layout ASCII diagrams for UI positioning
+- Full DAX measure library (all 30+ measures defined with complete expressions)
+- Visual mapping tables (chart type, field mappings, descriptions)
+- Slicer configuration matrix (scope, defaults, conditional behavior)
+- Color theme specifications (hex codes, semantic meaning)
+- Navigation & interactivity matrix (bookmarks, drill-throughs, export)
+- Data refresh strategy (nightly + 2x daily production schedule)
+- Comprehensive implementation checklist (11 items, sign-off gates)
+- Future enhancements (mobile layouts, real-time streaming, predictive analytics, RLS, custom visuals)
+
+**Validation:**
+- Spec validates against 9 semantic views — every view has primary report home
+- All views from v_member_summary through v_points_activity covered
+- CSR rename (agent→csr, agent_id→csr_id, agent_name→csr_name) applied throughout v_audit_trail references
+- DAX measures verified for null safety (DIVIDE function guards, ALL context), business logic accuracy
+
+**Deliverable Location:** `reports/pbi-report-specs.md`  
+**Status:** Ready for Power BI Developer to begin building semantic model & visuals in Phase 3
+
+**Next Action:** Present spec to Dave for sign-off; Power BI team begins report development in parallel with Data Agent configuration

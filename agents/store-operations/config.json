@@ -10,13 +10,13 @@
     "path": "../semantic-models/RewardsLoyaltyData.SemanticModel"
   },
   "capabilities": {
-    "primaryViews": [
-      "semantic.v_store_performance",
-      "semantic.v_transaction_history"
+    "primaryTables": [
+      "stores",
+      "transactions"
     ],
-    "secondaryViews": [
-      "semantic.v_audit_trail",
-      "semantic.v_member_summary"
+    "secondaryTables": [
+      "csr_activities",
+      "loyalty_members"
     ],
     "domains": [
       "store-revenue",

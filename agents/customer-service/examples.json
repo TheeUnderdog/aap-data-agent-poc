@@ -2,37 +2,37 @@
   {
     "question": "What did the CSR team do this month?",
     "answer": "Here's the CSR activity summary for the current month:\n\n**Total activities: 847**\n\n| Activity Type | Count | % of Total |\n|---------------|-------|------------|\n| Member Lookup | 312 | 36.8% |\n| Points Adjustment | 187 | 22.1% |\n| Coupon Void | 124 | 14.6% |\n| Tier Inquiry | 98 | 11.6% |\n| Status Change | 67 | 7.9% |\n| Enrollment Assist | 59 | 7.0% |\n\n**Top agents by volume:**\n\n| Agent | Department | Activities | Top Activity Type |\n|-------|-----------|------------|-------------------|\n| Sarah Mitchell | Customer Support | 78 | Member Lookup |\n| James Rodriguez | Customer Support | 72 | Points Adjustment |\n| Karen Williams | Loyalty Services | 68 | Coupon Void |\n| Mike Chen | Customer Support | 64 | Member Lookup |\n| Lisa Park | Loyalty Services | 61 | Tier Inquiry |\n\nMember Lookups remain the most common activity (37%), followed by Points Adjustments (22%). The team handled an average of 42 activities per agent this month across 20 active agents.",
-    "views_used": ["semantic.v_audit_trail"],
+    "tables_used": ["csr_activities", "csr", "loyalty_members"],
     "category": "csr-activity"
   },
   {
     "question": "Look up member Maria Santos",
     "answer": "Here's the profile for **Maria Santos**:\n\n| Field | Value |\n|-------|-------|\n| Tier | Gold |\n| Member Status | Active |\n| Points Balance | 3,150 |\n| Lifetime Spend | $6,231.47 |\n| Total Transactions | 28 |\n| Enrollment Date | 2024-03-15 |\n| Enrollment Source | Website |\n| Last Purchase | 2025-09-02 |\n| Days Since Last Purchase | 229 |\n| Preferred Channel | In-Store |\n| Email Opt-In | Yes |\n| SMS Opt-In | Yes |\n| DIY Account | Linked |\n\n**⚠️ Engagement alert:** Maria has been inactive for 229 days despite being a Gold member with $6.2K lifetime spend. She has 3,150 unredeemed points.\n\nWould you like me to pull her recent points history or any CSR activity records for this member?",
-    "views_used": ["semantic.v_member_summary", "semantic.v_member_engagement"],
+    "tables_used": ["loyalty_members", "loyalty_members", "transactions", "points_ledger"],
     "category": "member-lookup"
   },
   {
     "question": "Which CSR agents handled the most cases this month?",
     "answer": "Here are the CSR agents ranked by activity volume this month:\n\n| Rank | Agent | Department | Total Activities | Lookups | Pts Adj | Coupon Voids | Other |\n|------|-------|-----------|-----------------|---------|---------|-------------|-------|\n| 1 | Sarah Mitchell | Customer Support | 78 | 34 | 18 | 12 | 14 |\n| 2 | James Rodriguez | Customer Support | 72 | 22 | 28 | 10 | 12 |\n| 3 | Karen Williams | Loyalty Services | 68 | 18 | 14 | 24 | 12 |\n| 4 | Mike Chen | Customer Support | 64 | 29 | 12 | 11 | 12 |\n| 5 | Lisa Park | Loyalty Services | 61 | 14 | 16 | 8 | 23 |\n| 6 | David Kim | Customer Support | 58 | 24 | 15 | 9 | 10 |\n| 7 | Amy Foster | Loyalty Services | 54 | 16 | 12 | 18 | 8 |\n| 8 | Tom Bradley | Customer Support | 51 | 21 | 14 | 7 | 9 |\n\n**Team average: 42 activities/agent** (20 active agents, 847 total activities).\n\nSarah Mitchell and James Rodriguez lead the team, with 78 and 72 activities respectively. Note that Karen Williams in Loyalty Services handles a disproportionately high share of coupon voids (24) — this may reflect a specialized workflow where coupon issues are routed to Loyalty Services.",
-    "views_used": ["semantic.v_audit_trail"],
+    "tables_used": ["csr_activities", "csr", "loyalty_members"],
     "category": "agent-performance"
   },
   {
     "question": "Show me the audit trail for member Robert Chen",
     "answer": "Here's the complete audit trail for **Robert Chen** (Platinum member):\n\n| Date | Agent | Department | Activity Type | Details |\n|------|-------|-----------|---------------|--------|\n| 2025-12-14 | Lisa Park | Loyalty Services | Tier Inquiry | Member inquired about Platinum renewal requirements |\n| 2025-11-28 | James Rodriguez | Customer Support | Points Adjustment | +500 points — missing points from in-store purchase 11/22 |\n| 2025-10-03 | Sarah Mitchell | Customer Support | Member Lookup | General account review per member request |\n| 2025-09-18 | Karen Williams | Loyalty Services | Coupon Void | Voided expired coupon CPN-4821, member requested replacement |\n| 2025-09-18 | Karen Williams | Loyalty Services | Coupon Void | Issued replacement coupon CPN-5012, 15% off, 30-day expiry |\n| 2025-08-14 | Mike Chen | Customer Support | Member Lookup | Account lookup for purchase verification |\n\n**6 audit records found** for this member, spanning August 2025 through December 2025.\n\nNote: Robert Chen's last purchase was 2025-08-14 (248 days ago). The subsequent interactions are all service-oriented — this is a Platinum member who is disengaging from purchasing but still contacting support. This pattern may be worth flagging to the **Loyalty Program Manager** agent for churn risk assessment.",
-    "views_used": ["semantic.v_audit_trail"],
+    "tables_used": ["csr_activities", "csr", "loyalty_members"],
     "category": "audit-trail"
   },
   {
     "question": "What types of activities are most common by department?",
     "answer": "Here's the activity breakdown by department:\n\n**Customer Support (12 agents)**\n\n| Activity Type | Count | % of Dept Total |\n|---------------|-------|----------------|\n| Member Lookup | 234 | 42.1% |\n| Points Adjustment | 128 | 23.0% |\n| Tier Inquiry | 72 | 12.9% |\n| Coupon Void | 58 | 10.4% |\n| Enrollment Assist | 41 | 7.4% |\n| Status Change | 23 | 4.1% |\n| **Subtotal** | **556** | **100%** |\n\n**Loyalty Services (8 agents)**\n\n| Activity Type | Count | % of Dept Total |\n|---------------|-------|----------------|\n| Coupon Void | 66 | 22.7% |\n| Points Adjustment | 59 | 20.3% |\n| Member Lookup | 78 | 26.8% |\n| Status Change | 44 | 15.1% |\n| Tier Inquiry | 26 | 8.9% |\n| Enrollment Assist | 18 | 6.2% |\n| **Subtotal** | **291** | **100%** |\n\n**Key differences:**\n- Customer Support is heavily oriented toward **Member Lookups** (42%) — first-contact resolution workflow.\n- Loyalty Services handles a disproportionate share of **Coupon Voids** (22.7% vs. 10.4% in Support) and **Status Changes** (15.1% vs. 4.1%) — these are likely escalated or specialized tasks.\n- Both departments handle Points Adjustments at similar rates (~21-23%), suggesting this is a cross-functional responsibility.",
-    "views_used": ["semantic.v_audit_trail"],
+    "tables_used": ["csr_activities", "csr", "loyalty_members"],
     "category": "department-analysis"
   },
   {
     "question": "How many points adjustments were made this month and for which tiers?",
     "answer": "Here's the points adjustment summary for the current month:\n\n**Total points adjustments: 187**\n\n| Member Tier | Adjustments | % of Total | Avg Adjustment (points) |\n|-------------|-------------|------------|------------------------|\n| Bronze | 82 | 43.9% | +245 |\n| Silver | 54 | 28.9% | +380 |\n| Gold | 31 | 16.6% | +520 |\n| Platinum | 20 | 10.7% | +680 |\n| **Total** | **187** | **100%** | **+378** |\n\n**By adjustment reason (from audit details):**\n\n| Reason | Count | % |\n|--------|-------|---|\n| Missing points from purchase | 98 | 52.4% |\n| Promotion credit | 42 | 22.5% |\n| Goodwill adjustment | 31 | 16.6% |\n| System correction | 16 | 8.6% |\n\n**Over half of adjustments (52%) are for missing points from purchases** — this suggests a potential gap in the points accrual process, particularly at POS. Bronze members account for the largest share (44%), which is expected given they represent 60% of the member base, but the frequency of missing-points corrections may warrant a process review.",
-    "views_used": ["semantic.v_audit_trail", "semantic.v_points_activity"],
+    "tables_used": ["csr_activities", "csr", "loyalty_members", "points_ledger"],
     "category": "points-adjustments"
   }
 ]

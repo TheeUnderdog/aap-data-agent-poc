@@ -10,14 +10,13 @@
     "path": "../semantic-models/RewardsLoyaltyData.SemanticModel"
   },
   "capabilities": {
-    "primaryViews": [
-      "semantic.v_campaign_effectiveness",
-      "semantic.v_coupon_activity"
+    "primaryTables": [
+      "coupon_rules",
+      "coupons"
     ],
-    "secondaryViews": [
-      "semantic.v_transaction_history",
-      "semantic.v_member_engagement",
-      "semantic.v_member_summary"
+    "secondaryTables": [
+      "transactions",
+      "loyalty_members"
     ],
     "domains": [
       "campaign-performance",
