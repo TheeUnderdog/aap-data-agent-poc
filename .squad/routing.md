@@ -7,7 +7,7 @@ How to decide who handles what.
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
 | Architecture & design | Danny | System design, service boundaries, technical decisions |
-| Fabric workspace & data | Livingston | OneLake setup, mirroring, data modeling, SQL schema |
+| Fabric workspace & data | Saul | OneLake setup, mirroring, data modeling, SQL schema |
 | Data Agent & backend APIs | Basher | Fabric Data Agent config, API endpoints, auth |
 | Web app & UI | Linus | Frontend app, chat interface, UX |
 | Code review | Danny | Review PRs, check quality, suggest improvements |
@@ -21,7 +21,7 @@ How to decide who handles what.
 |-------|--------|-----|
 | `squad` | Triage: analyze issue, assign `squad:{member}` label | Danny |
 | `squad:danny` | Architecture, review, decisions | Danny |
-| `squad:livingston` | Fabric, data modeling, mirroring | Livingston |
+| `squad:saul` | Fabric, data modeling, mirroring | Saul |
 | `squad:basher` | Data Agent, backend, API | Basher |
 | `squad:linus` | Web app, frontend | Linus |
 | `squad:rusty` | Testing, validation | Rusty |

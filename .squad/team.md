@@ -13,7 +13,8 @@
 | Name | Role | Charter | Status |
 |------|------|---------|--------|
 | Danny | Lead / Architect | [charter](.squad/agents/danny/charter.md) | 🏗️ Active |
-| Livingston | Data Engineer | [charter](.squad/agents/livingston/charter.md) | 📊 Active |
+| ~~Livingston~~ | ~~Data Engineer~~ | — | ❌ Fired |
+| Saul | Data Engineer | [charter](.squad/agents/saul/charter.md) | 📊 Active |
 | Basher | Backend Dev | [charter](.squad/agents/basher/charter.md) | 🔧 Active |
 | Linus | Frontend Dev | [charter](.squad/agents/linus/charter.md) | ⚛️ Active |
 | Rusty | Tester / QA | [charter](.squad/agents/rusty/charter.md) | 🧪 Active |

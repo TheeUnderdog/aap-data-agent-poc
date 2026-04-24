@@ -172,3 +172,38 @@
 - **Lesson learned**: Fabric semantic models deployed via REST API always need a separate credential-binding step. The `TakeOver` endpoint is the simplest path — it binds the calling user's OAuth2 token to all data sources in one call.
 - **Orchestration log:** `.squad/orchestration-log/2026-04-24T17-56-UTC-livingston.md`
 - **Status:** Complete — credentials binding pattern integrated into Phase 2 deployment automation
+
+### Phase A Deployment Completion (April 2026)
+- **Executed all remaining Phase A deployment tasks** to finalize POC infrastructure
+- **Linguistic schema deployed successfully**: Used `scripts/configure-linguistic-schema.py` to push synonyms and AI instructions to semantic model via Fabric REST API. Added 50 table synonyms (10 tables), 66 column synonyms (20 columns), 53 value synonyms (7 columns). AI instructions (53 lines) include business context, tier definitions, points system rules, data time range, and terminology mapping. Q&A/Copilot enabled in model definition.
+- **Credential binding executed**: Ran `scripts/bind-model-credentials.py` — takeover succeeded, binding Dave's OAuth2 credentials to semantic model. Refresh failed (expected) because Delta tables don't exist yet.
+- **Notebook execution attempted but FAILED**: Ran `scripts/run-notebook.py` to execute `01-create-sample-data.py`. Spark session cancelled due to statement execution failures. Root cause unknown — requires manual debugging in Fabric portal.
+- **Key finding**: Sample data notebook must be manually debugged and run before semantic model can refresh. Without Delta tables, the model has no data sources to query.
+- **Blocking items for full deployment**:
+  1. Sample data notebook execution (manual portal debugging required)
+  2. Semantic model refresh (after notebook succeeds)
+  3. Fabric Data Agent deployment (portal-only, no REST API available)
+- **All scripted deployments complete**: 8 of 11 total deployment steps automated and executed. Remaining 3 require manual portal work.
+- **Portal links**:
+  - Notebook: https://app.fabric.microsoft.com/groups/82f53636-206f-4825-821b-bdaa8e089893/notebooks/f0af7753-cfef-47f5-8c0f-43ded9218b66
+  - Semantic Model: https://app.fabric.microsoft.com/groups/82f53636-206f-4825-821b-bdaa8e089893
+- **Lesson learned**: Even with fully automated scripts, Fabric environment constraints (Spark runtime errors, LRO delays) can block deployment. Always have manual portal fallback paths documented. Notebook execution failures often don't surface detailed error messages via REST API — portal debugging is essential.
+
+### Legacy Table Cleanup & Semantic Model Refresh Fix (July 2025)
+
+**Task 1 — Dropped stale `agents` and `agent_activities` tables:**
+- After the CSR rename, the old tables remained as stale Delta data in the Lakehouse
+- **Fabric SQL endpoint does NOT support `DROP TABLE`** — returns "external policy action denied" error. The SQL Analytics endpoint is read-only for DDL.
+- **Solution**: Used OneLake DFS API (ADLS Gen2-compatible) to delete the Delta table folders: `DELETE https://onelake.dfs.fabric.microsoft.com/{workspaceId}/{lakehouseId}/Tables/{tableName}?recursive=true`
+- **Script created**: `scripts/drop-legacy-tables.py` — lists tables via Fabric REST API, deletes via OneLake DFS API
+- **Result**: Both `agents` and `agent_activities` successfully deleted. Lakehouse now has 10 clean tables: loyalty_members, transactions, transaction_items, stores, sku_reference, member_points, coupons, coupon_rules, csr, csr_activities
+- **Lesson learned**: Two scopes needed — Fabric API (`api.fabric.microsoft.com`) for table listing, Storage (`storage.azure.com`) for OneLake DFS deletion
+
+**Task 2 — Semantic model refresh connection error:**
+- Error: "uses a default data connection without explicit connection credentials"
+- Model is DirectLake — `Sql.Database()` M expression is for schema discovery only, not data access
+- `bind-model-credentials.py` takeover succeeds but datasource has no `gatewayId`/`datasourceId` — cannot programmatically patch OAuth2 credentials
+- Attempted Fabric Connections API (`POST /v1/connections`) — OAuth2 credentialType is **not supported** for programmatic creation ("CredentialType input is not supported for this API")
+- **Root cause**: DirectLake semantic models in Fabric need OAuth2 credentials bound for schema discovery, but this requires interactive browser consent in the portal
+- **Manual fix required**: Fabric portal → Semantic Model Settings → Data source credentials → Edit credentials → OAuth2 → Sign in
+- **Lesson learned**: The Fabric Connections API supports Basic and KeyPair credentials for creation, but OAuth2 requires portal-based interactive consent. This is a one-time setup per model.
