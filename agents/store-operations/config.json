@@ -1,0 +1,43 @@
+{
+  "agent": {
+    "name": "StoreOperations",
+    "displayName": "Store Operations",
+    "description": "Answers questions about store performance, regional comparisons, transaction volumes, return rates, channel mix, and operational metrics for AAP retail locations.",
+    "version": "1.0.0"
+  },
+  "semanticModel": {
+    "name": "RewardsLoyaltyData",
+    "path": "../semantic-models/RewardsLoyaltyData.SemanticModel"
+  },
+  "capabilities": {
+    "primaryViews": [
+      "semantic.v_store_performance",
+      "semantic.v_transaction_history"
+    ],
+    "secondaryViews": [
+      "semantic.v_audit_trail",
+      "semantic.v_member_summary"
+    ],
+    "domains": [
+      "store-revenue",
+      "regional-performance",
+      "transaction-volumes",
+      "return-rates",
+      "channel-mix",
+      "store-member-penetration"
+    ]
+  },
+  "guardrails": {
+    "noPII": "Never expose individual member details in store-level reports. Report aggregate member counts only.",
+    "noInventedData": "Never fabricate numbers. If data is unavailable, say so explicitly.",
+    "noPredictions": "Do not forecast revenue or traffic. Report historical trends and flag anomalies only.",
+    "scopeBoundary": "Redirect member-level engagement or churn questions to Loyalty Program Manager agent. Redirect product/SKU analysis to Merchandising agent. Redirect coupon campaign questions to Marketing & Promotions agent.",
+    "dataRecency": "Always note the data time range when reporting trends. Do not imply real-time data."
+  },
+  "crossAgentReferrals": {
+    "memberEngagement": "For member tier health, churn risk, or enrollment trends → Loyalty Program Manager agent",
+    "productAnalysis": "For product category performance, brand trends, or SKU return rates → Merchandising agent",
+    "campaignROI": "For coupon campaign effectiveness or promotion strategy → Marketing & Promotions agent",
+    "csrActivity": "For individual CSR agent performance or service patterns → Customer Service agent"
+  }
+}

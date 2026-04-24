@@ -38,3 +38,14 @@
   - Token expiry: Not a concern for 9-view batch (~90s total runtime)
   - Connection per statement: Acceptable for independent view deployment with failure isolation
 - **Deployment status:** ✅ Scripts ready for deployment after fixes applied. Full findings documented in `.squad/decisions/inbox/basher-review-findings.md`
+
+### Fabric Notebook Deployment via REST API (2026-04-26)
+- **Script produced:** `scripts/run-notebook.py` — uploads, configures, runs, and polls a notebook via Fabric REST API
+- **Notebook format:** Fabric's `fabricGitSource` format (not ipynb). Uses `# CELL`, `# MARKDOWN`, `# METADATA` blocks instead of Jupytext `# %%` markers
+- **Lakehouse attachment:** Default lakehouse is embedded in the notebook's top-level `# METADATA` block under `dependencies.lakehouse`, with `default_lakehouse`, `default_lakehouse_name`, `default_lakehouse_workspace_id`, and `known_lakehouses` fields
+- **Platform file:** `.platform` part with `$schema: developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json`, includes `metadata.type`, `metadata.displayName`, and `config.version`/`config.logicalId`
+- **Create/Update pattern:** Check if notebook exists via `GET /workspaces/{id}/notebooks`, create via `POST /workspaces/{id}/notebooks` with definition, update via `POST /workspaces/{id}/notebooks/{id}/updateDefinition?updateMetadata=true`
+- **Run pattern:** `POST /workspaces/{id}/items/{id}/jobs/RunNotebook/instances` returns 202 with `Location` header for polling
+- **Job status:** `GET` the Location URL; statuses include `Completed`, `Failed`, `Cancelled`, `InProgress`, `NotStarted`
+- **LRO handling:** Both notebook creation and definition update can return 202 (long-running operation); must poll the `Location` header until `Succeeded`
+- **Execution result:** Notebook uploaded and ran but PySpark failed with "System cancelled the Spark session due to statement execution failures" — likely a notebook content issue (schema creation or PySpark API incompatibility with Fabric Spark runtime), not a deployment script issue. Notebook ID: `1121f044-f79e-45b2-adeb-dcd87ece6244`

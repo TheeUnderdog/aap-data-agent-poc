@@ -171,3 +171,32 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - Everything before AAP access: provisioning scripts, Bicep, placeholder schema, semantic views, Data Agent config, web app, CI/CD, tests
 - Everything after AAP access: running scripts, connecting mirroring, Entra ID SSO, UAT with real data
 - This separation means Phase A demos are possible (mock data) to build AAP confidence while waiting for access
+
+### 2026-07: Fabric Data Agent Group Designed & Created
+
+**What I Did:**
+- Designed a group of 5 Fabric Data Agents for the AAP Rewards & Loyalty workspace
+- Created `agents/` directory with complete config (config.json, instructions.md, examples.json) for each agent
+- Total: 16 files (15 agent files + BUILD_SUMMARY.txt)
+
+**Agent Group:**
+1. **Loyalty Program Manager** — Member tiers, enrollment, churn risk, points liability, engagement health (8 examples)
+2. **Store Operations** — Store revenue, regional comparisons, return rates, channel mix (6 examples)
+3. **Merchandising & Category Manager** — Product categories, brand analysis, SKU return rates, buyer penetration (6 examples)
+4. **Marketing & Promotions** — Campaign effectiveness, coupon redemption, tier targeting, promotion ROI (7 examples)
+5. **Customer Service & Support** — CSR activity, member lookups, audit trail, agent performance (6 examples)
+
+**Key Design Decisions:**
+1. **5 agents, not 4** — Customer Service warranted its own agent because the audit trail and CSR activity data serves a fundamentally different audience (service managers) than the loyalty program team
+2. **Every semantic view has a primary owner** — All 9 views are covered with no orphans. View coverage matrix in BUILD_SUMMARY.txt
+3. **Cross-agent referrals form a connected graph** — Every agent knows how to redirect out-of-scope questions to the right peer, creating a seamless multi-agent experience
+4. **Realistic examples** — Numbers calibrated to the sample data scale (5K members, 500 stores, $52M revenue, 60/25/10/5 tier split)
+5. **Consistent guardrails** — No PII in aggregates, no fabrication, no predictions, scope boundaries, data freshness notes
+
+**Files Created:**
+- `agents/loyalty-program-manager/` — config.json, instructions.md, examples.json
+- `agents/store-operations/` — config.json, instructions.md, examples.json
+- `agents/merchandising/` — config.json, instructions.md, examples.json
+- `agents/marketing-promotions/` — config.json, instructions.md, examples.json
+- `agents/customer-service/` — config.json, instructions.md, examples.json
+- `agents/BUILD_SUMMARY.txt` — Agent group overview with view coverage matrix

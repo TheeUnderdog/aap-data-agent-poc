@@ -1,0 +1,97 @@
+================================================================================
+AAP REWARDS & LOYALTY — FABRIC DATA AGENT GROUP
+Build Summary
+================================================================================
+
+AGENT GROUP RATIONALE
+---------------------
+Five agents designed around the distinct business personas who consume loyalty 
+program data at an auto parts retailer. Each agent owns a clear scope with 
+defined view access, guardrails, and cross-agent referrals for out-of-scope 
+questions. All agents query the same RewardsLoyaltyData semantic model.
+
+Design principles:
+  • One agent per business function — no overlap in primary responsibility
+  • Every semantic view is covered by at least one agent as primary
+  • Cross-agent referrals create a connected experience (no dead ends)
+  • Guardrails are consistent: no PII in aggregates, no fabrication, no predictions
+  • Examples use realistic auto parts retail numbers and terminology
+
+SEMANTIC MODEL
+--------------
+Name: RewardsLoyaltyData
+Path: ../semantic-models/RewardsLoyaltyData.SemanticModel
+
+AGENTS
+------
+
+1. LOYALTY PROGRAM MANAGER
+   Folder:    agents/loyalty-program-manager/
+   Audience:  VP of Loyalty, Director of Customer Retention, Program Manager
+   Primary:   v_member_summary, v_member_engagement, v_points_activity
+   Secondary: v_transaction_history, v_coupon_activity
+   Domains:   Tier distribution, enrollment trends, churn risk, points liability,
+              engagement health, opt-in rates
+   Examples:  8 Q&A pairs
+
+2. STORE OPERATIONS
+   Folder:    agents/store-operations/
+   Audience:  Regional Store Manager, VP of Retail Operations, District Manager
+   Primary:   v_store_performance, v_transaction_history
+   Secondary: v_audit_trail, v_member_summary
+   Domains:   Store revenue, regional comparisons, transaction volumes, return
+              rates, channel mix, member penetration by store
+   Examples:  6 Q&A pairs
+
+3. MERCHANDISING & CATEGORY MANAGER
+   Folder:    agents/merchandising/
+   Audience:  Category Manager, VP of Merchandising, Buyer
+   Primary:   v_product_popularity, v_transaction_history
+   Secondary: v_store_performance, v_member_engagement
+   Domains:   Category performance, brand analysis, SKU metrics, return rates,
+              bonus-eligible products, buyer penetration
+   Examples:  6 Q&A pairs
+
+4. MARKETING & PROMOTIONS
+   Folder:    agents/marketing-promotions/
+   Audience:  Director of Marketing, Promotions Manager, Campaign Analyst
+   Primary:   v_campaign_effectiveness, v_coupon_activity
+   Secondary: v_transaction_history, v_member_engagement, v_member_summary
+   Domains:   Campaign performance, coupon redemption, tier targeting, channel
+              effectiveness, promotion ROI, coupon liability
+   Examples:  7 Q&A pairs
+
+5. CUSTOMER SERVICE & SUPPORT
+   Folder:    agents/customer-service/
+   Audience:  Customer Service Manager, Support Team Lead, QA Supervisor
+   Primary:   v_audit_trail, v_member_summary
+   Secondary: v_points_activity, v_coupon_activity, v_member_engagement
+   Domains:   CSR activity, member lookups, audit trail, agent performance,
+              department analysis, service volume
+   Examples:  6 Q&A pairs
+
+VIEW COVERAGE MATRIX
+--------------------
+View                          Primary Agent(s)           Secondary Agent(s)
+v_member_summary              Loyalty Program Mgr        Store Ops, Mktg, Cust Svc
+v_member_engagement           Loyalty Program Mgr        Merch, Mktg, Cust Svc
+v_points_activity             Loyalty Program Mgr        Cust Svc
+v_transaction_history         Store Ops, Merch           Loyalty, Mktg
+v_store_performance           Store Ops                  Merch
+v_product_popularity          Merch                      (none)
+v_campaign_effectiveness      Mktg                       (none)
+v_coupon_activity             Mktg                       Loyalty, Cust Svc
+v_audit_trail                 Cust Svc                   Store Ops
+
+All 9 semantic views are covered. No orphaned views.
+
+FILES PER AGENT
+---------------
+Each agent folder contains:
+  config.json      — Agent metadata, semantic model ref, capabilities, guardrails
+  instructions.md  — Full persona, data access, response format, referrals
+  examples.json    — 6-8 realistic Q&A pairs with markdown tables and insights
+
+TOTAL: 5 agents × 3 files = 15 files + this summary = 16 files
+
+================================================================================

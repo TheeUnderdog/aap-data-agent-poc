@@ -1,0 +1,38 @@
+[
+  {
+    "question": "What are our top 10 stores by revenue?",
+    "answer": "Here are the top 10 AAP stores ranked by total revenue:\n\n| Rank | Store | City | State | Region | Revenue | Transactions | Unique Members | Avg Txn |\n|------|-------|------|-------|--------|---------|-------------|----------------|--------|\n| 1 | AAP #127 Flagship | Houston | TX | South | $892,400 | 12,840 | 1,247 | $69.50 |\n| 2 | AAP #043 Metro | Atlanta | GA | Southeast | $847,200 | 11,930 | 1,189 | $71.01 |\n| 3 | AAP #215 Hub | Chicago | IL | Midwest | $823,100 | 11,420 | 1,102 | $72.08 |\n| 4 | AAP #089 Plaza | Dallas | TX | South | $798,600 | 11,180 | 1,078 | $71.43 |\n| 5 | AAP #156 Central | Phoenix | AZ | West | $756,300 | 10,640 | 987 | $71.08 |\n| 6 | AAP #312 East | Charlotte | NC | Southeast | $734,900 | 10,290 | 964 | $71.42 |\n| 7 | AAP #078 North | Columbus | OH | Midwest | $712,400 | 9,870 | 921 | $72.18 |\n| 8 | AAP #201 Mall | Orlando | FL | Southeast | $698,700 | 9,610 | 898 | $72.71 |\n| 9 | AAP #167 West | Denver | CO | West | $687,200 | 9,480 | 876 | $72.49 |\n| 10 | AAP #234 Square | Nashville | TN | Southeast | $671,800 | 9,210 | 847 | $72.94 |\n\nThe top 10 stores account for **$7.72M in revenue**, representing approximately 14.8% of the network total. The Southeast region has the strongest representation with 4 stores in the top 10. Average transaction values are tightly clustered ($69-73), suggesting consistent pricing and basket composition across top performers.",
+    "views_used": ["semantic.v_store_performance"],
+    "category": "store-revenue"
+  },
+  {
+    "question": "How do our regions compare?",
+    "answer": "Here's the regional performance comparison across the AAP network:\n\n| Region | Stores | Total Revenue | Avg Revenue/Store | Transactions | Avg Txn Value | Unique Members | Members/Store |\n|--------|--------|--------------|-------------------|-------------|---------------|----------------|---------------|\n| Southeast | 142 | $15.8M | $111,268 | 221,400 | $71.38 | 1,890 | 13.3 |\n| South | 118 | $13.2M | $111,864 | 184,800 | $71.43 | 1,620 | 13.7 |\n| Midwest | 104 | $10.9M | $104,808 | 156,200 | $69.78 | 1,340 | 12.9 |\n| West | 82 | $8.4M | $102,439 | 118,600 | $70.83 | 1,047 | 12.8 |\n| Northeast | 54 | $3.8M | $70,370 | 52,800 | $71.97 | 512 | 9.5 |\n| **Total** | **500** | **$52.1M** | **$104,200** | **733,800** | **$70.98** | **4,936** | **12.7** |\n\n**Key takeaways:**\n- **Southeast** leads in total revenue and store count, with strong member penetration (13.3 members/store).\n- **South** has the highest per-store revenue ($111,864) despite fewer stores than Southeast.\n- **Northeast** underperforms with significantly lower per-store revenue ($70,370) and notably fewer loyalty members per store (9.5 vs. 12.7 avg).\n- Average transaction value is remarkably consistent across regions ($69-72), indicating that regional revenue differences are volume-driven, not basket-size-driven.",
+    "views_used": ["semantic.v_store_performance"],
+    "category": "regional-performance"
+  },
+  {
+    "question": "Which stores have the highest return rates?",
+    "answer": "Here are the stores with the highest return rates (minimum 20 transactions to filter noise):\n\n| Store | City | State | Region | Purchases | Returns | Return Rate |\n|-------|------|-------|--------|-----------|---------|-------------|\n| AAP #389 Outlet | Memphis | TN | Southeast | 1,840 | 224 | 12.2% |\n| AAP #412 Express | Tucson | AZ | West | 1,620 | 189 | 11.7% |\n| AAP #267 Corner | Baltimore | MD | Northeast | 1,290 | 142 | 11.0% |\n| AAP #198 Drive | Raleigh | NC | Southeast | 2,180 | 232 | 10.6% |\n| AAP #341 Park | Milwaukee | WI | Midwest | 1,470 | 153 | 10.4% |\n\n**Network average return rate: 7.3%** (36,500 returns out of 500,200 purchases).\n\nAll five stores are significantly above the 7.3% network average. AAP #389 Memphis is nearly double the average at 12.2%. Two Southeast stores appear in the top 5, which is notable given the region's otherwise strong performance. I'd recommend investigating whether specific product categories are driving the elevated returns at these locations.",
+    "views_used": ["semantic.v_store_performance"],
+    "category": "return-rates"
+  },
+  {
+    "question": "How do online vs in-store transactions compare?",
+    "answer": "Here's the channel comparison for purchase transactions:\n\n| Channel | Transactions | Revenue | Avg Order Value | Revenue Share |\n|---------|-------------|---------|-----------------|---------------|\n| In-Store | 38,420 | $28.4M | $73.92 | 65.2% |\n| Online | 12,180 | $10.8M | $88.67 | 24.8% |\n| Phone | 4,340 | $4.3M | $99.08 | 9.9% |\n| **Total** | **54,940** | **$43.5M** | **$79.18** | **100%** |\n\n**Key insights:**\n- In-store dominates with 65% of revenue and 70% of transaction count.\n- **Online has a 20% higher average order value** ($88.67 vs. $73.92 in-store) — customers buying online tend to buy more per transaction, likely consolidating purchases.\n- Phone orders have the highest avg order value ($99.08) but represent only 10% of revenue. These are likely commercial/DIY account orders for larger projects.\n- The online channel share (24.8%) is healthy for auto parts retail where customers often need parts same-day.",
+    "views_used": ["semantic.v_transaction_history"],
+    "category": "channel-mix"
+  },
+  {
+    "question": "What's the monthly revenue trend for the past 6 months?",
+    "answer": "Here's the monthly revenue trend across the AAP network:\n\n| Month | Revenue | Transactions | Avg Txn Value | vs. Prior Month |\n|-------|---------|-------------|---------------|----------------|\n| 2026-01 | $7.84M | 8,420 | $93.11 | — |\n| 2026-02 | $7.21M | 7,890 | $91.38 | -8.0% |\n| 2026-03 | $8.92M | 9,640 | $92.53 | +23.7% |\n| 2026-04 | $9.48M | 10,210 | $92.85 | +6.3% |\n| 2026-05 | $9.87M | 10,680 | $92.42 | +4.1% |\n| 2026-06 | $8.82M | 9,560 | $92.26 | -10.6% |\n\n**Observations:**\n- February dip is typical seasonal pattern (post-holiday slowdown).\n- **March through May shows strong growth** — spring auto maintenance season drives battery replacements, oil changes, and brake work.\n- June pullback of 10.6% is worth watching but may reflect seasonal normalization after the spring peak.\n- Average transaction value is remarkably stable ($91-93) across all months, indicating the volume fluctuations are foot traffic-driven.",
+    "views_used": ["semantic.v_transaction_history"],
+    "category": "revenue-trends"
+  },
+  {
+    "question": "Which regions have the most store activity?",
+    "answer": "Here's store activity by region, ranked by total transaction volume:\n\n| Region | Stores | Total Transactions | Avg Txns/Store | Revenue | Avg Revenue/Store | Unique Members |\n|--------|--------|-------------------|----------------|---------|-------------------|----------------|\n| Southeast | 142 | 221,400 | 1,559 | $15.8M | $111,268 | 1,890 |\n| South | 118 | 184,800 | 1,566 | $13.2M | $111,864 | 1,620 |\n| Midwest | 104 | 156,200 | 1,502 | $10.9M | $104,808 | 1,340 |\n| West | 82 | 118,600 | 1,446 | $8.4M | $102,439 | 1,047 |\n| Northeast | 54 | 52,800 | 978 | $3.8M | $70,370 | 512 |\n\n**Key insight:** The Southeast and South regions show the highest per-store activity (~1,560 transactions/store), while the Northeast is notably lower at 978 transactions per store — **37% below the network average** of 1,468. This could indicate market maturity, competitive pressure, or under-penetration in the Northeast. The member-per-store ratio in the Northeast (9.5) also trails other regions, suggesting loyalty program enrollment may be a factor.",
+    "views_used": ["semantic.v_store_performance"],
+    "category": "regional-activity"
+  }
+]

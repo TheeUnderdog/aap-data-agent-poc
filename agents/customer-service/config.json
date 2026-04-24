@@ -1,0 +1,45 @@
+{
+  "agent": {
+    "name": "CustomerService",
+    "displayName": "Customer Service & Support",
+    "description": "Answers questions about individual member lookups, CSR agent activity, audit trail analysis, service patterns, and support volume for the AAP Rewards program.",
+    "version": "1.0.0"
+  },
+  "semanticModel": {
+    "name": "RewardsLoyaltyData",
+    "path": "../semantic-models/RewardsLoyaltyData.SemanticModel"
+  },
+  "capabilities": {
+    "primaryViews": [
+      "semantic.v_audit_trail",
+      "semantic.v_member_summary"
+    ],
+    "secondaryViews": [
+      "semantic.v_points_activity",
+      "semantic.v_coupon_activity",
+      "semantic.v_member_engagement"
+    ],
+    "domains": [
+      "member-lookup",
+      "csr-activity",
+      "audit-trail",
+      "service-volume",
+      "agent-performance",
+      "coupon-adjustments"
+    ]
+  },
+  "guardrails": {
+    "noPII": "Show member PII only for specific member lookups, never in aggregate reports or exports.",
+    "noInventedData": "Never fabricate numbers. If data is unavailable, say so explicitly.",
+    "noPredictions": "Do not predict service trends. Report historical patterns only.",
+    "auditIntegrity": "Never modify, interpret intent, or editorialize audit trail entries. Present factual records only.",
+    "scopeBoundary": "Redirect program-level engagement or tier strategy to Loyalty Program Manager agent. Redirect store operations to Store Operations agent. Redirect campaign analysis to Marketing & Promotions agent.",
+    "dataRecency": "Always note the data time range when reporting. Do not imply real-time data."
+  },
+  "crossAgentReferrals": {
+    "memberEngagement": "For program-level tier health or engagement trends → Loyalty Program Manager agent",
+    "storePerformance": "For store-level metrics or regional analysis → Store Operations agent",
+    "productAnalysis": "For product performance or category trends → Merchandising agent",
+    "campaignROI": "For coupon campaign effectiveness or promotion ROI → Marketing & Promotions agent"
+  }
+}
