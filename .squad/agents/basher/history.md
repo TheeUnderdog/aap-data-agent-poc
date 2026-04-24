@@ -20,3 +20,21 @@
 - **409 handling:** Both workspace and lakehouse creation can return 409 Conflict if item already exists — scripts recover by fetching the existing item
 - **Scripts produced:** `scripts/setup-workspace.ps1`, `scripts/deploy-semantic-views.ps1`, `scripts/README.md`
 - **Config output:** `.env.fabric` stores workspace/lakehouse IDs and SQL endpoint for downstream scripts
+
+### Pre-Deployment Script Review (2026-04-25)
+- **Context:** Workspace manually created (ID: 82f53636-206f-4825-821b-bdaa8e089893) due to Microsoft tenant API limitations. Reviewed scripts for compatibility with existing workspace scenario.
+- **Critical fixes:** 
+  - **View name regex:** Updated to capture schema-qualified names (`semantic.v_member_summary`). Previous pattern only matched `dbo.viewname` causing all views to log as "unknown".
+  - **.env.fabric parser:** Fixed regex to strip inline comments (`# comment`). Previous pattern would include comment text in values, breaking SQL connections.
+  - **README guidance:** Changed SqlServer module from "optional" to "recommended" since System.Data.SqlClient fallback is deprecated in PS7.
+- **Verified behaviors:**
+  - Workspace existence check correctly skips creation when workspace already exists
+  - Lakehouse provisioning is idempotent (safe to re-run)
+  - 409 conflict handling robust for both workspace and Lakehouse creation
+  - SQL endpoint pending state gracefully handled with user guidance
+  - Token resource `https://database.windows.net` correct for Fabric SQL endpoints
+  - OData filter encoding using `[System.Uri]::EscapeDataString()` is correct
+- **Non-issues identified:**
+  - Token expiry: Not a concern for 9-view batch (~90s total runtime)
+  - Connection per statement: Acceptable for independent view deployment with failure isolation
+- **Deployment status:** ✅ Scripts ready for deployment after fixes applied. Full findings documented in `.squad/decisions/inbox/basher-review-findings.md`

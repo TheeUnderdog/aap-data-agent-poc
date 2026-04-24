@@ -12,7 +12,7 @@ Automated setup for the AAP Data Agent POC Fabric environment. **No portal click
 | Azure CLI | 2.50+ | `az --version` |
 | Azure subscription | With Fabric capacity | `az account show` |
 | Fabric capacity | F64 or higher recommended | Get ID from Fabric admin portal |
-| SqlServer module | *(optional, for view deployment)* | `Install-Module SqlServer` |
+| SqlServer module | **Recommended** for view deployment | `Install-Module SqlServer -Scope CurrentUser` |
 
 ## Quick Start
 
@@ -20,13 +20,16 @@ Automated setup for the AAP Data Agent POC Fabric environment. **No portal click
 # 1. Login to Azure
 az login
 
-# 2. Provision workspace + Lakehouse
+# 2. Install SqlServer module (recommended)
+Install-Module SqlServer -Scope CurrentUser -Force
+
+# 3. Provision workspace + Lakehouse (idempotent — safe to re-run)
 ./scripts/setup-workspace.ps1 -CapacityId "YOUR-CAPACITY-GUID"
 
-# 3. Import and run the data generation notebook in the Fabric workspace
+# 4. Import and run the data generation notebook in the Fabric workspace
 #    (see docs/data-schema.md for notebook details)
 
-# 4. Deploy semantic views
+# 5. Deploy semantic views
 ./scripts/deploy-semantic-views.ps1
 ```
 

@@ -53,8 +53,8 @@ function Read-EnvFile {
     $env = @{}
     if (Test-Path $Path) {
         Get-Content $Path | ForEach-Object {
-            if ($_ -match '^\s*([A-Z_]+)\s*=\s*(.+)\s*$') {
-                $env[$Matches[1]] = $Matches[2]
+            if ($_ -match '^\s*([A-Z_]+)\s*=\s*([^#]+?)(?:\s*#.*)?$') {
+                $env[$Matches[1]] = $Matches[2].Trim()
             }
         }
     }
@@ -90,11 +90,13 @@ function Split-SqlStatements {
 
         # Extract view name from CREATE VIEW statement
         $name = "unknown"
-        if ($trimmed -match 'CREATE\s+(?:OR\s+REPLACE\s+)?VIEW\s+(?:\[?dbo\]?\.)?\[?(\w+)\]?') {
-            $name = $Matches[1]
-        }
-        elseif ($trimmed -match 'CREATE\s+(?:OR\s+ALTER\s+)?VIEW\s+(?:\[?dbo\]?\.)?\[?(\w+)\]?') {
-            $name = $Matches[1]
+        if ($trimmed -match 'CREATE\s+(?:OR\s+(?:REPLACE|ALTER)\s+)?VIEW\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?') {
+            # Schema-qualified: semantic.v_member_summary or [semantic].[v_member_summary]
+            if ($Matches[1]) {
+                $name = "$($Matches[1]).$($Matches[2])"
+            } else {
+                $name = $Matches[2]
+            }
         }
 
         $statements += [PSCustomObject]@{

@@ -6,7 +6,11 @@
 -- Run this in the Fabric Lakehouse SQL endpoint after the sample data notebook.
 -- ============================================================================
 
-CREATE SCHEMA IF NOT EXISTS semantic;
+-- Create semantic schema (idempotent: will fail silently if exists)
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'semantic')
+BEGIN
+    EXEC('CREATE SCHEMA semantic');
+END;
 GO
 
 -- ----------------------------------------------------------------------------
@@ -199,9 +203,9 @@ FROM mirrored.sku_reference sr
 LEFT JOIN (
     SELECT
         i.sku,
-        SUM(CASE WHEN i.is_return = false THEN i.quantity ELSE 0 END) AS units_sold,
-        SUM(CASE WHEN i.is_return = false THEN i.line_total ELSE 0 END) AS total_revenue,
-        SUM(CASE WHEN i.is_return = true THEN i.quantity ELSE 0 END) AS units_returned,
+        SUM(CASE WHEN i.is_return = 0 THEN i.quantity ELSE 0 END) AS units_sold,
+        SUM(CASE WHEN i.is_return = 0 THEN i.line_total ELSE 0 END) AS total_revenue,
+        SUM(CASE WHEN i.is_return = 1 THEN i.quantity ELSE 0 END) AS units_returned,
         COUNT(DISTINCT i.transaction_id) AS transaction_count,
         COUNT(DISTINCT t.member_id) AS unique_buyers
     FROM mirrored.transaction_items i
@@ -242,7 +246,7 @@ SELECT
 FROM mirrored.loyalty_members m
 LEFT JOIN (
     SELECT
-        member_id,
+        t.member_id,
         COUNT(*) AS transaction_count,
         SUM(CASE WHEN transaction_type = 'purchase' THEN total ELSE 0 END) AS total_spend,
         AVG(CASE WHEN transaction_type = 'purchase' THEN total END) AS avg_spend_per_transaction,
@@ -251,7 +255,7 @@ LEFT JOIN (
          WHERE t2.member_id = t.member_id
          GROUP BY channel ORDER BY COUNT(*) DESC) AS preferred_channel
     FROM mirrored.transactions t
-    GROUP BY member_id
+    GROUP BY t.member_id
 ) ta ON m.member_id = ta.member_id
 LEFT JOIN (
     SELECT
@@ -340,7 +344,7 @@ GO
 -- Run these after creating views to verify:
 -- SELECT 'v_member_summary' AS view_name, COUNT(*) AS row_count FROM semantic.v_member_summary
 -- UNION ALL SELECT 'v_transaction_history', COUNT(*) FROM semantic.v_transaction_history
--- UNION ALL SELECT 'v_transaction_history', COUNT(*) FROM semantic.v_points_activity
+-- UNION ALL SELECT 'v_points_activity', COUNT(*) FROM semantic.v_points_activity
 -- UNION ALL SELECT 'v_coupon_activity', COUNT(*) FROM semantic.v_coupon_activity
 -- UNION ALL SELECT 'v_store_performance', COUNT(*) FROM semantic.v_store_performance
 -- UNION ALL SELECT 'v_product_popularity', COUNT(*) FROM semantic.v_product_popularity
