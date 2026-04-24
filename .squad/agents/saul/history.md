@@ -42,6 +42,21 @@ Scripts that call Fabric REST API need browser auth popups. They must be run dir
 - SQL endpoint: `x6eps4xrq2xudenlfv6naeo3i4-gy3platpeasuraq3xwvi4ceysm.msit-datawarehouse.fabric.microsoft.com`
 - Database: `RewardsLoyaltyData`
 
+## Current Mission (2026-04-24T19:04)
+
+**Task:** Reconcile `docs/data-schema.md` with actual Lakehouse Delta tables
+
+**Scope:**
+- Verify all 10 table names match reality
+- Audit column definitions (names, types, constraints)
+- Update view definitions if needed
+- Flag any schema evolution issues
+- Deliver updated `data-schema.md` ready for Phase 2 deployment scripts
+
+**Orchestration Log:** `.squad/orchestration-log/2026-04-24T1904-saul-doc-reconciliation.md`
+
+**Status:** Background, in progress
+
 ## Learnings
 
 ### Semantic Model Schema Alignment (2026-04-24)
@@ -83,4 +98,43 @@ Scripts that call Fabric REST API need browser auth popups. They must be run dir
 - `scripts/create-semantic-model.py` — Corrected `LAKEHOUSE_TABLES`, `RELATIONSHIPS`, and `DAX_MEASURES` to match notebook schemas exactly
 
 **Verification Strategy:** Before deploying, the script should be tested with a DirectLake refresh to confirm the schema matches reality. If refresh fails, the schema doesn't match.
+
+### Linguistic Schema Alignment (2026-04-24)
+**Problem:** The `scripts/configure-linguistic-schema.py` script had WRONG table and column names in synonym configurations that didn't match the actual Lakehouse Delta tables. This was a carryover from the same schema misalignment issue fixed in the semantic model script.
+
+**Key Mismatches Fixed:**
+1. **Table synonyms:**
+   - Changed `products` → `sku_reference` with added synonyms: "products", "items", "SKUs", "parts", "auto parts", "merchandise", "catalog", "product catalog"
+   - Changed `points_ledger` → `member_points` with added synonyms: "points", "points history", "points transactions", "rewards points", "points log", "points activity", "points ledger"
+   - Removed `audit_log` (non-existent table)
+   - Added `transaction_items` with synonyms: "line items", "order items", "purchase items", "cart items", "item details"
+
+2. **Column synonyms:**
+   - Changed `products.category` → `sku_reference.category`
+   - Changed `products.brand` → `sku_reference.brand`
+   - Changed `products.is_bonus_eligible` → `sku_reference.is_bonus_eligible`
+   - Added `sku_reference.unit_price` with synonyms: "price", "retail price", "product price"
+   - Changed `points_ledger.activity_type` → `member_points.activity_type`
+   - Removed `loyalty_members.current_points_balance` (column doesn't exist)
+   - Added `csr.is_active` with synonyms: "active status", "status", "employment status" (column is boolean, not `csr_status`)
+
+3. **Value synonyms:**
+   - Changed `points_ledger.activity_type` → `member_points.activity_type`
+   - Added "bonus" → "bonus points", "bonus reward" to member_points.activity_type values
+
+4. **AI Instructions text:**
+   - Updated TABLE NAME GUIDANCE section to reference correct table names: `member_points` (not `points_ledger`), `sku_reference` (not `products`)
+   - Added guidance for `sku_reference` and `transaction_items` tables
+
+**Resolution:**
+- Updated ALL table synonym keys: `products` → `sku_reference`, `points_ledger` → `member_points`, removed `audit_log`, added `transaction_items`
+- Updated ALL column synonym keys to reference correct table.column paths
+- Updated ALL value synonym keys to reference correct table.column paths
+- Enhanced AI instructions with guidance for `sku_reference` and `transaction_items` tables
+- Added new synonyms as requested for better natural language query support
+
+**Critical Lesson:** The linguistic schema synonyms MUST stay in sync with the semantic model table/column definitions. Both must reference the actual Lakehouse Delta table names from the notebook. When one is fixed, the other must be fixed too.
+
+**Files Modified:**
+- `scripts/configure-linguistic-schema.py` — Corrected `TABLE_SYNONYMS`, `COLUMN_SYNONYMS`, `VALUE_SYNONYMS`, and `AI_INSTRUCTIONS` to match actual Lakehouse table names
 

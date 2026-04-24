@@ -101,7 +101,35 @@
 - **Owner:** Danny (Lead/Architect)
 - **Status:** Active / Ready for Implementation
 
-### User Directive: Stop Power BI Report Work (2026-04-24T16:32)
+### Semantic Model Schema Alignment (2026-04-24)
+- **Decision:** Rewrite semantic model script to match actual Delta table schemas from notebook
+- **Problem:** Script had fabricated table/column names that didn't match `notebooks/01-create-sample-data.py`
+- **Root Cause:** Livingston referenced design docs instead of authoritative notebook source
+- **Key Fixes:**
+  - Table names: `products` → `sku_reference`, `points_ledger` → `member_points`, removed `audit_log`, added `transaction_items`
+  - Column names: `list_price` → `unit_price`, `rule_id` → `coupon_rule_id`, `csr_status` → `is_active`, removed non-existent balance columns
+  - Data types: ALL ID columns int64, not string
+  - DAX measures: Fixed references, removed 3 that referenced non-existent columns, added 6 new measures
+- **Hard Rule:** NEVER fabricate schemas. Verify EVERY table/column/type against actual notebook or live Lakehouse
+- **Verification:** Test with DirectLake refresh; if it fails, schema doesn't match reality
+- **Status:** ✅ Implemented — Saul verified against notebook
+- **Owner:** Saul (Data Engineer)
+
+### Legacy Table Cleanup & Refresh Fix (2026-07-22)
+- **Decision 1:** Use OneLake DFS API to delete stale `agents` and `agent_activities` tables (SQL endpoint doesn't support DROP)
+- **Decision 2:** OAuth2 credential binding for DirectLake models is portal-only for first bind (Fabric Connections API limitation)
+- **Impact:** First-time OAuth2 setup manual; subsequent refreshes work via API. Script: `scripts/drop-legacy-tables.py`, `scripts/bind-model-credentials.py`
+- **Owner:** Livingston (Data Engineer)
+- **Status:** ✅ Complete (Task 1), ⚠️ Requires manual portal (Task 2)
+
+### Phase A Deployment Completion — April 2026 (2026-04-24)
+- **Status:** Partially complete — 8 of 11 automated steps done
+- **Completed:** Infrastructure, schema layer (9 views), semantic model (10 tables, 34 DAX measures), credential binding, linguistic schema (50 table synonyms, 66 column synonyms, 53 value synonyms, 53 AI instructions), 5 agent configs ready
+- **Blocked Tasks:** (1) Sample data notebook execution failed (Spark error), (2) Semantic model refresh awaiting data, (3) Fabric Data Agent import is portal-only
+- **Manual Work Remaining:** Debug notebook (~30–60 min), refresh model (5 min), import 5 agent configs (20–30 min) — ~1–2 hours total
+- **Key Lessons:** Notebook REST API lacks detailed errors; Data Agent deployment is portal-only; Linguistic schema deployment robust; ~20% manual portal work is expected for Fabric POCs
+- **Owner:** Livingston (Data Engineer)
+- **Status:** Documented for team; awaiting Dave's manual portal actions
 - **By:** Dave Grobleski (via Copilot)
 - **Decision:** Stop work on Power BI reports. PBI is deprioritized/on hold.
 - **Rationale:** User request — captured for team memory

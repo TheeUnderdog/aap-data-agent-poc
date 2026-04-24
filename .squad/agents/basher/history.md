@@ -60,3 +60,20 @@
 - **Job status:** `GET` the Location URL; statuses include `Completed`, `Failed`, `Cancelled`, `InProgress`, `NotStarted`
 - **LRO handling:** Both notebook creation and definition update can return 202 (long-running operation); must poll the `Location` header until `Succeeded`
 - **Execution result:** Notebook uploaded and ran but PySpark failed with "System cancelled the Spark session due to statement execution failures" — likely a notebook content issue (schema creation or PySpark API incompatibility with Fabric Spark runtime), not a deployment script issue. Notebook ID: `1121f044-f79e-45b2-adeb-dcd87ece6244`
+
+## Upcoming Coordination (2026-04-24T19:04)
+
+**Context for upcoming Data Agent configuration work:**
+
+The Fabric semantic model is now live with:
+- 10 Delta tables (correctly aligned with notebook)
+- 16 DAX measures
+- Linguistic schema deployed (55 table synonyms, 68 column synonyms, 55 value synonyms, 57 AI instructions)
+- All 9 contract views (`semantic.v_*` schema)
+
+**Next phase:**
+- Saul finalizes data-schema.md reconciliation
+- Basher begins Phase 2 Data Agent configuration using updated schema and linguistic schema
+- Frontend dev (Linus) can begin mock Data Agent integration
+
+**Key alignment point:** Ensure all Phase 2 Data Agent configuration scripts reference the finalized `docs/data-schema.md` and use only `semantic.v_*` contract views, never raw Delta tables.
