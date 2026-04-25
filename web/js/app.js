@@ -224,12 +224,9 @@
             scrollToBottom();
         }
 
-        // Show/hide the suggestions button based on whether there are messages
-        const sugBtn = document.getElementById('suggestions-btn');
-        if (sugBtn) sugBtn.classList.toggle('hidden', !hasMessages);
-
         // Close the suggestions panel when switching agents
         const panel = document.getElementById('suggestions-panel');
+        const sugBtn = document.getElementById('suggestions-btn');
         if (panel) panel.classList.remove('open');
         if (sugBtn) sugBtn.classList.remove('active');
 

@@ -590,10 +590,6 @@ body {
     background: rgba(212, 168, 0, 0.15);
 }
 
-.suggestions-btn.hidden {
-    display: none;
-}
-
 /* Suggestions slide-out panel (inside input-bar, expands upward) */
 .suggestions-panel {
     max-height: 0;
