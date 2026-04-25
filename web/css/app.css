@@ -46,11 +46,11 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+    font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     height: 100vh;
-    height: 100dvh; /* dynamic viewport height for mobile browsers */
+    height: 100dvh;
     overflow: hidden;
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
@@ -67,7 +67,7 @@ body {
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, var(--aap-black) 0%, #2D2D2D 100%);
+    background: #000000;
 }
 
 .login-card {
@@ -75,9 +75,10 @@ body {
     background: var(--bg-surface);
     padding: 48px 40px;
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     max-width: 400px;
     width: 90%;
+    border-top: 4px solid var(--aap-yellow);
 }
 
 .login-logo {
@@ -102,18 +103,20 @@ body {
 .btn-primary {
     display: inline-block;
     padding: 12px 32px;
-    background: var(--aap-red);
-    color: var(--aap-white);
+    background: var(--aap-yellow);
+    color: var(--aap-black);
     border: none;
     border-radius: var(--radius-sm);
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: background var(--transition);
+    transition: background var(--transition), box-shadow var(--transition);
+    letter-spacing: 0.3px;
 }
 
 .btn-primary:hover {
-    background: #9E1018;
+    background: #E6B800;
+    box-shadow: 0 4px 12px rgba(255,207,6,0.35);
 }
 
 .setup-notice {
@@ -149,8 +152,8 @@ body {
 }
 
 .btn-text:hover {
-    color: var(--aap-red);
-    background: rgba(182, 18, 27, 0.06);
+    color: var(--aap-yellow);
+    background: rgba(255, 207, 6, 0.1);
 }
 
 /* ============================================================
@@ -171,7 +174,7 @@ body {
     justify-content: space-between;
     padding: 0 24px;
     height: 60px;
-    background: linear-gradient(135deg, var(--aap-black) 0%, #2A2A2A 50%, #1E1E1E 100%);
+    background: #000000;
     color: var(--aap-white);
     flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -186,7 +189,7 @@ body {
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--aap-red), var(--aap-yellow), var(--aap-red));
+    background: var(--aap-yellow);
 }
 
 .top-bar-left {
@@ -204,11 +207,9 @@ body {
 .top-bar-title {
     font-size: 19px;
     font-weight: 700;
-    letter-spacing: -0.3px;
-    background: linear-gradient(90deg, #FFFFFF 0%, #FFCF06 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    letter-spacing: 0.5px;
+    color: var(--aap-white);
+    text-transform: uppercase;
 }
 
 .top-bar-right {
@@ -379,12 +380,13 @@ body {
 .tab-unread {
     width: 7px;
     height: 7px;
-    background: var(--aap-red);
+    background: var(--aap-yellow);
     border-radius: 50%;
     position: absolute;
     top: 8px;
     right: 6px;
     display: none;
+    box-shadow: 0 0 4px rgba(255,207,6,0.5);
 }
 
 .tab-unread.visible { display: block; }
@@ -771,7 +773,7 @@ body {
 
 .input-wrapper:focus-within {
     border-color: var(--active-accent);
-    box-shadow: 0 0 0 3px rgba(182,18,27,0.08), 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 0 0 3px rgba(255,207,6,0.15), 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .message-input {
@@ -848,20 +850,22 @@ body {
     justify-content: space-between;
     padding: 16px 20px;
     border-bottom: 1px solid var(--border-light);
-    background: linear-gradient(180deg, #FAFAFA, #FFFFFF);
+    background: #000000;
 }
 
 .reasoning-header h3 {
     font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-weight: 700;
+    color: var(--aap-white);
     margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .reasoning-close {
     background: none;
     border: none;
-    color: var(--text-muted);
+    color: rgba(255,255,255,0.6);
     font-size: 28px;
     line-height: 1;
     cursor: pointer;
@@ -870,7 +874,7 @@ body {
 }
 
 .reasoning-close:hover {
-    color: var(--text-primary);
+    color: var(--aap-yellow);
 }
 
 .reasoning-steps {
