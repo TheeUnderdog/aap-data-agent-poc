@@ -549,31 +549,28 @@
         container.innerHTML = '';
         for (let i = 0; i < reasoningSteps.length; i++) {
             const step = reasoningSteps[i];
-            const div = document.createElement('div');
-            div.className = `reasoning-step ${step.type}`;
-            if (i < reasoningSteps.length - 1) div.classList.add('has-connector');
 
-            const typeIcon = {
-                'routing': '🧭',
-                'agent-call': '📡',
-                'agent-response': '✅',
-                'thinking': '💭',
-                'error': '❌'
-            }[step.type] || '•';
+            // Arrow connector between steps
+            if (i > 0) {
+                const arrow = document.createElement('div');
+                arrow.className = 'reasoning-arrow';
+                arrow.innerHTML = '↓';
+                container.appendChild(arrow);
+            }
+
+            const div = document.createElement('div');
+            div.className = `reasoning-bubble ${step.type}`;
 
             let durationHtml = '';
             if (step.duration !== null) {
                 const ms = step.duration;
                 const str = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
-                durationHtml = `<span class="reasoning-step-duration">⏱ ${str}</span>`;
+                durationHtml = `<div class="reasoning-bubble-duration">⏱ ${str}</div>`;
             }
 
             div.innerHTML = `
-                <div class="reasoning-step-header">
-                    <span class="reasoning-step-icon">${typeIcon}</span>
-                    <span class="reasoning-step-message">${escapeHtml(step.message)}</span>
-                    ${durationHtml}
-                </div>
+                <div class="reasoning-bubble-text">${escapeHtml(step.message)}</div>
+                ${durationHtml}
             `;
 
             container.appendChild(div);
