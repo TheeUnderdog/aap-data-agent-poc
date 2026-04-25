@@ -445,7 +445,14 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Convert and show payload but don't upload")
     parser.add_argument("--skip-run", action="store_true", help="Upload only, don't execute the notebook")
     parser.add_argument("--force", action="store_true", help="Delete and recreate notebook (bypasses update cache)")
+    parser.add_argument("--notebook", type=str, help="Path to notebook .py file (default: notebooks/01-create-sample-data.py)")
     args = parser.parse_args()
+
+    # Allow overriding notebook source via CLI
+    global NOTEBOOK_SOURCE, NOTEBOOK_DISPLAY_NAME
+    if args.notebook:
+        NOTEBOOK_SOURCE = Path(args.notebook)
+        NOTEBOOK_DISPLAY_NAME = NOTEBOOK_SOURCE.stem
 
     print("╔══════════════════════════════════════════════════════════╗")
     print("║   AAP Data Agent POC — Notebook Upload & Run           ║")
