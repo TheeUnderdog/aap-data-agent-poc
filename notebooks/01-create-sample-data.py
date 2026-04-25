@@ -215,6 +215,31 @@ CATEGORIES = {
     },
 }
 
+# Return transaction category weights — controls which categories appear
+# disproportionately in return transactions vs. purchase transactions.
+# Higher = more returns. Based on auto parts retail return patterns:
+#   - Electrical/lighting: high (wrong part number, compatibility)
+#   - Accessories: high (fitment, impulse buy regret)
+#   - Batteries: moderate-high (warranty claims, wrong group size)
+#   - Brakes: moderate (wrong application, upgraded to different brand)
+#   - Spark Plugs: moderate (wrong gap, wrong thread)
+#   - Wipers: low-moderate (cheap enough to keep, but fitment issues)
+#   - Filters: low (cheap, consumable, usually right)
+#   - Engine Oil: very low (consumable, can't return opened)
+#   - Coolant: very low (consumable, can't return opened)
+CATEGORY_RETURN_WEIGHT = {
+    "Electrical":   3.0,
+    "Lighting":     2.5,
+    "Accessories":  2.2,
+    "Batteries":    1.8,
+    "Brakes":       1.3,
+    "Spark Plugs":  1.1,
+    "Wipers":       0.8,
+    "Filters":      0.5,
+    "Engine Oil":   0.3,
+    "Coolant":      0.3,
+}
+
 sku_data = []
 cat_list = list(CATEGORIES.keys())
 for i in range(1, NUM_SKUS + 1):
@@ -247,6 +272,20 @@ print(f"✅ sku_reference: {df_skus.count()} rows")
 
 # Build lookup for transaction item generation
 sku_lookup = [(r[0], r[1], r[2], r[5]) for r in sku_data]
+
+# Build category-weighted SKU lookup for return transactions
+# Group SKUs by category, then build a weighted list
+from collections import defaultdict
+_skus_by_cat = defaultdict(list)
+for r in sku_data:
+    _skus_by_cat[r[2]].append((r[0], r[1], r[2], r[5]))
+
+sku_lookup_returns = []
+sku_return_weights = []
+for cat, skus in _skus_by_cat.items():
+    weight = CATEGORY_RETURN_WEIGHT.get(cat, 1.0)
+    sku_lookup_returns.extend(skus)
+    sku_return_weights.extend([weight] * len(skus))
 
 # %% [markdown]
 # ## 3. Loyalty Members — 50,000 member profiles with realistic tier distribution
@@ -447,22 +486,6 @@ print(f"✅ transactions: {df_txn.count()} rows")
 # ## 5. Transaction Items — ~1,500,000 line items (3 per transaction avg)
 
 # %%
-# Per-category return rate multipliers (applied to BASE_ITEM_RETURN_RATE for purchase txns)
-# Higher = more returns for that category; 1.0 = baseline
-BASE_ITEM_RETURN_RATE = 0.03  # 3% base per-item return rate on purchase transactions
-CATEGORY_RETURN_MULTIPLIER = {
-    "Electrical":   1.5,   # wrong part, compatibility issues
-    "Batteries":    1.25,  # warranty returns
-    "Accessories":  1.4,   # wrong size, don't need
-    "Lighting":     1.3,   # fitment / compatibility
-    "Brakes":       0.95,  # safety-critical, buyers research first
-    "Spark Plugs":  0.9,   # cheap, usually keep
-    "Wipers":       0.7,   # cheap consumable
-    "Filters":      0.6,   # cheap maintenance, just keep it
-    "Engine Oil":   0.5,   # consumable, hard to return opened
-    "Coolant":      0.45,  # consumable liquid, rarely returned
-}
-
 print("Generating ~1.5M transaction items...")
 items_data = []
 item_id = 1
@@ -471,16 +494,14 @@ for txn in transactions_data:
     txn_is_return = txn[4] == "return"
     num_items = txn[8]  # item_count
     for _ in range(num_items):
-        sku_code, prod_name, cat, unit_price = random.choice(sku_lookup)
+        if txn_is_return:
+            sku_code, prod_name, cat, unit_price = random.choices(
+                sku_lookup_returns, weights=sku_return_weights, k=1)[0]
+        else:
+            sku_code, prod_name, cat, unit_price = random.choice(sku_lookup)
         qty = random.choices([1, 2, 3, 4], weights=[60, 25, 10, 5], k=1)[0]
         line_total = round(unit_price * qty, 2)
-        if txn_is_return:
-            # Return transaction — all items are returns
-            is_return = True
-        else:
-            # Purchase transaction — per-item return chance varies by category
-            multiplier = CATEGORY_RETURN_MULTIPLIER.get(cat, 1.0)
-            is_return = random.random() < (BASE_ITEM_RETURN_RATE * multiplier)
+        is_return = txn_is_return
         if is_return:
             line_total = -line_total
         items_data.append((

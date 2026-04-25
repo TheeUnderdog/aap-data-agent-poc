@@ -204,6 +204,29 @@ df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").sav
 
 **Merged to Decisions:** Added to `.squad/decisions.md` as decision entry. Orchestration log: `2026-04-25T022305Z-saul-overwrite-schema.md`
 
+### Category Return Rate Variance Fix (2026-07)
+**Problem:** Sanity check found all 11 product categories had identical ~8% return rates. Root cause: return transactions selected products with `random.choice(sku_lookup)` — uniform random across all categories. In reality, some categories (electrical, lighting) get returned far more often than consumables (oil, coolant).
+
+**Approach:** Dave explicitly requested the "real-world fix" — not per-item random return flags, but category-weighted product selection for return transactions. Returns are whole transactions; the product MIX in those transactions should reflect real-world return patterns.
+
+**Implementation (3 changes to `notebooks/01-create-sample-data.py`):**
+1. Added `CATEGORY_RETURN_WEIGHT` dict after `CATEGORIES` — 10 weights from 3.0 (Electrical) to 0.3 (Oil/Coolant)
+2. Built `sku_lookup_returns` + `sku_return_weights` lists — category-weighted SKU selection pool for returns
+3. Replaced item generation loop: return transactions use `random.choices()` with category weights; purchase transactions keep uniform `random.choice()`. Removed old `BASE_ITEM_RETURN_RATE` / `CATEGORY_RETURN_MULTIPLIER` per-item return mechanism.
+
+**What changed:**
+- Overall return transaction rate: unchanged (8% from line 413)
+- Per-category return rates: now vary naturally — Electrical/Lighting over-represented in returns, Oil/Coolant under-represented
+- No per-item return flags on purchase transactions (clean model: returns are whole transactions)
+- No schema changes, no new columns
+
+**Key Design Choice:** Weights range from 0.3 to 3.0 (10x spread). `random.choices()` normalizes automatically.
+
+**Files Modified:**
+- `notebooks/01-create-sample-data.py` — Three surgical edits
+
+**Status:** ✅ Complete
+
 ### LLM Diagnostic Report Block in Sanity Check (2026-07)
 **Problem:** When the sanity check notebook flags FAIL/WARN results, the user must manually figure out what to fix in `01-create-sample-data.py`. This is error-prone and wastes time.
 
