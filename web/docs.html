@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation — AAP Data Agent POC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" sizes="32x32" href="img/favicon.png">
+    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
+    <style>
+        /* ============================================================
+           AAP Documentation — Branded Styles
+           Brand: Red #B6121B, Yellow #FFCC00, Black #1E1E1E
+           ============================================================ */
+
+        :root {
+            --aap-red: #B6121B;
+            --aap-yellow: #FFCC00;
+            --aap-black: #1E1E1E;
+            --aap-white: #FFFFFF;
+            --bg-primary: #FAFAFA;
+            --bg-surface: #FFFFFF;
+            --text-primary: #373737;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --border-light: #E0E0E0;
+            --toc-width: 260px;
+            --top-bar-height: 52px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* ── Top Bar ── */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--top-bar-height);
+            background: var(--aap-black);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+        }
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .top-bar-logo {
+            height: 28px;
+            width: auto;
+        }
+        .top-bar-title {
+            font-family: 'Bebas Neue', sans-serif;
+            color: var(--aap-white);
+            font-size: 20px;
+            letter-spacing: 1px;
+        }
+        .top-bar-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255,255,255,0.25);
+        }
+        .top-bar-subtitle {
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+        }
+        .top-bar-right a {
+            color: var(--aap-yellow);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .top-bar-right a:hover { text-decoration: underline; }
+        .top-bar-right svg { fill: var(--aap-yellow); }
+
+        /* ── Layout ── */
+        .page-wrapper {
+            display: flex;
+            margin-top: var(--top-bar-height);
+            min-height: calc(100vh - var(--top-bar-height));
+        }
+
+        /* ── TOC Sidebar ── */
+        .toc-sidebar {
+            position: fixed;
+            top: var(--top-bar-height);
+            left: 0;
+            width: var(--toc-width);
+            height: calc(100vh - var(--top-bar-height));
+            overflow-y: auto;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-light);
+            padding: 24px 16px;
+            z-index: 50;
+        }
+        .toc-sidebar h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        .toc-sidebar ul {
+            list-style: none;
+        }
+        .toc-sidebar li {
+            margin-bottom: 2px;
+        }
+        .toc-sidebar a {
+            display: block;
+            padding: 5px 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+        .toc-sidebar a:hover {
+            background: #F0F0F0;
+            color: var(--text-primary);
+        }
+        .toc-sidebar a.active {
+            background: var(--aap-yellow);
+            color: var(--aap-black);
+            font-weight: 600;
+        }
+        .toc-section-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 16px;
+            margin-bottom: 4px;
+            padding: 0 10px;
+        }
+        .toc-section-label:first-child { margin-top: 0; }
+
+        /* ── Main Content ── */
+        .main-content {
+            margin-left: var(--toc-width);
+            flex: 1;
+            max-width: 880px;
+            padding: 40px 48px 80px;
+        }
+
+        /* ── Typography ── */
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            letter-spacing: 1px;
+            color: var(--aap-black);
+            margin-bottom: 8px;
+        }
+        h1 .highlight { color: var(--aap-red); }
+        .doc-subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 32px;
+        }
+        h2 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            letter-spacing: 0.5px;
+            color: var(--aap-black);
+            margin-top: 56px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 3px solid var(--aap-yellow);
+        }
+        h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--aap-black);
+            margin-top: 32px;
+            margin-bottom: 10px;
+        }
+        h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 24px;
+            margin-bottom: 8px;
+        }
+        p { margin-bottom: 14px; }
+        ul, ol { margin-bottom: 14px; padding-left: 24px; }
+        li { margin-bottom: 6px; }
+
+        /* ── Section dividers ── */
+        .section-divider {
+            margin: 56px 0;
+            border: none;
+            border-top: 2px solid var(--border-light);
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .card-icon img {
+            width: 22px;
+            height: 22px;
+        }
+        .card-title {
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .card p { font-size: 14px; color: var(--text-secondary); }
+        .sample-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .sample-q {
+            background: #F5F5F5;
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ── Feature grid ── */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .feature-item {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 16px 20px;
+        }
+        .feature-item h4 {
+            margin-top: 0;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+        .feature-item p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 0;
+        }
+
+        /* ── Tables ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        th {
+            background: var(--aap-black);
+            color: var(--aap-white);
+            padding: 10px 14px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        tr:hover td { background: #FAFAFA; }
+        code {
+            background: #F0F0F0;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+            font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+        }
+
+        /* ── Screenshot placeholder ── */
+        .screenshot-placeholder {
+            background: #F0F0F0;
+            border: 2px dashed var(--border-light);
+            border-radius: 8px;
+            padding: 40px 24px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+            margin: 16px 0;
+        }
+        .screenshot-placeholder img {
+            max-width: 100%;
+            border-radius: 6px;
+        }
+
+        /* ── Talking-point callout ── */
+        .callout {
+            background: #FFFCE6;
+            border-left: 4px solid var(--aap-yellow);
+            border-radius: 0 6px 6px 0;
+            padding: 14px 18px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .callout strong { color: var(--aap-black); }
+
+        /* ── Architecture diagram (text) ── */
+        .arch-flow {
+            background: var(--aap-black);
+            color: var(--aap-white);
+            border-radius: 8px;
+            padding: 24px 28px;
+            font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+        .arch-flow .yellow { color: var(--aap-yellow); }
+        .arch-flow .red { color: #FF6B6B; }
+        .arch-flow .muted { color: #888; }
+
+        /* ── Footer ── */
+        .page-footer {
+            margin-top: 64px;
+            padding-top: 24px;
+            border-top: 2px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .page-footer a { color: var(--aap-red); text-decoration: none; }
+        .page-footer a:hover { text-decoration: underline; }
+
+        /* ── Mobile TOC toggle ── */
+        .toc-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--aap-black);
+            color: var(--aap-yellow);
+            border: none;
+            cursor: pointer;
+            z-index: 200;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 960px) {
+            .toc-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.25s ease;
+                box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+            }
+            .toc-sidebar.open { transform: translateX(0); }
+            .toc-toggle { display: flex; align-items: center; justify-content: center; }
+            .main-content {
+                margin-left: 0;
+                padding: 32px 24px 80px;
+            }
+            .feature-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 600px) {
+            .top-bar { padding: 0 12px; }
+            .top-bar-subtitle { display: none; }
+            .top-bar-divider { display: none; }
+            .main-content { padding: 24px 16px 80px; }
+            h1 { font-size: 28px; }
+            h2 { font-size: 22px; }
+        }
+
+        /* ── Print ── */
+        @media print {
+            .top-bar, .toc-sidebar, .toc-toggle { display: none; }
+            .main-content { margin-left: 0; padding: 0; max-width: 100%; }
+            .page-wrapper { display: block; margin-top: 0; }
+            h2 { page-break-before: always; border-bottom-color: #000; }
+            h2:first-of-type { page-break-before: avoid; }
+            .card, .feature-item { break-inside: avoid; }
+            .screenshot-placeholder { border-style: solid; }
+            body { font-size: 11pt; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ════════════════════════ TOP BAR ════════════════════════ -->
+<header class="top-bar">
+    <div class="top-bar-left">
+        <img src="img/aap-logo.svg" alt="AAP" class="top-bar-logo">
+        <span class="top-bar-title">DOCUMENTATION</span>
+        <span class="top-bar-divider"></span>
+        <span class="top-bar-subtitle">AAP Data Agent POC</span>
+    </div>
+    <div class="top-bar-right">
+        <a href="index.html">
+            <svg viewBox="0 0 24 24" width="16" height="16"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            Back to App
+        </a>
+    </div>
+</header>
+
+<!-- ════════════════════════ TOC SIDEBAR ════════════════════════ -->
+<aside class="toc-sidebar" id="toc-sidebar">
+    <h3>Contents</h3>
+
+    <div class="toc-section-label">Executive Summary</div>
+    <ul>
+        <li><a href="#what-we-built">What We Built</a></li>
+        <li><a href="#business-problem">The Business Problem</a></li>
+        <li><a href="#demo-highlights">What the Demo Shows</a></li>
+        <li><a href="#talking-points">Key Talking Points</a></li>
+        <li><a href="#production-path">Production Path</a></li>
+    </ul>
+
+    <div class="toc-section-label">Capabilities & Features</div>
+    <ul>
+        <li><a href="#the-six-agents">The Six Agents</a></li>
+        <li><a href="#why-six-agents">Why Six Agents?</a></li>
+        <li><a href="#chat-features">Chat Interface Features</a></li>
+        <li><a href="#screenshots">Screenshots</a></li>
+        <li><a href="#synthetic-data">Synthetic Data</a></li>
+    </ul>
+
+    <div class="toc-section-label">Technical Reference</div>
+    <ul>
+        <li><a href="#architecture">Architecture Overview</a></li>
+        <li><a href="#data-model">Data Model</a></li>
+        <li><a href="#agent-config">Agent Configuration</a></li>
+        <li><a href="#deployment">Deployment Status</a></li>
+        <li><a href="#data-approach">Data Approach</a></li>
+    </ul>
+</aside>
+
+<!-- Mobile TOC toggle -->
+<button class="toc-toggle" id="toc-toggle" onclick="document.getElementById('toc-sidebar').classList.toggle('open')" title="Table of Contents">☰</button>
+
+<!-- ════════════════════════ MAIN CONTENT ════════════════════════ -->
+<div class="page-wrapper">
+<main class="main-content">
+
+<h1>AAP Data Agent <span class="highlight">POC</span></h1>
+<p class="doc-subtitle">Advance Auto Parts — Rewards & Loyalty Intelligence Platform &nbsp;|&nbsp; July 2025</p>
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗
+     ║  §1  EXECUTIVE SUMMARY                                       ║
+     ╚═══════════════════════════════════════════════════════════════╝ -->
+
+<h2 id="what-we-built">What We Built</h2>
+
+<p>A fully functional natural-language analytics interface over Advance Auto Parts rewards and loyalty data, powered by Microsoft Fabric Data Agents. Business users type plain English questions — "What are our top stores by revenue?", "Which tier has the highest coupon redemption rate?" — and get immediate, accurate answers with the underlying data.</p>
+
+<p>The system includes six specialist AI agents, each trained on a specific business domain (loyalty, marketing, merchandising, store operations, customer service), plus an orchestrator that routes cross-functional questions to the right experts. Everything runs on a Fabric workspace with a Lakehouse, semantic model, and five Data Agents, fronted by an AAP-branded web application.</p>
+
+<h2 id="business-problem">The Business Problem</h2>
+
+<p>AAP's marketing and loyalty teams have questions that currently require analyst time, SQL expertise, or waiting for a scheduled report. The data exists — in Snowflake, in operational systems, in exports — but the path from question to answer is slow.</p>
+
+<p>Fabric Data Agents collapse that path. A loyalty program manager can ask "How are Platinum members trending quarter over quarter?" and get an answer in seconds, with the data table and the agent's reasoning visible. No tickets, no waiting, no SQL.</p>
+
+<h2 id="demo-highlights">What the Demo Shows</h2>
+
+<ul>
+    <li><strong>Six specialist agents</strong> — each focused on a business domain, with deep instruction sets that teach them AAP's terminology and data relationships</li>
+    <li><strong>Cross-functional routing</strong> — the Crew Chief agent automatically dispatches multi-domain questions to the right specialists and synthesizes their answers</li>
+    <li><strong>Transparent reasoning</strong> — every response shows the agent's chain-of-thought: what it understood, what SQL it generated, how it interpreted the results</li>
+    <li><strong>Production-grade data</strong> — 50,000 members, 500,000+ transactions, 500 stores with realistic tier distributions, seasonal patterns, and regional variation</li>
+    <li><strong>Schema abstraction</strong> — all queries go through semantic views, so when AAP's real Snowflake data replaces the synthetic data, nothing in the app changes except the view definitions</li>
+</ul>
+
+<h2 id="talking-points">Key Talking Points</h2>
+
+<div class="callout">
+    <strong>For customer meetings:</strong> These are the key messages to convey when presenting this POC to AAP stakeholders.
+</div>
+
+<ul>
+    <li><strong>"Ask your data, don't query it."</strong> Business users get answers in plain English. No SQL, no analyst queue, no report request.</li>
+    <li><strong>"Six experts, one interface."</strong> Each agent is specialized — loyalty, marketing, merchandising, stores, customer service — and knows the domain vocabulary. The orchestrator connects them.</li>
+    <li><strong>"Your data stays in Fabric."</strong> No data leaves AAP's Microsoft environment. Fabric Data Agents run inside the workspace, querying the Lakehouse directly.</li>
+    <li><strong>"Swap the data, keep the app."</strong> We built against placeholder data. When AAP connects their Snowflake, we remap the semantic views. The web app, agents, and user experience don't change.</li>
+    <li><strong>"Built in weeks, not months."</strong> This entire POC — data model, five agents, branded web app — was built in under a month using Fabric's native capabilities.</li>
+    <li><strong>"Works alongside Power BI."</strong> The semantic model serves both the Data Agents and traditional Power BI reports. AAP gets conversational analytics <em>and</em> dashboards from the same data.</li>
+</ul>
+
+<h2 id="production-path">Production Path</h2>
+
+<p>What AAP needs to provide and what we help with to move from POC to production:</p>
+
+<table>
+    <tr><th>Step</th><th>Who</th><th>What</th></tr>
+    <tr><td>1. Snowflake access</td><td>AAP IT</td><td>Grant Fabric mirroring access to the loyalty/rewards Snowflake databases</td></tr>
+    <tr><td>2. Schema mapping</td><td>Joint</td><td>Map real Snowflake tables to our semantic views (we have 7 migration prompts ready)</td></tr>
+    <tr><td>3. Fabric workspace</td><td>Microsoft</td><td>Deploy workspace in AAP's tenant, configure mirroring, load data</td></tr>
+    <tr><td>4. Agent tuning</td><td>Microsoft</td><td>Update agent instructions for real column names, business rules, edge cases</td></tr>
+    <tr><td>5. UAT</td><td>AAP Marketing</td><td>Test with real questions from the marketing team, iterate on agent accuracy</td></tr>
+    <tr><td>6. Deploy</td><td>Joint</td><td>Azure Static Web Apps deployment, Entra ID auth, production hardening</td></tr>
+</table>
+
+<hr class="section-divider">
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗
+     ║  §2  CAPABILITIES & FEATURES                                  ║
+     ╚═══════════════════════════════════════════════════════════════╝ -->
+
+<h2 id="the-six-agents">The Six Agents</h2>
+
+<p>Each agent is a Fabric Data Agent with a specialized instruction set, trained on a specific business domain. Users select an agent tab and ask questions in natural language.</p>
+
+<!-- Crew Chief -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon" style="background: #1E1E1E;">
+            <img src="img/crew-chief.svg" alt="Crew Chief">
+        </div>
+        <div>
+            <div class="card-title" style="color: #1E1E1E;">Crew Chief</div>
+            <div class="card-subtitle">Executive Orchestrator</div>
+        </div>
+    </div>
+    <p>Client-side router that analyzes your question, identifies which specialist agents are relevant, dispatches to them in parallel, and synthesizes a unified answer. Ask broad, cross-functional questions and Crew Chief coordinates the response.</p>
+    <div class="sample-questions">
+        <span class="sample-q">How are our top-tier members responding to the holiday promo?</span>
+        <span class="sample-q">Which product categories drive the most reward redemptions?</span>
+        <span class="sample-q">Show me a cross-department summary of Q4 performance</span>
+    </div>
+</div>
+
+<!-- Pit Crew -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon" style="background: #2B6CB0;">
+            <img src="img/pit-crew.svg" alt="Pit Crew">
+        </div>
+        <div>
+            <div class="card-title" style="color: #2B6CB0;">Pit Crew</div>
+            <div class="card-subtitle">Customer Service & Support</div>
+        </div>
+    </div>
+    <p>Analyzes CSR agent activity, member service patterns, support operations, and ticket history. Provides insights into service volume, resolution patterns, and department workload distribution.</p>
+    <div class="sample-questions">
+        <span class="sample-q">How many support tickets were opened this month?</span>
+        <span class="sample-q">Show me average resolution time by support channel</span>
+        <span class="sample-q">What are the top 5 complaint categories?</span>
+    </div>
+</div>
+
+<!-- GearUp -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon" style="background: #FFCC00;">
+            <img src="img/gearup.svg" alt="GearUp">
+        </div>
+        <div>
+            <div class="card-title" style="color: #B8960A;">GearUp</div>
+            <div class="card-subtitle">Loyalty Program Manager</div>
+        </div>
+    </div>
+    <p>Tracks member health, tier distribution, points liability, enrollment trends, and churn risk. The go-to agent for understanding the loyalty program's current state and trajectory.</p>
+    <div class="sample-questions">
+        <span class="sample-q">What's the breakdown of members by tier?</span>
+        <span class="sample-q">How many points were redeemed last quarter?</span>
+        <span class="sample-q">Which rewards are most popular among Gold tier members?</span>
+    </div>
+</div>
+
+<!-- Ignition -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon" style="background: #E86C00;">
+            <img src="img/ignition.svg" alt="Ignition">
+        </div>
+        <div>
+            <div class="card-title" style="color: #E86C00;">Ignition</div>
+            <div class="card-subtitle">Marketing & Promotions</div>
+        </div>
+    </div>
+    <p>Covers campaign performance, coupon redemption funnels, promotion ROI, and segment targeting. Helps the marketing team understand what's working and where to invest next.</p>
+    <div class="sample-questions">
+        <span class="sample-q">Which campaign had the highest response rate this quarter?</span>
+        <span class="sample-q">How many customers redeemed the latest coupon offer?</span>
+        <span class="sample-q">What's the ROI on our top 5 campaigns?</span>
+    </div>
+</div>
+
+<!-- PartsPro -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon" style="background: #2D8A4E;">
+            <img src="img/partspro.svg" alt="PartsPro">
+        </div>
+        <div>
+            <div class="card-title" style="color: #2D8A4E;">PartsPro</div>
+            <div class="card-subtitle">Merchandising & Categories</div>
+        </div>
+    </div>
+    <p>Analyzes product performance, brand rankings, category trends, and return rates across the auto parts catalog. Delivers category comparisons, SKU-level detail, and revenue concentration insights.</p>
+    <div class="sample-questions">
+        <span class="sample-q">What are our top 10 selling products this month?</span>
+        <span class="sample-q">Show me revenue by product category</span>
+        <span class="sample-q">Which brands have the highest average transaction value?</span>
+    </div>
+</div>
+
+<!-- DieHard -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-icon" style="background: #B6121B;">
+            <img src="img/diehard.svg" alt="DieHard">
+        </div>
+        <div>
+            <div class="card-title" style="color: #B6121B;">DieHard</div>
+            <div class="card-subtitle">Store Operations</div>
+        </div>
+    </div>
+    <p>Tracks retail location performance, regional comparisons, channel mix, and operational metrics across AAP's 500-store network. Provides store rankings, regional benchmarks, and return rate analysis.</p>
+    <div class="sample-questions">
+        <span class="sample-q">What are our top 5 stores by revenue?</span>
+        <span class="sample-q">Show me store performance by region</span>
+        <span class="sample-q">Which stores had the biggest sales increase this quarter?</span>
+    </div>
+</div>
+
+<h2 id="why-six-agents">Why Six Agents?</h2>
+
+<p>A single general-purpose agent could answer any question, but it would lack depth. Each of our five Fabric Data Agents has a specialized instruction set that teaches it:</p>
+
+<ul>
+    <li><strong>Domain vocabulary</strong> — what "churn" means for loyalty vs. what "churn" means for stores</li>
+    <li><strong>Query patterns</strong> — the specific SQL patterns that produce accurate results for each domain (tier-based aggregations for loyalty, regional rollups for stores, funnel metrics for marketing)</li>
+    <li><strong>Business rules</strong> — a Platinum member who hasn't transacted in 180 days is a churn risk, not an inactive account; a coupon with 0% redemption might be newly issued, not failed</li>
+    <li><strong>Guardrails</strong> — each agent stays in its lane. GearUp won't guess at store operations questions; it'll say "that's outside my domain."</li>
+</ul>
+
+<p>The sixth agent, Crew Chief, ties them together. When a user asks a question that spans domains — "How are top-tier members responding to the holiday promo?" — Crew Chief routes it to both GearUp (loyalty tiers) and Ignition (promotions), gets both answers, and synthesizes a unified response.</p>
+
+<h2 id="chat-features">Chat Interface Features</h2>
+
+<div class="feature-grid">
+    <div class="feature-item">
+        <h4>🗂️ Agent Tabs</h4>
+        <p>Six color-coded tabs across the top of the chat area, each with a custom SVG icon and hover tooltip showing the agent's description. Click a tab to switch specialists instantly.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>💬 Natural Language Input</h4>
+        <p>Type plain English questions in the chat input. No SQL, no query syntax. The agent translates your question into the right query against the data model.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>🧠 Agent Reasoning Panel</h4>
+        <p>Expandable sidebar showing the agent's chain-of-thought as connected bubbles. Each step shows what the agent is doing (interpreting question, generating SQL, executing query) with per-step timing in seconds.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>📊 Reasoning Groups</h4>
+        <p>Each question you ask creates a collapsible group in the reasoning panel. Previous groups auto-collapse so you can focus on the current question while reviewing history.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>🪙 Token Usage Counter</h4>
+        <p>Per-question token breakdown (prompt, completion, total) inside each reasoning group. Session total displayed at the bottom when you've asked multiple questions.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>🎲 Mystery Question Dice</h4>
+        <p>Click the fuzzy dice button to get an LLM-generated creative question tailored to the current agent. The dice spin with a 3D animation while waiting for the response, then land on random pip values (1–6) when the question arrives and auto-populates the chat input.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>💡 Lightbulb Suggestions</h4>
+        <p>Click the lightbulb icon to slide out a panel of sample questions for the current agent. Pick one to populate the input field. The panel slides away when you make a selection or click the lightbulb again.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>📝 Markdown Rendering</h4>
+        <p>Agent responses render as formatted markdown with full table support. Data tables display in clean HTML tables inside chat bubbles.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>⚡ Real-Time Streaming</h4>
+        <p>Responses stream in via Server-Sent Events (SSE) with a live character counter. You see the answer building in real time, not waiting for a complete response.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>🔀 Crew Chief Routing</h4>
+        <p>Cross-functional questions are automatically classified by topic keywords, dispatched to multiple specialist agents in parallel, and the responses are synthesized into a single answer with per-agent attribution.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>📱 Responsive Layout</h4>
+        <p>Desktop: horizontal agent tabs. Tablet: compact tabs with smaller icons. Mobile: hamburger menu with a slide-out sidebar for agent selection.</p>
+    </div>
+
+    <div class="feature-item">
+        <h4>🔐 Entra ID Auth</h4>
+        <p>Microsoft Entra ID sign-in flow. The Python proxy handles authentication to the Fabric API. Users see their name in the nav bar and can sign out.</p>
+    </div>
+</div>
+
+<h2 id="screenshots">Screenshots</h2>
+
+<div class="screenshot-placeholder">
+    <p>📷 <strong>Main chat interface</strong> — Agent tabs, welcome screen with sample questions, chat input with dice and lightbulb icons</p>
+    <p><em>Screenshot will be captured by browser automation agent</em></p>
+</div>
+
+<div class="screenshot-placeholder">
+    <p>📷 <strong>Agent response with data table</strong> — Markdown-rendered response showing a results table with formatted data</p>
+    <p><em>Screenshot will be captured by browser automation agent</em></p>
+</div>
+
+<div class="screenshot-placeholder">
+    <p>📷 <strong>Reasoning panel expanded</strong> — Chain-of-thought steps, per-step timing, token usage per question</p>
+    <p><em>Screenshot will be captured by browser automation agent</em></p>
+</div>
+
+<div class="screenshot-placeholder">
+    <p>📷 <strong>Crew Chief multi-agent response</strong> — Cross-functional question routed to multiple specialists with synthesized answer</p>
+    <p><em>Screenshot will be captured by browser automation agent</em></p>
+</div>
+
+<div class="screenshot-placeholder">
+    <p>📷 <strong>Mystery dice and lightbulb suggestions</strong> — Dice spinning animation, lightbulb slide-out panel with sample questions</p>
+    <p><em>Screenshot will be captured by browser automation agent</em></p>
+</div>
+
+<div class="screenshot-placeholder">
+    <p>📷 <strong>Mobile responsive view</strong> — Hamburger menu, sidebar agent selection, compact layout</p>
+    <p><em>Screenshot will be captured by browser automation agent</em></p>
+</div>
+
+<h2 id="synthetic-data">Synthetic Data</h2>
+
+<p>The POC runs on generated data that mirrors the Advance Auto Parts loyalty program schema. The data is statistically realistic — not random — with distributions tuned to reflect a real auto parts retail business.</p>
+
+<table>
+    <tr><th>Dataset</th><th>Volume</th><th>Key Characteristics</th></tr>
+    <tr><td>Members</td><td>50,000</td><td>Bronze/Silver/Gold/Platinum tier split (~60/25/10/5), realistic enrollment dates, opt-in rates varying by tier</td></tr>
+    <tr><td>Transactions</td><td>500,000+</td><td>3+ years of history, seasonal peaks (Nov–Dec), weekday/weekend patterns, in-store dominant channel mix</td></tr>
+    <tr><td>Line Items</td><td>1.5M+</td><td>Product-level detail with category-specific return rates, brand concentration patterns</td></tr>
+    <tr><td>Products</td><td>5,000 SKUs</td><td>11 auto parts categories (batteries, brakes, oil, filters, etc.) with realistic price ranges</td></tr>
+    <tr><td>Stores</td><td>500</td><td>Regional distribution across US, revenue variance by region, store-level performance outliers</td></tr>
+    <tr><td>Points Ledger</td><td>~500K entries</td><td>Earn/redeem transactions tied to member activity, tier-correlated redemption rates</td></tr>
+    <tr><td>Campaigns</td><td>40+</td><td>Email, SMS, direct mail campaigns with varying response rates by type</td></tr>
+    <tr><td>Coupons</td><td>~200K</td><td>Fixed-dollar and percentage-off types, tiered redemption rates, campaign attribution</td></tr>
+    <tr><td>CSR Interactions</td><td>~100K</td><td>Department-specific activity mix, resolution patterns, member lifecycle events</td></tr>
+</table>
+
+<hr class="section-divider">
+
+<!-- ╔═══════════════════════════════════════════════════════════════╗
+     ║  §3  TECHNICAL REFERENCE                                      ║
+     ╚═══════════════════════════════════════════════════════════════╝ -->
+
+<h2 id="architecture">Architecture Overview</h2>
+
+<div class="arch-flow">
+    <span class="muted">┌─────────────┐</span>      <span class="muted">┌─────────────┐</span>      <span class="muted">┌──────────────────┐</span>      <span class="muted">┌─────────────┐</span><br>
+    <span class="muted">│</span> <span class="yellow">Browser</span>     <span class="muted">│</span> ───▶ <span class="muted">│</span> <span class="yellow">Python Proxy</span> <span class="muted">│</span> ───▶ <span class="muted">│</span> <span class="yellow">Fabric Data Agent</span> <span class="muted">│</span> ───▶ <span class="muted">│</span> <span class="yellow">Lakehouse</span>   <span class="muted">│</span><br>
+    <span class="muted">│</span> Vanilla JS  <span class="muted">│</span>      <span class="muted">│</span> server.py    <span class="muted">│</span>      <span class="muted">│</span> OpenAI-compat API <span class="muted">│</span>      <span class="muted">│</span> Delta tables<span class="muted">│</span><br>
+    <span class="muted">│</span> SPA         <span class="muted">│</span>      <span class="muted">│</span> Entra ID auth<span class="muted">│</span>      <span class="muted">│</span> 5 agents          <span class="muted">│</span>      <span class="muted">│</span> SQL endpoint<span class="muted">│</span><br>
+    <span class="muted">└─────────────┘</span>      <span class="muted">└─────────────┘</span>      <span class="muted">└──────────────────┘</span>      <span class="muted">└─────────────┘</span><br>
+    <br>
+    <span class="muted">                                                     ┌──────────────────┐</span><br>
+    <span class="muted">                                                     │</span> <span class="yellow">Semantic Model</span>   <span class="muted">│</span><br>
+    <span class="muted">                                                     │</span> DirectLake mode  <span class="muted">│</span><br>
+    <span class="muted">                                                     │</span> DAX measures      <span class="muted">│</span><br>
+    <span class="muted">                                                     └──────────────────┘</span>
+</div>
+
+<h3>Stack Components</h3>
+
+<table>
+    <tr><th>Component</th><th>Technology</th><th>Details</th></tr>
+    <tr><td>Web App</td><td>Vanilla JS SPA</td><td>Single HTML file, no framework, no build step. AAP branded with Open Sans + Bebas Neue fonts.</td></tr>
+    <tr><td>API Proxy</td><td>Python (Flask)</td><td><code>server.py</code> — handles Entra ID auth, proxies requests to Fabric API, streams SSE responses back to browser.</td></tr>
+    <tr><td>Data Agents</td><td>Fabric Data Agent</td><td>5 agents with OpenAI-compatible API. Each has persona instructions, examples, and domain-specific query patterns.</td></tr>
+    <tr><td>Semantic Model</td><td>Fabric (DirectLake)</td><td>10 tables, 8 relationships, 34 DAX measures. Linguistic schema with 169 synonyms for natural language accuracy.</td></tr>
+    <tr><td>Data Store</td><td>Fabric Lakehouse</td><td>Delta tables with SQL analytics endpoint. 9 semantic views provide the stable query contract.</td></tr>
+    <tr><td>Notebooks</td><td>PySpark</td><td><code>01-create-sample-data.py</code> (data generation) and <code>02-data-sanity-check.py</code> (validation pipeline).</td></tr>
+    <tr><td>Auth</td><td>Entra ID</td><td>Interactive browser credential for dev. MSAL flow planned for production (app registration required).</td></tr>
+</table>
+
+<h2 id="data-model">Data Model</h2>
+
+<h3>Delta Tables (10)</h3>
+<table>
+    <tr><th>Table</th><th>~Rows</th><th>Description</th></tr>
+    <tr><td><code>members</code></td><td>50K</td><td>Loyalty program members with tier, enrollment date, contact preferences</td></tr>
+    <tr><td><code>transactions</code></td><td>500K</td><td>Purchase transactions with store, channel, amounts, dates</td></tr>
+    <tr><td><code>transaction_items</code></td><td>1.5M</td><td>Line items with product, quantity, price, return flag</td></tr>
+    <tr><td><code>points_ledger</code></td><td>500K</td><td>Points earned/redeemed per transaction, running balances</td></tr>
+    <tr><td><code>products</code></td><td>5K</td><td>SKU catalog with brand, category, price</td></tr>
+    <tr><td><code>product_categories</code></td><td>11</td><td>Auto parts categories (batteries, brakes, oil, etc.)</td></tr>
+    <tr><td><code>stores</code></td><td>500</td><td>Store locations with region, state, city</td></tr>
+    <tr><td><code>campaigns</code></td><td>40+</td><td>Marketing campaigns with type, date range, channel</td></tr>
+    <tr><td><code>coupons</code></td><td>200K</td><td>Issued coupons with type, status, redemption tracking</td></tr>
+    <tr><td><code>csr_interactions</code></td><td>100K</td><td>Customer service records with department, type, resolution</td></tr>
+</table>
+
+<h3>Semantic Views (9)</h3>
+<p>All queries — from Data Agents, Power BI, and the web app — go through semantic views, never raw tables. This is the abstraction layer that makes schema migration painless.</p>
+
+<table>
+    <tr><th>View</th><th>Purpose</th></tr>
+    <tr><td><code>v_member_summary</code></td><td>Member + tier + points balance + transaction stats</td></tr>
+    <tr><td><code>v_transaction_history</code></td><td>Enriched transactions with member, product, store detail</td></tr>
+    <tr><td><code>v_points_activity</code></td><td>Points earned and redeemed with member context</td></tr>
+    <tr><td><code>v_reward_catalog</code></td><td>Available rewards and redemption patterns</td></tr>
+    <tr><td><code>v_store_performance</code></td><td>Store-level aggregates (revenue, transactions, returns)</td></tr>
+    <tr><td><code>v_campaign_effectiveness</code></td><td>Campaign metrics (reach, response, conversion)</td></tr>
+    <tr><td><code>v_product_popularity</code></td><td>Product rankings by category and revenue</td></tr>
+    <tr><td><code>v_member_engagement</code></td><td>Member activity and engagement scoring</td></tr>
+    <tr><td><code>v_coupon_activity</code></td><td>Coupon lifecycle and redemption funnels</td></tr>
+</table>
+
+<h3>Semantic Model</h3>
+<p>The Fabric semantic model sits atop the Lakehouse SQL endpoint in DirectLake mode. It provides:</p>
+<ul>
+    <li><strong>34 DAX measures</strong> — pre-computed metrics like Total Revenue, Avg Transaction Value, Points Redeemed MTD, Active Members, Retention Rate</li>
+    <li><strong>8 relationships</strong> — proper star schema linking facts to dimensions</li>
+    <li><strong>Linguistic schema</strong> — 50 table synonyms, 66 column synonyms, 53 value synonyms so the Data Agent understands domain terminology ("PLT" = "Platinum", "txn" = "transaction")</li>
+</ul>
+
+<h2 id="agent-config">Agent Configuration</h2>
+
+<p>Each of the five Fabric Data Agents has three configuration files in the <code>agents/</code> directory:</p>
+
+<table>
+    <tr><th>File</th><th>Purpose</th></tr>
+    <tr><td><code>config.json</code></td><td>Agent metadata — name, description, persona definition</td></tr>
+    <tr><td><code>*-instructions.md</code></td><td>Full system prompt teaching domain vocabulary, query patterns, business rules, guardrails</td></tr>
+    <tr><td><code>examples.json</code></td><td>6–8 sample Q&A pairs for few-shot grounding (natural language → expected SQL + response pattern)</td></tr>
+</table>
+
+<h4>Agent Instruction Approach</h4>
+<p>Each instruction file teaches the agent:</p>
+<ul>
+    <li>Which semantic views to query for its domain</li>
+    <li>Domain-specific SQL patterns (e.g., tier-based aggregations, time-series comparisons)</li>
+    <li>Business rules (what constitutes "churn", how to calculate "retention", what "active" means)</li>
+    <li>Edge cases to handle (empty results, ambiguous time ranges, cross-domain questions to deflect)</li>
+</ul>
+
+<h4>Executive Routing (Crew Chief)</h4>
+<p>The Crew Chief agent runs client-side in JavaScript. It classifies incoming questions by matching keywords against agent domains, selects the top matching agents (including ties), dispatches the question to all of them in parallel via <code>Promise.all()</code>, and synthesizes the responses with per-agent attribution.</p>
+
+<h2 id="deployment">Deployment Status</h2>
+
+<h3>✅ Complete</h3>
+<table>
+    <tr><th>Component</th><th>Status</th></tr>
+    <tr><td>Fabric workspace (<code>AAP-RewardsLoyalty-POC</code>)</td><td>Provisioned</td></tr>
+    <tr><td>Lakehouse (<code>RewardsLoyaltyData</code>) with SQL endpoint</td><td>Created, data loaded</td></tr>
+    <tr><td>Sample data notebook — 10 tables, ~2.8M rows</td><td>Loaded and verified</td></tr>
+    <tr><td>Data sanity check notebook — 4-block validation</td><td>Passing</td></tr>
+    <tr><td>9 semantic views deployed</td><td>Active</td></tr>
+    <tr><td>Semantic model — DirectLake, 34 DAX measures</td><td>Deployed, credential bound</td></tr>
+    <tr><td>Linguistic schema — 169 synonyms</td><td>Configured</td></tr>
+    <tr><td>5 Data Agent configurations</td><td>Instruction files ready</td></tr>
+    <tr><td>Web app — AAP branded, 6 tabs, full feature set</td><td>Functional (local dev)</td></tr>
+    <tr><td>Python proxy server — auth + SSE streaming</td><td>Working</td></tr>
+</table>
+
+<h3>🔧 Remaining</h3>
+<table>
+    <tr><th>Task</th><th>Effort</th><th>Blocked By</th></tr>
+    <tr><td>Import agent instructions into Fabric portal</td><td>~30 min (manual portal work)</td><td>Nothing</td></tr>
+    <tr><td>Entra ID app registration</td><td>~15 min</td><td>Tenant admin access</td></tr>
+    <tr><td>Azure Static Web Apps deployment</td><td>~1 hour</td><td>App registration</td></tr>
+    <tr><td>Snowflake mirroring setup</td><td>~2 hours</td><td>AAP Snowflake access</td></tr>
+    <tr><td>Schema migration (view remapping)</td><td>~1 day</td><td>Real schema from AAP</td></tr>
+    <tr><td>Agent instruction tuning for real data</td><td>~1 day</td><td>Real data loaded</td></tr>
+    <tr><td>UAT with AAP marketing team</td><td>~1 week</td><td>Deployed with real data</td></tr>
+</table>
+
+<h2 id="data-approach">Data Approach</h2>
+
+<h3>Placeholder Schema Origin</h3>
+<p>The data model was built from a single AAP architecture diagram showing their loyalty platform components: CrowdTwist (loyalty engine), GK Coupon Management, Customer First (CRM), and the underlying transactional systems. We reverse-engineered a normalized relational schema that could support the types of questions a marketing team would ask.</p>
+
+<h3>Fidelity Assessment</h3>
+<table>
+    <tr><th>Area</th><th>Confidence</th><th>Notes</th></tr>
+    <tr><td>Members & tiers</td><td style="color: #2D8A4E;">🟢 High</td><td>Standard loyalty structure. Column names will differ but shape is right.</td></tr>
+    <tr><td>Transactions & items</td><td style="color: #2D8A4E;">🟢 High</td><td>Universal retail pattern. Our schema closely mirrors any retail transaction DB.</td></tr>
+    <tr><td>Stores</td><td style="color: #B8960A;">🟡 Medium</td><td>AAP may not have a dedicated stores table; store data might be transaction attributes.</td></tr>
+    <tr><td>Points & rewards</td><td style="color: #B8960A;">🟡 Medium</td><td>CrowdTwist manages these externally. Data may arrive as denormalized exports.</td></tr>
+    <tr><td>Campaigns & coupons</td><td style="color: #B8960A;">🟡 Medium</td><td>GK Coupon Management is a dedicated system; our model is simpler.</td></tr>
+    <tr><td>CSR / audit</td><td style="color: #B6121B;">🔴 Low</td><td>We modeled basics; AAP has a more complex Customer First + agent system.</td></tr>
+</table>
+
+<h3>Migration Path</h3>
+<p>When AAP's real Snowflake schema arrives, the migration follows this sequence:</p>
+<ol>
+    <li><strong>Map columns</strong> — Identify which Snowflake tables/columns correspond to each semantic view</li>
+    <li><strong>Rewrite views</strong> — Update the 9 <code>v_*</code> view definitions to point at real tables</li>
+    <li><strong>Update semantic model</strong> — Adjust table definitions, relationships, DAX measures for new column names</li>
+    <li><strong>Refresh linguistic schema</strong> — Update synonyms for renamed tables/columns</li>
+    <li><strong>Tune agent instructions</strong> — Update domain-specific query patterns where they reference column names</li>
+    <li><strong>Run sanity check</strong> — Execute the validation notebook against real data</li>
+    <li><strong>UAT</strong> — Test with AAP's actual business questions</li>
+</ol>
+
+<p>The web app, API proxy, auth flow, and user experience do not change. Only the data layer and agent instructions need updating.</p>
+
+<!-- ════════════════════════ FOOTER ════════════════════════ -->
+<footer class="page-footer">
+    <span>AAP Data Agent POC — July 2025</span>
+    <a href="index.html">← Back to Advance Insights</a>
+</footer>
+
+</main>
+</div>
+
+<!-- ════════════════════════ SCRIPTS ════════════════════════ -->
+<script>
+// Highlight active TOC item on scroll
+(function() {
+    const links = document.querySelectorAll('.toc-sidebar a');
+    const sections = [];
+    links.forEach(link => {
+        const id = link.getAttribute('href').replace('#', '');
+        const el = document.getElementById(id);
+        if (el) sections.push({ el, link });
+    });
+
+    function updateActive() {
+        const scrollY = window.scrollY + 80;
+        let current = sections[0];
+        for (const s of sections) {
+            if (s.el.offsetTop <= scrollY) current = s;
+        }
+        links.forEach(l => l.classList.remove('active'));
+        if (current) current.link.classList.add('active');
+    }
+
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+
+    // Close mobile TOC on link click
+    links.forEach(link => {
+        link.addEventListener('click', () => {
+            document.getElementById('toc-sidebar').classList.remove('open');
+        });
+    });
+})();
+</script>
+
+</body>
+</html>
