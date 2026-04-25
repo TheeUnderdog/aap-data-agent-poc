@@ -62,6 +62,41 @@ def ts_now():
     return datetime(2026, 4, 1, 0, 0, 0)
 
 # %% [markdown]
+# ## 0. Ensure Lakehouse Context
+# API-uploaded notebooks embed lakehouse metadata, but the Spark runtime may not
+# have the default database context set — causing `saveAsTable()` to fail with
+# "No default context found." This cell detects and fixes that.
+
+# %%
+# Ensure Spark has a default lakehouse context for saveAsTable operations
+# (API-uploaded notebooks may not have the binding activated at runtime)
+try:
+    current_db = spark.catalog.currentDatabase()
+    if current_db and current_db != "default":
+        print(f"✅ Default lakehouse context: {current_db}")
+    else:
+        raise Exception("Default database is 'default' — no lakehouse bound")
+except Exception:
+    # Try to find and set an available lakehouse database
+    try:
+        databases = [db.name for db in spark.catalog.listDatabases() if db.name != "default"]
+        if databases:
+            spark.catalog.setCurrentDatabase(databases[0])
+            print(f"✅ Set default lakehouse context: {databases[0]}")
+        else:
+            raise RuntimeError(
+                "❌ No Lakehouse found. Please:\n"
+                "   1. Click 'Add' in the left Explorer panel\n"
+                "   2. Select 'Existing Lakehouse' → 'RewardsLoyaltyData'\n"
+                "   3. Pin it as the default Lakehouse\n"
+                "   4. Then Run All again"
+            )
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(f"❌ Could not set Lakehouse context: {e}")
+
+# %% [markdown]
 # ## 1. Stores — Reference data for transaction locations
 
 # %%
