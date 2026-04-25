@@ -116,3 +116,15 @@
 - **Key technique:** Inline SVG injection is clean for local files (no CORS). The `currentColor` + CSS `color` inheritance chain means one style property controls both icon and text color.
 - **Files modified:** 6 SVGs in `web/img/`, `web/config.js`, `web/js/app.js`, `web/css/app.css`
 
+### Inline SVG Injection for All Agent Icons (2025-07)
+- **Task:** Fixed 5 locations where agent icons rendered black because `<img>` tags can't pass CSS `color` to SVG `fill="currentColor"` internals
+- **Approach:**
+  - Created shared `svgCache` object + `injectSvgIcon(container, agent)` async helper function
+  - Fetches SVG text, caches it, injects via `innerHTML` into a `<div>` container with `style.color` set to `agent.textColor || agent.accent`
+  - Replaced `<img>` with `<div>` + post-render injection at 5 locations: welcome icon, compact header icon (renderChat + addMessageToUI swap), message avatar, typing indicator avatar
+  - Updated `buildTabs()` to use the shared cache (was previously doing raw `fetch()` without caching)
+  - CSS updated: `.welcome-icon`, `.welcome-compact-icon` now flex containers; added `.avatar-icon` class with SVG child sizing; mobile media query updated
+- **Key detail:** diehard.svg has hardcoded `fill="white"` on its lightning bolt — this is preserved since we only set `color` on the container (only `currentColor` fills are affected)
+- **Fallback:** If SVG fetch fails, falls back to `<img>` tag (graceful degradation)
+- **Files modified:** `web/js/app.js`, `web/css/app.css`
+
