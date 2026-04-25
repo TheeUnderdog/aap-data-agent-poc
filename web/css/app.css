@@ -442,12 +442,11 @@ body {
 
 /* Sample question chips */
 .sample-questions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
-    justify-content: center;
     margin-top: 24px;
-    max-width: 600px;
+    max-width: 680px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -515,6 +514,8 @@ body {
 
 .sample-questions.compact {
     padding-top: 0;
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 100%;
 }
 
 .sample-questions.compact .sample-question {
@@ -1047,7 +1048,8 @@ details[open] > .reasoning-detail-toggle::before {
     }
 
     .sample-questions {
-        max-width: 480px;
+        max-width: 100%;
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -1197,8 +1199,7 @@ details[open] > .reasoning-detail-toggle::before {
 
     /* Sample questions — vertical stack */
     .sample-questions {
-        flex-direction: column;
-        align-items: stretch;
+        grid-template-columns: 1fr;
         max-width: 100%;
         gap: 8px;
     }
