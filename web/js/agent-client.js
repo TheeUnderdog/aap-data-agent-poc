@@ -186,9 +186,12 @@
                         this._processRunSteps(payload.reasoning, agentKey);
                     }
 
-                    // Final content
+                    // Final content + token usage
                     if (payload.content) {
                         reply = payload.content;
+                    }
+                    if (payload.usage && window.addTokenUsage) {
+                        window.addTokenUsage(payload.usage);
                     }
 
                     // Error

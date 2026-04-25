@@ -12,6 +12,7 @@
     let isWaiting = false;
     let reasoningSteps = [];  // Array of reasoning steps for current query
     let reasoningPanelOpen = false;
+    let tokenUsage = { prompt: 0, completion: 0, total: 0 }; // Session token accumulator
 
     // ── Initialization ──────────────────────────────────────────
 
@@ -565,16 +566,18 @@
             if (step.duration !== null) {
                 const ms = step.duration;
                 const str = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
-                durationHtml = `<div class="reasoning-bubble-duration">⏱ ${str}</div>`;
+                durationHtml = `<span class="reasoning-bubble-duration">⏱ ${str}</span>`;
             }
 
             div.innerHTML = `
-                <div class="reasoning-bubble-text">${escapeHtml(step.message)}</div>
-                ${durationHtml}
+                <div class="reasoning-bubble-text">${escapeHtml(step.message)}${durationHtml}</div>
             `;
 
             container.appendChild(div);
         }
+
+        // Re-render token counter at the bottom
+        renderTokenCounter();
     }
 
     window.toggleReasoning = function () {
@@ -594,6 +597,45 @@
     // Expose reasoning functions for executive.js to use
     window.addReasoningStep = addReasoningStep;
     window.completeLastReasoningStep = completeLastReasoningStep;
+
+    function addTokenUsage(usage) {
+        if (!usage) return;
+        tokenUsage.prompt += (usage.prompt_tokens || 0);
+        tokenUsage.completion += (usage.completion_tokens || 0);
+        tokenUsage.total += (usage.total_tokens || 0);
+        renderTokenCounter();
+    }
+
+    function renderTokenCounter() {
+        const container = document.getElementById('reasoning-steps');
+        if (!container) return;
+        let counter = container.querySelector('.token-counter');
+        if (tokenUsage.total === 0) {
+            if (counter) counter.remove();
+            return;
+        }
+        if (!counter) {
+            counter = document.createElement('div');
+            counter.className = 'token-counter';
+            container.appendChild(counter);
+        }
+        counter.innerHTML = `
+            <div class="token-counter-icon">🎟</div>
+            <div class="token-counter-values">
+                <span class="token-label">Prompt</span> <span class="token-value">${tokenUsage.prompt.toLocaleString()}</span>
+                <span class="token-sep">·</span>
+                <span class="token-label">Completion</span> <span class="token-value">${tokenUsage.completion.toLocaleString()}</span>
+                <span class="token-sep">·</span>
+                <span class="token-label">Total</span> <span class="token-value token-total">${tokenUsage.total.toLocaleString()}</span>
+            </div>
+        `;
+        // Ensure counter is always at the bottom
+        if (counter !== container.lastElementChild) {
+            container.appendChild(counter);
+        }
+    }
+
+    window.addTokenUsage = addTokenUsage;
 
     // ── Global Handlers ─────────────────────────────────────────
 

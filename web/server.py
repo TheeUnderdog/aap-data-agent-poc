@@ -188,7 +188,9 @@ def chat_proxy():
                         "message": f"Agent is working… ({elapsed}s)",
                     })
 
-            print(f"✅ Run completed in {round(time.time() - t0)}s (status: {run['status']})")
+            # Extract token usage from completed run
+            usage = run.get("usage") or {}
+            print(f"✅ Run completed in {round(time.time() - t0)}s (status: {run['status']}) usage={usage}")
 
             if run["status"] != "completed":
                 yield sse_event({
@@ -271,7 +273,15 @@ def chat_proxy():
             if not reply:
                 reply = "The agent completed but returned no response."
 
-            yield sse_event({"content": reply, "elapsed": round(time.time() - t0)})
+            yield sse_event({
+                "content": reply,
+                "elapsed": round(time.time() - t0),
+                "usage": {
+                    "prompt_tokens": usage.get("prompt_tokens", 0),
+                    "completion_tokens": usage.get("completion_tokens", 0),
+                    "total_tokens": usage.get("total_tokens", 0),
+                } if usage else None,
+            })
 
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
