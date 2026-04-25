@@ -565,30 +565,58 @@ body {
 
 
 
-/* Suggestions chip (near input bar) */
-.suggestions-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin: 0 auto 8px;
-    padding: 5px 14px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: var(--bg-primary);
-    border: 1px solid var(--border-light);
-    border-radius: 16px;
+/* Suggestions lightbulb button (in input bar) */
+.suggestions-btn {
+    background: none;
+    border: none;
+    color: #D4A800;
     cursor: pointer;
-    transition: background var(--transition), border-color var(--transition);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color var(--transition), background var(--transition);
 }
 
-.suggestions-chip:hover {
-    background: var(--bg-surface);
-    border-color: var(--border-medium);
+.suggestions-btn:hover {
+    color: #B8920A;
+    background: rgba(212, 168, 0, 0.1);
 }
 
-.suggestions-chip.hidden {
+.suggestions-btn.active {
+    color: #B8920A;
+    background: rgba(212, 168, 0, 0.15);
+}
+
+.suggestions-btn.hidden {
     display: none;
+}
+
+/* Suggestions slide-out panel (inside input-bar, expands upward) */
+.suggestions-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 12px;
+}
+
+.suggestions-panel.open {
+    max-height: 200px;
+    padding: 8px 12px 12px;
+}
+
+.suggestions-panel .sample-question {
+    font-size: 13px;
+    padding: 8px 16px;
 }
 
 /* Chat bubbles */

@@ -224,9 +224,17 @@
             scrollToBottom();
         }
 
-        // Show/hide the suggestions chip based on whether there are messages
-        const chip = document.getElementById('suggestions-chip');
-        if (chip) chip.classList.toggle('hidden', !hasMessages);
+        // Show/hide the suggestions button based on whether there are messages
+        const sugBtn = document.getElementById('suggestions-btn');
+        if (sugBtn) sugBtn.classList.toggle('hidden', !hasMessages);
+
+        // Close the suggestions panel when switching agents
+        const panel = document.getElementById('suggestions-panel');
+        if (panel) panel.classList.remove('open');
+        if (sugBtn) sugBtn.classList.remove('active');
+
+        // Update panel content for current agent
+        updateSuggestionsPanel(agent);
     }
 
     function createMessageEl(msg, agent) {
@@ -762,6 +770,13 @@
         const text = btn.textContent;
         const input = document.getElementById('message-input');
         input.value = text;
+
+        // Close suggestions panel if open
+        const panel = document.getElementById('suggestions-panel');
+        const sugBtn = document.getElementById('suggestions-btn');
+        if (panel) panel.classList.remove('open');
+        if (sugBtn) sugBtn.classList.remove('active');
+
         sendMessage();
     };
 
@@ -800,6 +815,11 @@
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeSidebar();
+            // Also close suggestions panel
+            const panel = document.getElementById('suggestions-panel');
+            const sugBtn = document.getElementById('suggestions-btn');
+            if (panel) panel.classList.remove('open');
+            if (sugBtn) sugBtn.classList.remove('active');
         }
     });
 
@@ -818,13 +838,24 @@
         document.getElementById('message-input').focus();
     };
 
-    // ── Suggestions Chip (scroll to top) ────────────────────────
+    // ── Suggestions Slide-Out Panel ────────────────────────────
 
-    window.scrollToSuggestions = function () {
-        const section = document.getElementById('welcome-section');
-        if (section) {
-            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+    function updateSuggestionsPanel(agent) {
+        const panel = document.getElementById('suggestions-panel');
+        if (!panel) return;
+        const isLightAccent = agent.accent && ['#FFCC00'].includes(agent.accent.toUpperCase());
+        panel.innerHTML = (agent.sampleQuestions || [])
+            .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
+            .join('');
+    }
+
+    window.toggleSuggestions = function () {
+        const panel = document.getElementById('suggestions-panel');
+        const btn = document.getElementById('suggestions-btn');
+        if (!panel) return;
+        const opening = !panel.classList.contains('open');
+        panel.classList.toggle('open');
+        if (btn) btn.classList.toggle('active', opening);
     };
 
     // ── Auto-init on page load ──────────────────────────────────

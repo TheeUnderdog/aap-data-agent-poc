@@ -86,9 +86,9 @@
 
         <!-- Input Bar -->
         <footer class="input-bar">
-            <button id="suggestions-chip" class="suggestions-chip hidden" onclick="scrollToSuggestions()" title="View sample questions">
-                💡 Suggestions
-            </button>
+            <div id="suggestions-panel" class="suggestions-panel">
+                <!-- Populated by app.js -->
+            </div>
             <div class="input-wrapper">
                 <textarea
                     id="message-input"
@@ -100,6 +100,11 @@
                 <button id="send-btn" class="send-btn" onclick="handleSend()" title="Send message">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
                         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+                <button id="suggestions-btn" class="suggestions-btn hidden" onclick="toggleSuggestions()" title="Suggestions">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/>
                     </svg>
                 </button>
             </div>
