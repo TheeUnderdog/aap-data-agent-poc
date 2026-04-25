@@ -219,44 +219,17 @@
                 if (step.type === "tool_calls" && step.tool_calls) {
                     for (const tc of step.tool_calls) {
                         if (tc.type === "code_interpreter") {
-                            // Show the actual SQL/code the agent wrote
-                            const code = tc.input || "(no input)";
-                            const outputs = (tc.outputs || []).join("\n");
-                            window.addReasoningStep(
-                                "thinking",
-                                agentKey,
-                                "Code interpreter",
-                                `**Query/Code:**\n\`\`\`\n${code}\n\`\`\`${outputs ? `\n\n**Output:**\n\`\`\`\n${outputs}\n\`\`\`` : ""}`
-                            );
+                            window.addReasoningStep("thinking", agentKey, "Code interpreter ran");
                         } else if (tc.type === "retrieval") {
-                            window.addReasoningStep(
-                                "thinking",
-                                agentKey,
-                                "Data retrieval",
-                                tc.retrieval ? JSON.stringify(tc.retrieval, null, 2) : null
-                            );
+                            window.addReasoningStep("thinking", agentKey, "Data retrieval");
                         } else if (tc.type === "function") {
-                            window.addReasoningStep(
-                                "thinking",
-                                agentKey,
-                                `Function: ${tc.function_name || "unknown"}`,
-                                `**Arguments:** ${tc.arguments || "(none)"}\n**Result:** ${tc.output || "(pending)"}`
-                            );
+                            window.addReasoningStep("thinking", agentKey, `Function: ${tc.function_name || "unknown"}`);
                         } else {
-                            window.addReasoningStep(
-                                "thinking",
-                                agentKey,
-                                `Tool call: ${tc.type}`,
-                                JSON.stringify(tc, null, 2)
-                            );
+                            window.addReasoningStep("thinking", agentKey, `Tool call: ${tc.type}`);
                         }
                     }
                 } else if (step.type === "message_creation") {
-                    window.addReasoningStep(
-                        "agent-response",
-                        agentKey,
-                        "Composing response"
-                    );
+                    window.addReasoningStep("agent-response", agentKey, "Composing response");
                 }
             }
         }

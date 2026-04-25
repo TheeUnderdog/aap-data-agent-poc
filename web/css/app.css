@@ -931,81 +931,19 @@ body {
 .reasoning-step-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-}
-
-.reasoning-step-type {
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-secondary);
-}
-
-.reasoning-step-time {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+    gap: 8px;
 }
 
 .reasoning-step-message {
+    flex: 1;
     color: var(--text-primary);
 }
 
 .reasoning-step-duration {
-    margin-top: 6px;
     font-size: 11px;
     color: var(--text-muted);
-    font-style: italic;
-}
-
-/* Model thoughts detail (collapsible) */
-.reasoning-step-detail {
-    margin-top: 6px;
-}
-
-.reasoning-detail-toggle {
-    font-size: 11px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    user-select: none;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.reasoning-detail-toggle::-webkit-details-marker {
-    display: none;
-}
-
-.reasoning-detail-toggle::before {
-    content: '▸';
-    font-size: 10px;
-    transition: transform 0.15s ease;
-}
-
-details[open] > .reasoning-detail-toggle::before {
-    transform: rotate(90deg);
-}
-
-.reasoning-detail-toggle:hover {
-    color: var(--active-accent);
-}
-
-.reasoning-detail-content {
-    margin: 6px 0 0 0;
-    padding: 8px 12px;
-    border-left: 2px solid var(--border-medium);
-    background: rgba(0,0,0,0.02);
-    border-radius: 0 4px 4px 0;
-    font-size: 12px;
-    font-style: italic;
-    color: var(--text-secondary);
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+    white-space: nowrap;
 }
 
 .reasoning-empty {

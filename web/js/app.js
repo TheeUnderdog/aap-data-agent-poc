@@ -509,12 +509,11 @@
 
     // ── Reasoning Panel ─────────────────────────────────────────
 
-    function addReasoningStep(type, agent, message, detail) {
+    function addReasoningStep(type, agent, message) {
         const step = {
             type: type,
             agent: agent,
             message: message,
-            detail: detail || null,
             timestamp: Date.now(),
             duration: null
         };
@@ -552,14 +551,7 @@
             const step = reasoningSteps[i];
             const div = document.createElement('div');
             div.className = `reasoning-step ${step.type}`;
-            // Add connector class for all but last step
             if (i < reasoningSteps.length - 1) div.classList.add('has-connector');
-            
-            const timeStr = new Date(step.timestamp).toLocaleTimeString([], { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                second: '2-digit'
-            });
 
             const typeIcon = {
                 'routing': '🧭',
@@ -569,45 +561,19 @@
                 'error': '❌'
             }[step.type] || '•';
 
-            const typeLabel = {
-                'routing': 'Routing Decision',
-                'agent-call': 'Agent Query',
-                'agent-response': 'Agent Response',
-                'thinking': 'Reasoning',
-                'error': 'Error'
-            }[step.type] || step.type;
-
             let durationHtml = '';
             if (step.duration !== null) {
-                const durationMs = step.duration;
-                const durationStr = durationMs < 1000 
-                    ? `${durationMs}ms` 
-                    : `${(durationMs / 1000).toFixed(2)}s`;
-                durationHtml = `<div class="reasoning-step-duration">⏱ ${durationStr}</div>`;
-            }
-
-            let detailHtml = '';
-            if (step.detail) {
-                // Convert newlines to paragraphs for readability
-                const formatted = escapeHtml(step.detail)
-                    .split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-                detailHtml = `
-                    <details class="reasoning-step-detail">
-                        <summary class="reasoning-detail-toggle">💭 Show reasoning</summary>
-                        <div class="reasoning-detail-content">${formatted}</div>
-                    </details>
-                `;
+                const ms = step.duration;
+                const str = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
+                durationHtml = `<span class="reasoning-step-duration">⏱ ${str}</span>`;
             }
 
             div.innerHTML = `
                 <div class="reasoning-step-header">
                     <span class="reasoning-step-icon">${typeIcon}</span>
-                    <span class="reasoning-step-type">${typeLabel}</span>
-                    <span class="reasoning-step-time">${timeStr}</span>
+                    <span class="reasoning-step-message">${escapeHtml(step.message)}</span>
+                    ${durationHtml}
                 </div>
-                <div class="reasoning-step-message">${escapeHtml(step.message)}</div>
-                ${detailHtml}
-                ${durationHtml}
             `;
 
             container.appendChild(div);

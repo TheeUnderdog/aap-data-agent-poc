@@ -16,17 +16,14 @@
     function classifyQuestion(question) {
         const lower = question.toLowerCase();
         const scores = {};
-        const matchedKeywords = {};
 
         for (const [agentKey, keywords] of Object.entries(routing)) {
             let score = 0;
-            const hits = [];
             for (const kw of keywords) {
-                if (lower.includes(kw)) { score++; hits.push(kw); }
+                if (lower.includes(kw)) { score++; }
             }
             if (score > 0) {
                 scores[agentKey] = score;
-                matchedKeywords[agentKey] = hits;
             }
         }
 
@@ -34,8 +31,6 @@
         const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
         if (ranked.length === 0) {
-            // Can't classify — fan out to all specialists
-            classifyQuestion._lastDetail = 'No keyword matches — broadcasting to all specialists.';
             return Object.keys(routing);
         }
 
@@ -46,19 +41,6 @@
             .filter(([, s]) => s >= threshold)
             .slice(0, 3)
             .map(([key]) => key);
-
-        // Build detail showing actual keyword match data
-        const detailLines = [];
-        for (const key of selected) {
-            const name = agentDisplayName(key);
-            const kws = matchedKeywords[key].map(k => `"${k}"`).join(', ');
-            detailLines.push(`${name}: matched ${kws} (score ${scores[key]})`);
-        }
-        const unmatched = Object.keys(routing).filter(k => !scores[k]);
-        if (unmatched.length > 0) {
-            detailLines.push(`No hits: ${unmatched.map(agentDisplayName).join(', ')}`);
-        }
-        classifyQuestion._lastDetail = detailLines.join('\n');
 
         return selected;
     }
@@ -83,11 +65,10 @@
         const targetNames = targets.map(agentDisplayName).join(', ');
         console.log(`[CrewChief] Routing to: ${targetNames}`);
 
-        // Add reasoning step for routing decision with keyword match details
+        // Add reasoning step for routing decision
         if (window.addReasoningStep) {
             window.addReasoningStep('routing', 'crew-chief',
-                `Routing to ${targetNames}`,
-                classifyQuestion._lastDetail);
+                `Routing to ${targetNames}`);
         }
 
         // Fan out to all target agents in parallel
@@ -108,10 +89,8 @@
 
                 // Add response reasoning step with preview
                 if (window.addReasoningStep) {
-                    const preview = response.length > 300 ? response.substring(0, 300) + '…' : response;
                     window.addReasoningStep('agent-response', agentKey,
-                        `${agentDisplayName(agentKey)} responded (${response.length} chars)`,
-                        preview);
+                        `${agentDisplayName(agentKey)} responded (${response.length} chars)`);
                 }
 
                 return { agentKey, response, error: null };
@@ -138,14 +117,8 @@
 
         // Add synthesis reasoning step
         if (window.addReasoningStep) {
-            const agentList = successful.map(r => agentDisplayName(r.agentKey)).join(', ');
-            let detail = `Sources: ${agentList} (${successful.length} responded)`;
-            if (failed.length > 0) {
-                detail += `\nFailed: ${failed.map(r => agentDisplayName(r.agentKey) + ' (' + r.error + ')').join(', ')}`;
-            }
             window.addReasoningStep('thinking', 'crew-chief',
-                `Synthesizing ${successful.length} response(s)...`,
-                detail);
+                `Synthesizing ${successful.length} response(s)...`);
         }
 
         return synthesize(question, successful, failed);
