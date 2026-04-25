@@ -683,13 +683,14 @@
             container.appendChild(counter);
         }
         counter.innerHTML = `
-            <div class="token-counter-icon">🎟</div>
-            <div class="token-counter-values">
-                <span class="token-label">Prompt</span> <span class="token-value">${tokenUsage.prompt.toLocaleString()}</span>
-                <span class="token-sep">·</span>
-                <span class="token-label">Completion</span> <span class="token-value">${tokenUsage.completion.toLocaleString()}</span>
-                <span class="token-sep">·</span>
-                <span class="token-label">Total</span> <span class="token-value token-total">${tokenUsage.total.toLocaleString()}</span>
+            <div class="token-counter-header">
+                <span class="token-counter-icon">🪙</span>
+                <span class="token-counter-title">Tokens</span>
+                <span class="token-value token-total">${tokenUsage.total.toLocaleString()}</span>
+            </div>
+            <div class="token-counter-breakdown">
+                <div class="token-row"><span class="token-label">Prompt</span><span class="token-value">${tokenUsage.prompt.toLocaleString()}</span></div>
+                <div class="token-row"><span class="token-label">Completion</span><span class="token-value">${tokenUsage.completion.toLocaleString()}</span></div>
             </div>
         `;
         // Ensure counter is always at the bottom
