@@ -116,6 +116,14 @@
 - **Key technique:** Inline SVG injection is clean for local files (no CORS). The `currentColor` + CSS `color` inheritance chain means one style property controls both icon and text color.
 - **Files modified:** 6 SVGs in `web/img/`, `web/config.js`, `web/js/app.js`, `web/css/app.css`
 
+### Welcome Icon Centering Fix (2025-07)
+- **Task:** Fixed `.welcome-icon` stuck in top-left instead of centered on welcome page
+- **Root cause:** The icon div is a block-level flex container — `text-align: center` on the parent only centers inline content, not block elements
+- **Fix:** Changed `margin-bottom: 20px` → `margin: 0 auto 20px` on `.welcome-icon` in `web/css/app.css`
+- **Responsive:** The mobile breakpoint override (line ~1276) only changes width/height, so the base `margin: 0 auto` carries through — no additional fix needed
+- **Compact icon:** `.welcome-compact-icon` is inline within a flex row, doesn't need centering fix
+- **Files modified:** `web/css/app.css`
+
 ### Inline SVG Injection for All Agent Icons (2025-07)
 - **Task:** Fixed 5 locations where agent icons rendered black because `<img>` tags can't pass CSS `color` to SVG `fill="currentColor"` internals
 - **Approach:**
@@ -128,3 +136,10 @@
 - **Fallback:** If SVG fetch fails, falls back to `<img>` tag (graceful degradation)
 - **Files modified:** `web/js/app.js`, `web/css/app.css`
 
+
+### Agent Description Taglines on Welcome Pages (2026-04-25)
+- **Task:** Added each agent's description as a stylish uppercase tagline between name and welcome message
+- **Style:** 12px Open Sans, 600 weight, uppercase, 0.18em letter-spacing, colored via `--active-accent`, 85% opacity for elegance
+- **Compact mode:** Skipped — the compact header is too tight for a tagline; it only shows icon + "Try asking [name]"
+- **Responsive:** Scales down to 11px/0.15em on tablet, 10px on small mobile
+- **Files modified:** `web/js/app.js`, `web/css/app.css`

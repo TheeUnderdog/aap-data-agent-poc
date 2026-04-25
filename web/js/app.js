@@ -196,6 +196,7 @@
                 <div class="welcome-message" id="welcome-section">
                     <div class="welcome-icon" data-agent-key="${agentKey}"></div>
                     <h2>${agent.name}</h2>
+                    <div class="agent-tagline">${agent.description}</div>
                     <p>${agent.welcome}</p>
                     ${samplesHtml ? `<div class="sample-questions">${samplesHtml}</div>` : ''}
                 </div>
