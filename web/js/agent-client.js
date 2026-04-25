@@ -141,7 +141,7 @@
             return this._requireAgent(agentKey);
         }
 
-        /** Returns an array of all agent keys (e.g. ["the-boss", "pit-crew", …]). */
+        /** Returns an array of all agent keys (e.g. ["crew-chief", "pit-crew", …]). */
         getAgentKeys() {
             return Object.keys(this._agents);
         }

@@ -31,7 +31,7 @@ window.APP_CONFIG = {
     // ┌──────────────┬─────────────────────────────┬──────────────────────────────────────┐
     // │ Chatbot Tab   │ Fabric Data Agent            │ GUID                                 │
     // ├──────────────┼─────────────────────────────┼──────────────────────────────────────┤
-    // │ The Boss      │ (client-side orchestrator)   │ n/a                                  │
+    // │ Crew Chief    │ (client-side orchestrator)   │ n/a                                  │
     // │ Pit Crew      │ Customer Service & Support   │ e2cf8db6-2e51-45b6-bb2d-edfeeeb8b38a │
     // │ GearUp        │ Loyalty Program Manager      │ b03579f9-1074-4578-8165-6954a83b31c5 │
     // │ Ignition      │ Marketing & Promotions       │ f0272a61-7e54-408f-bf70-28495982567b │
@@ -47,10 +47,10 @@ window.APP_CONFIG = {
     // Portal URLs:
     //   https://msit.powerbi.com/groups/82f53636-206f-4825-821b-bdaa8e089893/aiskills/{GUID}
     agents: {
-        "the-boss": {
+        "crew-chief": {
             id: null, // Client-side orchestrator — no Fabric agent
-            name: "The Boss",
-            icon: "img/the-boss.svg",
+            name: "Crew Chief",
+            icon: "img/crew-chief.svg",
             accent: "#1A1A1A",
             welcome: "I coordinate the full team. Ask me anything \u2014 I'll get the right people on it.",
             description: "Executive orchestrator",
@@ -151,8 +151,8 @@ window.APP_CONFIG = {
         }
     },
 
-    // Agent display order (The Boss first)
-    agentOrder: ["the-boss", "pit-crew", "gearup", "ignition", "partspro", "diehard"],
+    // Agent display order (Crew Chief first)
+    agentOrder: ["crew-chief", "pit-crew", "gearup", "ignition", "partspro", "diehard"],
 
     // Executive agent keyword routing
     executiveRouting: {

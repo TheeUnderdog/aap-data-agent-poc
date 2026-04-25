@@ -6,7 +6,7 @@
     'use strict';
 
     const config = window.APP_CONFIG;
-    let activeAgent = config.agentOrder[0]; // Default to The Boss
+    let activeAgent = config.agentOrder[0]; // Default to Crew Chief
     let chatHistories = {};   // agentKey → [{role, content, timestamp}]
     let unreadAgents = {};    // agentKey → boolean
     let isWaiting = false;
@@ -273,8 +273,8 @@
 
         try {
             let response;
-            if (agentKey === 'the-boss') {
-                response = await window.Executive.askTheBoss(text);
+            if (agentKey === 'crew-chief') {
+                response = await window.Executive.askCrewChief(text);
             } else {
                 response = await window.AgentClient.sendMessage(agentKey, text);
             }

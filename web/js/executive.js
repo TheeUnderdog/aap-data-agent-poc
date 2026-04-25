@@ -1,5 +1,5 @@
 /**
- * Advance Insights — The Boss (Executive Orchestrator)
+ * Advance Insights — Crew Chief (Executive Orchestrator)
  * Client-side agent that routes questions to specialist agents,
  * fans out queries in parallel, and synthesizes a unified response.
  */
@@ -53,15 +53,15 @@
     }
 
     /**
-     * Send a question to The Boss. Classifies, fans out, synthesizes.
+     * Send a question to the Crew Chief. Classifies, fans out, synthesizes.
      * @param {string} question - The user's question
      * @returns {Promise<string>} - Synthesized executive response
      */
-    async function askTheBoss(question) {
+    async function askCrewChief(question) {
         const client = window.AgentClient;
         const targets = classifyQuestion(question);
 
-        console.log(`[TheBoss] Routing to: ${targets.map(agentDisplayName).join(', ')}`);
+        console.log(`[CrewChief] Routing to: ${targets.map(agentDisplayName).join(', ')}`);
 
         // Fan out to all target agents in parallel
         const queries = targets.map(async (agentKey) => {
@@ -69,7 +69,7 @@
                 const response = await client.sendMessage(agentKey, question);
                 return { agentKey, response, error: null };
             } catch (err) {
-                console.warn(`[TheBoss] ${agentDisplayName(agentKey)} failed:`, err.message);
+                console.warn(`[CrewChief] ${agentDisplayName(agentKey)} failed:`, err.message);
                 return { agentKey, response: null, error: err.message };
             }
         });
@@ -122,7 +122,7 @@
 
     // Expose globally
     window.Executive = {
-        askTheBoss,
+        askCrewChief,
         classifyQuestion,
     };
 })();

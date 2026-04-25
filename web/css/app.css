@@ -11,7 +11,7 @@
     --aap-white: #FFFFFF;
 
     /* Agent Accents */
-    --accent-the-boss: #1A1A1A;
+    --accent-crew-chief: #1A1A1A;
     --accent-pit-crew: #2B6CB0;
     --accent-gearup: #FFCF06;
     --accent-ignition: #E86C00;
@@ -36,7 +36,7 @@
     --transition: 0.2s ease;
 
     /* Active agent accent (set by JS) */
-    --active-accent: var(--accent-the-boss);
+    --active-accent: var(--accent-crew-chief);
 }
 
 * {
