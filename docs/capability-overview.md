@@ -19,9 +19,9 @@ The POC runs on generated data that mirrors the Advance Auto Parts loyalty progr
 
 ---
 
-## Fabric Workspace
+## Deployed Artifacts
 
-Deployed entities in the `AAP-RewardsLoyalty-POC` workspace:
+### Fabric Workspace — `AAP-RewardsLoyalty-POC`
 
 | Entity | Name | Notes |
 |--------|------|-------|
@@ -36,6 +36,14 @@ Deployed entities in the `AAP-RewardsLoyalty-POC` workspace:
 | Data Agent | DieHard (Store Operations) | See agent list below |
 
 **Tables:** members, transactions, transaction_items, points_ledger, rewards, reward_redemptions, products, product_categories, stores, campaigns, campaign_responses, coupons, coupon_redemptions, csr_interactions
+
+### Web Application
+
+| Component | Name | Notes |
+|-----------|------|-------|
+| Chat Web App | AAP Data Agent Chat | React SPA with AAP branding, hosted on Azure Static Web Apps |
+| Crew Chief | Executive Orchestrator | Client-side router that dispatches questions to the right specialist agent |
+| API Backend | Python Flask proxy | Authenticates to Fabric Data Agent API via Entra ID service principal |
 
 ---
 
