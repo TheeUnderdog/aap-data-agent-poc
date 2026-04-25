@@ -11,8 +11,9 @@
   },
   "capabilities": {
     "primaryTables": [
-      "products",
-      "transactions"
+      "sku_reference",
+      "transactions",
+      "transaction_items"
     ],
     "secondaryTables": [
       "stores",

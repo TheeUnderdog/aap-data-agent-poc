@@ -12,7 +12,7 @@
   "capabilities": {
     "primaryTables": [
       "loyalty_members",
-      "points_ledger"
+      "member_points"
     ],
     "secondaryTables": [
       "transactions",

@@ -2,7 +2,7 @@
   "agent": {
     "name": "CustomerService",
     "displayName": "Customer Service & Support",
-    "description": "Answers questions about individual member lookups, CSR agent activity, audit trail analysis, service patterns, and support volume for the AAP Rewards program.",
+    "description": "Answers questions about individual member lookups, CSR agent activity, service patterns, and support volume for the AAP Rewards program.",
     "version": "1.0.0"
   },
   "semanticModel": {
@@ -13,18 +13,16 @@
     "primaryTables": [
       "csr_activities",
       "csr",
-      "loyalty_members",
-      "audit_log"
+      "loyalty_members"
     ],
     "secondaryTables": [
-      "points_ledger",
+      "member_points",
       "coupons",
       "transactions"
     ],
     "domains": [
       "member-lookup",
       "csr-activity",
-      "audit-trail",
       "service-volume",
       "agent-performance",
       "coupon-adjustments"
@@ -34,7 +32,7 @@
     "noPII": "Show member PII only for specific member lookups, never in aggregate reports or exports.",
     "noInventedData": "Never fabricate numbers. If data is unavailable, say so explicitly.",
     "noPredictions": "Do not predict service trends. Report historical patterns only.",
-    "auditIntegrity": "Never modify, interpret intent, or editorialize audit trail entries. Present factual records only.",
+    "recordIntegrity": "Never modify, interpret intent, or editorialize activity records. Present factual records only.",
     "scopeBoundary": "Redirect program-level engagement or tier strategy to Loyalty Program Manager agent. Redirect store operations to Store Operations agent. Redirect campaign analysis to Marketing & Promotions agent.",
     "dataRecency": "Always note the data time range when reporting. Do not imply real-time data."
   },

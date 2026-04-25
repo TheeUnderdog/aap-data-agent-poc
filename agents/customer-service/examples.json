@@ -8,7 +8,7 @@
   {
     "question": "Look up member Maria Santos",
     "answer": "Here's the profile for **Maria Santos**:\n\n| Field | Value |\n|-------|-------|\n| Tier | Gold |\n| Member Status | Active |\n| Points Balance | 3,150 |\n| Lifetime Spend | $6,231.47 |\n| Total Transactions | 28 |\n| Enrollment Date | 2024-03-15 |\n| Enrollment Source | Website |\n| Last Purchase | 2025-09-02 |\n| Days Since Last Purchase | 229 |\n| Preferred Channel | In-Store |\n| Email Opt-In | Yes |\n| SMS Opt-In | Yes |\n| DIY Account | Linked |\n\n**⚠️ Engagement alert:** Maria has been inactive for 229 days despite being a Gold member with $6.2K lifetime spend. She has 3,150 unredeemed points.\n\nWould you like me to pull her recent points history or any CSR activity records for this member?",
-    "tables_used": ["loyalty_members", "loyalty_members", "transactions", "points_ledger"],
+    "tables_used": ["loyalty_members", "transactions", "member_points"],
     "category": "member-lookup"
   },
   {
@@ -32,7 +32,7 @@
   {
     "question": "How many points adjustments were made this month and for which tiers?",
     "answer": "Here's the points adjustment summary for the current month:\n\n**Total points adjustments: 187**\n\n| Member Tier | Adjustments | % of Total | Avg Adjustment (points) |\n|-------------|-------------|------------|------------------------|\n| Bronze | 82 | 43.9% | +245 |\n| Silver | 54 | 28.9% | +380 |\n| Gold | 31 | 16.6% | +520 |\n| Platinum | 20 | 10.7% | +680 |\n| **Total** | **187** | **100%** | **+378** |\n\n**By adjustment reason (from audit details):**\n\n| Reason | Count | % |\n|--------|-------|---|\n| Missing points from purchase | 98 | 52.4% |\n| Promotion credit | 42 | 22.5% |\n| Goodwill adjustment | 31 | 16.6% |\n| System correction | 16 | 8.6% |\n\n**Over half of adjustments (52%) are for missing points from purchases** — this suggests a potential gap in the points accrual process, particularly at POS. Bronze members account for the largest share (44%), which is expected given they represent 60% of the member base, but the frequency of missing-points corrections may warrant a process review.",
-    "tables_used": ["csr_activities", "csr", "loyalty_members", "points_ledger"],
+    "tables_used": ["csr_activities", "csr", "loyalty_members", "member_points"],
     "category": "points-adjustments"
   }
 ]
