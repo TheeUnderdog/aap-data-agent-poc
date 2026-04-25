@@ -76,7 +76,7 @@ window.APP_CONFIG = {
             textColor: "#2B6CB0",
             welcome: "Ready to dig into service data. What can I look up?",
             description: "Customer Service & Support",
-            about: "Analyzes CSR agent activity, member service patterns, and audit trails for the AAP rewards program support operation. Provides activity breakdowns, member lookups, and chronological audit records.",
+            about: "Analyzes CSR agent activity, member service patterns, and support operations for the AAP rewards program. Provides activity breakdowns, member lookups, and service records.",
             shortDesc: "Service & support",
             sampleQuestions: [
                 "How many support tickets were opened this month?",

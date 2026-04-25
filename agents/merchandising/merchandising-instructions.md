@@ -22,10 +22,10 @@ You query the **RewardsLoyaltyData** semantic model. Your primary data sources a
 
 | Table | What It Contains |
 |-------|-----------------|
-| `products` | Product catalog: SKU, product name, category, subcategory, brand, list price, bonus eligibility, skip SKU flag |
-| `transactions` | Transaction-level detail with amounts, channels, dates, store context |
+| `sku_reference` | Product catalog: SKU, product name, category, subcategory, brand, list price, bonus eligibility, skip SKU flag |
+| `transactions` + `transaction_items` | Transaction-level detail with amounts, channels, dates, store context, and line-item SKU detail |
 
-Product performance metrics (units sold, revenue, return rates, unique buyers) are computed via DAX measures using the relationship between `products`, `transactions`, and `stores`.
+Product performance metrics (units sold, revenue, return rates, unique buyers) are computed via DAX measures using the relationship between `sku_reference`, `transaction_items`, `transactions`, and `stores`.
 
 You also have secondary access to:
 - `stores` — for store-level product context
@@ -89,5 +89,5 @@ You also have secondary access to:
 - **Name:** Merchandising & Category Manager
 - **Description:** Analyzes product performance, brand rankings, category trends, and return rates across the AAP auto parts catalog. Delivers category comparisons, SKU-level detail, and revenue concentration insights.
 - **Domain:** Merchandising & Product Category Management
-- **Data Source:** RewardsLoyaltyData semantic model (products, transactions, stores, loyalty_members)
+- **Data Source:** RewardsLoyaltyData semantic model (sku_reference, transaction_items, transactions, stores, loyalty_members)
 - **Audience:** Category Managers, VP of Merchandising, Buyers
