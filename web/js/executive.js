@@ -16,13 +16,18 @@
     function classifyQuestion(question) {
         const lower = question.toLowerCase();
         const scores = {};
+        const matchedKeywords = {};
 
         for (const [agentKey, keywords] of Object.entries(routing)) {
             let score = 0;
+            const hits = [];
             for (const kw of keywords) {
-                if (lower.includes(kw)) score++;
+                if (lower.includes(kw)) { score++; hits.push(kw); }
             }
-            if (score > 0) scores[agentKey] = score;
+            if (score > 0) {
+                scores[agentKey] = score;
+                matchedKeywords[agentKey] = hits;
+            }
         }
 
         // Sort by score descending
@@ -30,6 +35,7 @@
 
         if (ranked.length === 0) {
             // Can't classify — fan out to all specialists
+            classifyQuestion._lastDetail = 'No keyword matches found. Broadcasting to all specialists.';
             return Object.keys(routing);
         }
 
@@ -40,6 +46,14 @@
             .filter(([, s]) => s >= threshold)
             .slice(0, 3)
             .map(([key]) => key);
+
+        // Build detail string showing keyword matches
+        const detailLines = selected.map(key => {
+            const name = agentDisplayName(key);
+            const kws = matchedKeywords[key].map(k => `"${k}"`).join(', ');
+            return `${name}: matched ${kws} (score: ${scores[key]})`;
+        });
+        classifyQuestion._lastDetail = detailLines.join('\n');
 
         return selected;
     }
@@ -64,9 +78,9 @@
         const targetNames = targets.map(agentDisplayName).join(', ');
         console.log(`[CrewChief] Routing to: ${targetNames}`);
 
-        // Add reasoning step for routing decision
+        // Add reasoning step for routing decision with keyword match details
         if (window.addReasoningStep) {
-            window.addReasoningStep('routing', 'crew-chief', `Routing to: ${targetNames}`);
+            window.addReasoningStep('routing', 'crew-chief', `Routing to: ${targetNames}`, classifyQuestion._lastDetail);
         }
 
         // Fan out to all target agents in parallel
@@ -84,9 +98,10 @@
                     window.completeLastReasoningStep();
                 }
 
-                // Add response reasoning step
+                // Add response reasoning step with preview
                 if (window.addReasoningStep) {
-                    window.addReasoningStep('agent-response', agentKey, `${agentDisplayName(agentKey)} responded`);
+                    const preview = response.length > 200 ? response.substring(0, 200) + '…' : response;
+                    window.addReasoningStep('agent-response', agentKey, `${agentDisplayName(agentKey)} responded`, preview);
                 }
 
                 return { agentKey, response, error: null };
@@ -113,7 +128,11 @@
 
         // Add synthesis reasoning step
         if (window.addReasoningStep) {
-            window.addReasoningStep('thinking', 'crew-chief', `Synthesizing responses from ${successful.length} agent(s)...`);
+            const agentList = successful.map(r => agentDisplayName(r.agentKey)).join(', ');
+            const failedList = failed.length > 0 ? `\nFailed: ${failed.map(r => agentDisplayName(r.agentKey) + ' (' + r.error + ')').join(', ')}` : '';
+            window.addReasoningStep('thinking', 'crew-chief',
+                `Synthesizing responses from ${successful.length} agent(s)...`,
+                `Combining answers from: ${agentList}${failedList}`);
         }
 
         return synthesize(question, successful, failed);

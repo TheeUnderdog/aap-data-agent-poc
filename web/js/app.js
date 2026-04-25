@@ -322,17 +322,24 @@
         renderReasoningSteps();
 
         // Add initial reasoning step
-        addReasoningStep('thinking', agentKey, 'Analyzing query...');
+        addReasoningStep('thinking', agentKey,
+            'Analyzing query...',
+            agentKey === 'crew-chief'
+                ? 'Crew Chief will classify keywords and route to specialist agents.'
+                : `Direct query to ${agent.name}. No routing needed.`);
 
         try {
             let response;
             if (agentKey === 'crew-chief') {
                 response = await window.Executive.askCrewChief(text);
             } else {
-                addReasoningStep('agent-call', agentKey, `Calling ${agent.name} API...`);
+                addReasoningStep('agent-call', agentKey,
+                    `Calling ${agent.name} API...`,
+                    `Sending to Fabric Data Agent endpoint: ${agent.name}`);
                 response = await window.AgentClient.sendMessage(agentKey, text);
                 completeLastReasoningStep();
-                addReasoningStep('agent-response', agentKey, 'Response received');
+                const preview = response.length > 200 ? response.substring(0, 200) + '…' : response;
+                addReasoningStep('agent-response', agentKey, 'Response received', preview);
             }
 
             removeTypingIndicator();
@@ -507,11 +514,12 @@
 
     // ── Reasoning Panel ─────────────────────────────────────────
 
-    function addReasoningStep(type, agent, message) {
+    function addReasoningStep(type, agent, message, detail) {
         const step = {
             type: type,
             agent: agent,
             message: message,
+            detail: detail || null,
             timestamp: Date.now(),
             duration: null
         };
@@ -572,12 +580,24 @@
                 durationHtml = `<div class="reasoning-step-duration">Completed in ${durationStr}</div>`;
             }
 
+            let detailHtml = '';
+            if (step.detail) {
+                const detailId = `reasoning-detail-${container.children.length}`;
+                detailHtml = `
+                    <details class="reasoning-step-detail">
+                        <summary class="reasoning-detail-toggle">Show model thoughts</summary>
+                        <blockquote class="reasoning-detail-content">${escapeHtml(step.detail)}</blockquote>
+                    </details>
+                `;
+            }
+
             div.innerHTML = `
                 <div class="reasoning-step-header">
                     <span class="reasoning-step-type">${typeLabel}</span>
                     <span class="reasoning-step-time">${timeStr}</span>
                 </div>
                 <div class="reasoning-step-message">${escapeHtml(step.message)}</div>
+                ${detailHtml}
                 ${durationHtml}
             `;
 
