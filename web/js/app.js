@@ -339,6 +339,7 @@
             }
 
             removeTypingIndicator();
+            completeLastReasoningStep();
 
             const assistantMsg = { role: 'assistant', content: response, timestamp: Date.now() };
             chatHistories[agentKey].push(assistantMsg);
@@ -511,11 +512,19 @@
     // ── Reasoning Panel ─────────────────────────────────────────
 
     function addReasoningStep(type, agent, message) {
+        const now = Date.now();
+        // Auto-complete previous step so every bubble gets a duration
+        if (reasoningSteps.length > 0) {
+            const prev = reasoningSteps[reasoningSteps.length - 1];
+            if (prev.duration === null) {
+                prev.duration = now - prev.timestamp;
+            }
+        }
         const step = {
             type: type,
             agent: agent,
             message: message,
-            timestamp: Date.now(),
+            timestamp: now,
             duration: null
         };
         reasoningSteps.push(step);
