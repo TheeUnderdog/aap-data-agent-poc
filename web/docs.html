@@ -447,10 +447,10 @@
 
     <div class="toc-section-label">Executive Summary</div>
     <ul>
-        <li><a href="#what-we-built">What We Built</a></li>
+        <li><a href="#solution-overview">Solution Overview</a></li>
         <li><a href="#business-problem">The Business Problem</a></li>
         <li><a href="#demo-highlights">What the Demo Shows</a></li>
-        <li><a href="#talking-points">Key Talking Points</a></li>
+        <li><a href="#key-capabilities">Key Capabilities</a></li>
         <li><a href="#production-path">Production Path</a></li>
     </ul>
 
@@ -487,7 +487,7 @@
      ║  §1  EXECUTIVE SUMMARY                                       ║
      ╚═══════════════════════════════════════════════════════════════╝ -->
 
-<h2 id="what-we-built">What We Built</h2>
+<h2 id="solution-overview">Solution Overview</h2>
 
 <p>A fully functional natural-language analytics interface over Advance Auto Parts rewards and loyalty data, powered by Microsoft Fabric Data Agents. Business users type plain English questions — "What are our top stores by revenue?", "Which tier has the highest coupon redemption rate?" — and get immediate, accurate answers with the underlying data.</p>
 
@@ -495,46 +495,42 @@
 
 <h2 id="business-problem">The Business Problem</h2>
 
-<p>AAP's marketing and loyalty teams have questions that currently require analyst time, SQL expertise, or waiting for a scheduled report. The data exists — in Snowflake, in operational systems, in exports — but the path from question to answer is slow.</p>
+<p>Marketing and loyalty teams have questions that currently require analyst time, SQL expertise, or waiting for a scheduled report. The data exists — in Snowflake, in operational systems, in exports — but the path from question to answer is slow.</p>
 
 <p>Fabric Data Agents collapse that path. A loyalty program manager can ask "How are Platinum members trending quarter over quarter?" and get an answer in seconds, with the data table and the agent's reasoning visible. No tickets, no waiting, no SQL.</p>
 
 <h2 id="demo-highlights">What the Demo Shows</h2>
 
 <ul>
-    <li><strong>Six specialist agents</strong> — each focused on a business domain, with deep instruction sets that teach them AAP's terminology and data relationships</li>
+    <li><strong>Six specialist agents</strong> — each focused on a business domain, with deep instruction sets that teach them the terminology and data relationships</li>
     <li><strong>Cross-functional routing</strong> — the Crew Chief agent automatically dispatches multi-domain questions to the right specialists and synthesizes their answers</li>
     <li><strong>Transparent reasoning</strong> — every response shows the agent's chain-of-thought: what it understood, what SQL it generated, how it interpreted the results</li>
     <li><strong>Production-grade data</strong> — 50,000 members, 500,000+ transactions, 500 stores with realistic tier distributions, seasonal patterns, and regional variation</li>
-    <li><strong>Schema abstraction</strong> — all queries go through semantic views, so when AAP's real Snowflake data replaces the synthetic data, nothing in the app changes except the view definitions</li>
+    <li><strong>Schema abstraction</strong> — all queries go through semantic views, so when the real Snowflake data replaces the synthetic data, nothing in the app changes except the view definitions</li>
 </ul>
 
-<h2 id="talking-points">Key Talking Points</h2>
-
-<div class="callout">
-    <strong>For customer meetings:</strong> These are the key messages to convey when presenting this POC to AAP stakeholders.
-</div>
+<h2 id="key-capabilities">Key Capabilities</h2>
 
 <ul>
-    <li><strong>"Ask your data, don't query it."</strong> Business users get answers in plain English. No SQL, no analyst queue, no report request.</li>
-    <li><strong>"Six experts, one interface."</strong> Each agent is specialized — loyalty, marketing, merchandising, stores, customer service — and knows the domain vocabulary. The orchestrator connects them.</li>
-    <li><strong>"Your data stays in Fabric."</strong> No data leaves AAP's Microsoft environment. Fabric Data Agents run inside the workspace, querying the Lakehouse directly.</li>
-    <li><strong>"Swap the data, keep the app."</strong> We built against placeholder data. When AAP connects their Snowflake, we remap the semantic views. The web app, agents, and user experience don't change.</li>
-    <li><strong>"Built in weeks, not months."</strong> This entire POC — data model, five agents, branded web app — was built in under a month using Fabric's native capabilities.</li>
-    <li><strong>"Works alongside Power BI."</strong> The semantic model serves both the Data Agents and traditional Power BI reports. AAP gets conversational analytics <em>and</em> dashboards from the same data.</li>
+    <li><strong>Ask your data, don't query it.</strong> Business users get answers in plain English. No SQL, no analyst queue, no report request.</li>
+    <li><strong>Six experts, one interface.</strong> Each agent is specialized — loyalty, marketing, merchandising, stores, customer service — and knows the domain vocabulary. The orchestrator connects them.</li>
+    <li><strong>Data stays in Fabric.</strong> No data leaves the Microsoft environment. Fabric Data Agents run inside the workspace, querying the Lakehouse directly.</li>
+    <li><strong>Swap the data, keep the app.</strong> Built against placeholder data. When the real Snowflake connection is made, the semantic views are remapped. The web app, agents, and user experience don't change.</li>
+    <li><strong>Built in weeks, not months.</strong> The full POC — data model, five agents, branded web app — was built in under a month using Fabric's native capabilities.</li>
+    <li><strong>Works alongside Power BI.</strong> The semantic model serves both the Data Agents and traditional Power BI reports — conversational analytics <em>and</em> dashboards from the same data.</li>
 </ul>
 
 <h2 id="production-path">Production Path</h2>
 
-<p>What AAP needs to provide and what we help with to move from POC to production:</p>
+<p>Steps to move from POC to production:</p>
 
 <table>
     <tr><th>Step</th><th>Who</th><th>What</th></tr>
-    <tr><td>1. Snowflake access</td><td>AAP IT</td><td>Grant Fabric mirroring access to the loyalty/rewards Snowflake databases</td></tr>
-    <tr><td>2. Schema mapping</td><td>Joint</td><td>Map real Snowflake tables to our semantic views (we have 7 migration prompts ready)</td></tr>
-    <tr><td>3. Fabric workspace</td><td>Microsoft</td><td>Deploy workspace in AAP's tenant, configure mirroring, load data</td></tr>
+    <tr><td>1. Snowflake access</td><td>IT</td><td>Grant Fabric mirroring access to the loyalty/rewards Snowflake databases</td></tr>
+    <tr><td>2. Schema mapping</td><td>Joint</td><td>Map real Snowflake tables to the semantic views (7 migration prompts ready)</td></tr>
+    <tr><td>3. Fabric workspace</td><td>Microsoft</td><td>Deploy workspace in production tenant, configure mirroring, load data</td></tr>
     <tr><td>4. Agent tuning</td><td>Microsoft</td><td>Update agent instructions for real column names, business rules, edge cases</td></tr>
-    <tr><td>5. UAT</td><td>AAP Marketing</td><td>Test with real questions from the marketing team, iterate on agent accuracy</td></tr>
+    <tr><td>5. UAT</td><td>Marketing</td><td>Test with real questions from the marketing team, iterate on agent accuracy</td></tr>
     <tr><td>6. Deploy</td><td>Joint</td><td>Azure Static Web Apps deployment, Entra ID auth, production hardening</td></tr>
 </table>
 
@@ -654,7 +650,7 @@
             <div class="card-subtitle">Store Operations</div>
         </div>
     </div>
-    <p>Tracks retail location performance, regional comparisons, channel mix, and operational metrics across AAP's 500-store network. Provides store rankings, regional benchmarks, and return rate analysis.</p>
+    <p>Tracks retail location performance, regional comparisons, channel mix, and operational metrics across the 500-store network. Provides store rankings, regional benchmarks, and return rate analysis.</p>
     <div class="sample-questions">
         <span class="sample-q">What are our top 5 stores by revenue?</span>
         <span class="sample-q">Show me store performance by region</span>
@@ -933,7 +929,7 @@
 </table>
 
 <h3>Migration Path</h3>
-<p>When AAP's real Snowflake schema arrives, the migration follows this sequence:</p>
+<p>When the real Snowflake schema arrives, the migration follows this sequence:</p>
 <ol>
     <li><strong>Map columns</strong> — Identify which Snowflake tables/columns correspond to each semantic view</li>
     <li><strong>Rewrite views</strong> — Update the 9 <code>v_*</code> view definitions to point at real tables</li>
@@ -941,7 +937,7 @@
     <li><strong>Refresh linguistic schema</strong> — Update synonyms for renamed tables/columns</li>
     <li><strong>Tune agent instructions</strong> — Update domain-specific query patterns where they reference column names</li>
     <li><strong>Run sanity check</strong> — Execute the validation notebook against real data</li>
-    <li><strong>UAT</strong> — Test with AAP's actual business questions</li>
+    <li><strong>UAT</strong> — Test with real business questions from the marketing team</li>
 </ol>
 
 <p>The web app, API proxy, auth flow, and user experience do not change. Only the data layer and agent instructions need updating.</p>
