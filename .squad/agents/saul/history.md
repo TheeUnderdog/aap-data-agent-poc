@@ -168,3 +168,20 @@ Scripts that call Fabric REST API need browser auth popups. They must be run dir
 
 **Verification Strategy:** Cross-reference every table name, column name, and type against the notebook's `StructType` schemas and `saveAsTable()` calls before writing any consuming code (semantic model, Data Agent instructions, API queries, etc.)
 
+### Lakehouse Context Auto-Detection Fix (2026-07)
+**Problem:** Notebook uploaded via Fabric REST API (`scripts/run-notebook.py`) embeds lakehouse metadata (workspace ID, lakehouse ID, name) in the notebook definition. The Fabric portal UI shows the lakehouse as attached (greyed-out "Add data items" button), but the Spark runtime doesn't have a default database context set. First `saveAsTable()` call fails with `UnsupportedOperationException: No default context found`.
+
+**Root Cause:** API-uploaded notebook metadata creates a "phantom binding" — the UI thinks a lakehouse is configured, but the Spark session's `currentDatabase()` returns `"default"` (the built-in empty database), not the attached lakehouse's database.
+
+**Fix:** Added a new code cell (Section 0) after imports/seed, before any `saveAsTable()` calls:
+1. Checks `spark.catalog.currentDatabase()` — if it's a real lakehouse DB, no action needed
+2. If `"default"`, enumerates `spark.catalog.listDatabases()` and sets the first non-default one
+3. If no databases found, raises `RuntimeError` with clear manual-fix instructions
+
+**Key Insight:** `spark.catalog.listDatabases()` returns lakehouse databases even when the default context isn't set. The databases are available — Spark just doesn't know which one to use for unqualified table names.
+
+**Files Modified:**
+- `notebooks/01-create-sample-data.py` — Added Section 0 (lakehouse context detection) between imports and Section 1 (Stores)
+
+**Impact:** Summary cell at the end (`spark.sql(f"SELECT COUNT(*) ...")`) also benefits from this fix — same unqualified table name issue.
+
