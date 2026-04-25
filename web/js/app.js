@@ -128,7 +128,7 @@
             tab.style.color = agent.textColor || agent.accent;
             tab.onclick = () => switchToAgent(key);
 
-            tab.title = agent.about || agent.description || '';
+            tab.title = agent.welcome || agent.shortDesc || '';
             tab.innerHTML = `
                 <div class="tab-icon"></div>
                 <div class="tab-label">
