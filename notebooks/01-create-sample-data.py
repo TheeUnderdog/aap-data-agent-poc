@@ -153,7 +153,7 @@ stores_schema = StructType([
     StructField("opened_date", DateType()),
 ])
 df_stores = spark.createDataFrame(stores_data, stores_schema)
-df_stores.write.format("delta").mode("overwrite").saveAsTable("stores")
+df_stores.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("stores")
 print(f"✅ stores: {df_stores.count()} rows")
 
 # %% [markdown]
@@ -242,7 +242,7 @@ sku_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_skus = spark.createDataFrame(sku_data, sku_schema)
-df_skus.write.format("delta").mode("overwrite").saveAsTable("sku_reference")
+df_skus.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("sku_reference")
 print(f"✅ sku_reference: {df_skus.count()} rows")
 
 # Build lookup for transaction item generation
@@ -342,7 +342,7 @@ members_schema = StructType([
     StructField("created_at", TimestampType()), StructField("updated_at", TimestampType()),
 ])
 df_members = spark.createDataFrame(members_data, members_schema)
-df_members.write.format("delta").mode("overwrite").saveAsTable("loyalty_members")
+df_members.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("loyalty_members")
 print(f"✅ loyalty_members: {df_members.count()} rows")
 
 # Print tier breakdown for validation
@@ -440,7 +440,7 @@ txn_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_txn = spark.createDataFrame(transactions_data, txn_schema)
-df_txn.write.format("delta").mode("overwrite").saveAsTable("transactions")
+df_txn.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("transactions")
 print(f"✅ transactions: {df_txn.count()} rows")
 
 # %% [markdown]
@@ -475,7 +475,7 @@ items_schema = StructType([
     StructField("line_total", DoubleType()), StructField("is_return", BooleanType()),
 ])
 df_items = spark.createDataFrame(items_data, items_schema)
-df_items.write.format("delta").mode("overwrite").saveAsTable("transaction_items")
+df_items.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("transaction_items")
 print(f"✅ transaction_items: {df_items.count()} rows")
 
 # %% [markdown]
@@ -600,7 +600,7 @@ points_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_points = spark.createDataFrame(points_data, points_schema)
-df_points.write.format("delta").mode("overwrite").saveAsTable("member_points")
+df_points.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("member_points")
 print(f"✅ member_points: {df_points.count()} rows")
 
 # Free large intermediate data
@@ -700,7 +700,7 @@ rules_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_rules = spark.createDataFrame(rules_data, rules_schema)
-df_rules.write.format("delta").mode("overwrite").saveAsTable("coupon_rules")
+df_rules.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("coupon_rules")
 print(f"✅ coupon_rules: {df_rules.count()} rows")
 
 # Print campaign breakdown
@@ -860,7 +860,7 @@ coupons_schema = StructType([
     StructField("source_system", StringType()), StructField("created_at", TimestampType()),
 ])
 df_coupons = spark.createDataFrame(coupons_data, coupons_schema)
-df_coupons.write.format("delta").mode("overwrite").saveAsTable("coupons")
+df_coupons.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("coupons")
 print(f"✅ coupons: {df_coupons.count()} rows")
 
 # Print redemption rate by tier for validation
@@ -902,7 +902,7 @@ csr_schema = StructType([
     StructField("created_at", TimestampType()),
 ])
 df_csr = spark.createDataFrame(csr_data, csr_schema)
-df_csr.write.format("delta").mode("overwrite").saveAsTable("csr")
+df_csr.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("csr")
 print(f"✅ csr: {df_csr.count()} rows")
 
 # %% [markdown]
@@ -977,7 +977,7 @@ aa_schema = StructType([
     StructField("details", StringType()), StructField("created_at", TimestampType()),
 ])
 df_aa = spark.createDataFrame(activities_data, aa_schema)
-df_aa.write.format("delta").mode("overwrite").saveAsTable("csr_activities")
+df_aa.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("csr_activities")
 print(f"✅ csr_activities: {df_aa.count()} rows")
 
 # %% [markdown]
