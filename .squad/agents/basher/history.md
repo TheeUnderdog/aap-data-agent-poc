@@ -10,7 +10,25 @@
 
 ## Learnings
 
-### Agent Config Verification (2026-04-26)
+### SWA Infrastructure Setup (2026-07)
+- **Scope:** Created full Azure Static Web Apps deployment infrastructure for the Advance Insights app
+- **Files created:**
+  - `web/staticwebapp.config.json` — SWA routing (navigation fallback for SPA), Entra ID auth config (MSIT tenant issuer), security headers (CSP, X-Frame-Options), all routes require `authenticated` role, 401→login redirect
+  - `api/function_app.py` — Python v2 Azure Functions replicating `web/server.py` proxy logic. Three endpoints: `/api/chat` (Fabric Data Agent SSE proxy), `/api/user` (decodes `x-ms-client-principal`), `/api/health`
+  - `api/requirements.txt`, `api/host.json`, `api/local.settings.json`, `api/.funcignore`
+  - `.github/workflows/azure-static-web-apps.yml` — CI/CD deploying `web/` as app, `api/` as managed Functions
+  - Updated `web/SETUP.md` — Complete SWA deployment guide (portal + CLI creation, Entra ID app registration, managed identity for Fabric API, auth flow diagram)
+  - Updated `web/config.js` — Clarified `useProxy: true` works for both local server.py and SWA managed Functions
+  - Updated `.gitignore` — Added `api/local.settings.json` and Functions artifacts
+- **Key patterns:**
+  - `DefaultAzureCredential` for Fabric API auth (managed identity in prod, CLI creds locally)
+  - SWA's `x-ms-client-principal` header for user identity (no MSAL needed server-side)
+  - Assistant cache (`_assistant_cache`) replicated in Functions — note: Functions may cold-start, so cache is per-instance, not persistent
+  - SSE streaming in Functions v2: events accumulated in list and returned as full body (true streaming requires Flex Consumption plan)
+  - `staticwebapp.config.json` `openIdIssuer` set to MSIT tenant v2.0 endpoint; client ID/secret as app settings, not hardcoded
+- **Decision:** SWA over Container Apps — simpler deployment, built-in auth, auto-CORS, no Service Tree ID needed in MSIT tenant
+- **Limitation noted:** Azure Functions v2 Consumption doesn't support true SSE generator streaming. Events are accumulated and flushed. For real-time UX, consider Flex Consumption with HTTP Streams.
+- **Local dev unchanged:** `web/server.py` still works at localhost:5000 with `useProxy: true`
 - **Scope:** Audited all 5 AI agent configurations (customer-service, loyalty-program-manager, marketing-promotions, merchandising, store-operations) plus config/sample-queries.json
 - **CSR naming:** ✅ All SQL in sample-queries.json uses `csr_name`, `csr_department` — no legacy `agent_id`, `agent_name`, `agent_email`, `agent_department` column references found anywhere
 - **Semantic views:** ✅ All 15 agent files (5× config.json, examples.json, instructions.md) reference only `semantic.v_*` views. No raw Delta table references (members, transactions, stores, products, coupons, coupon_rules, points, csr, agent_activities) found
@@ -60,6 +78,25 @@
 - **Job status:** `GET` the Location URL; statuses include `Completed`, `Failed`, `Cancelled`, `InProgress`, `NotStarted`
 - **LRO handling:** Both notebook creation and definition update can return 202 (long-running operation); must poll the `Location` header until `Succeeded`
 - **Execution result:** Notebook uploaded and ran but PySpark failed with "System cancelled the Spark session due to statement execution failures" — likely a notebook content issue (schema creation or PySpark API incompatibility with Fabric Spark runtime), not a deployment script issue. Notebook ID: `1121f044-f79e-45b2-adeb-dcd87ece6244`
+
+### Azure Static Web Apps + Managed Functions (2026-04-25)
+- **Scope:** Full SWA deployment stack for AAP Data Agent POC
+- **Files created:**
+  - `web/staticwebapp.config.json` — SWA routing, Entra ID auth (MSIT v2.0), security headers (CSP, X-Frame-Options), role-based access control
+  - `api/function_app.py` — Python v2 Azure Functions API replicating `web/server.py` proxy logic (3 endpoints: `/api/chat`, `/api/user`, `/api/health`)
+  - `api/requirements.txt`, `api/host.json`, `api/local.settings.json`, `api/.funcignore`
+  - `.github/workflows/azure-static-web-apps.yml` — GitHub Actions CI/CD (SPA + managed Functions)
+  - `web/SETUP.md` — Complete setup guide (portal creation, Entra ID app registration, managed identity binding, auth flow)
+  - `web/config.js` — Clarified `useProxy: true` works for both local `web/server.py` and SWA managed Functions
+  - `.gitignore` — Added Functions artifacts and `api/local.settings.json`
+- **Key patterns:**
+  - **DefaultAzureCredential** for Fabric API auth (managed identity in prod, local CLI in dev)
+  - **x-ms-client-principal header** for user identity extraction (SWA injected, no MSAL server-side)
+  - **Assistant cache** per-instance (note: Functions cold-start means no persistent cross-request cache)
+  - **SSE streaming:** Functions v2 Consumption accumulates events and returns full body (true streaming needs Flex Consumption)
+- **Architecture rationale:** SWA + managed Functions chosen over Container Apps for simplicity, auto-scaling, built-in auth, no Service Tree ID needed
+- **Decision:** First-time Entra ID app registration manual (portal Client Credentials flow); subsequent deployments scriptable
+- **Outcome:** ✅ Full stack ready for Linus (frontend) integration. Web app can target production SWA or local dev with minimal config changes
 
 ## Upcoming Coordination (2026-04-24T19:04)
 

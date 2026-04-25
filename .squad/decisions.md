@@ -93,13 +93,51 @@
 - **Owner:** Basher (Backend Dev)
 - **Status:** Verified — No Issues Found
 
-### Power BI Report Specification Complete (2026-07)
-- **Decision:** Comprehensive Power BI report specification document created for 5-report portfolio
-- **Rationale:** 5-report portfolio approved conceptually but lacked implementation specs; developers need detailed guidance on layouts, DAX, visuals, filters, colors, and performance
-- **Scope:** 5 reports, 46+ visuals, 36 DAX measures, all 9 semantic views covered, implementation checklist
-- **Impact:** Developers can build without ambiguity; consistent styling across reports; scope protection against creep
-- **Owner:** Danny (Lead/Architect)
-- **Status:** Active / Ready for Implementation
+### Azure Static Web Apps Infrastructure (2026-07)
+- **Decision:** Set up Azure Static Web Apps as hosting platform for AAP Data Agent POC web app
+- **Rationale:** Simpler deployment than Container Apps, built-in Entra ID auth, auto-scaling, no Service Tree ID needed
+- **Implementation:**
+  - `web/staticwebapp.config.json` — SWA routing (API → managed Functions, static → SPA), Entra ID auth (MSIT tenant), security headers, role-based access
+  - `api/function_app.py` — Python v2 Azure Functions backend (3 endpoints: `/api/chat` SSE proxy, `/api/user` identity, `/api/health`)
+  - `.github/workflows/azure-static-web-apps.yml` — GitHub Actions CI/CD (SPA + managed Functions deployment)
+  - `web/SETUP.md` — Complete setup guide (portal creation, Entra ID app registration, managed identity binding, auth flow)
+  - Updated `web/config.js` — `useProxy: true` works for both local `web/server.py` and SWA managed Functions
+- **Team Impact:**
+  - **Linus:** Frontend code unchanged — `useProxy: true` + relative URLs work in both local and prod
+  - **Livingston:** No data layer changes — Fabric API via managed identity (needs workspace Contributor)
+  - **Danny:** Aligns with decision #4 (Static Web Apps + managed Functions)
+- **Known limitation:** Functions v2 Consumption doesn't support true SSE streaming. Chat responses accumulated and returned as batch. Acceptable for POC; upgrade to Flex Consumption if real-time streaming needed.
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### Crew Chief Executive Orchestrator Naming (2026-04-24)
+- **Decision:** The executive orchestrator agent in the web UX is named "Crew Chief" (not "The Boss")
+- **Rationale:** User direction (Dave) — keeps auto racing theme consistent with other agents (Pit Crew, GearUp, Ignition, PartsPro, DieHard)
+- **Scope:** UX branding for AAP Data Agent POC chatbot
+- **Owner:** Dave Grobleski (User)
+- **Status:** Documented for Team Memory
+
+### Schema Documentation Must Match Implementation (2026-04-25)
+- **Decision:** Implementation is the source of truth; documentation follows implementation
+- **Problem:** `docs/data-schema.md` was written as design spec before data generation notebook. When implementation diverged (different table names, column names, structures), stale docs misled consuming code (semantic model had fabricated schemas)
+- **Hard rules:**
+  1. Never write consuming code from design specs — always verify against actual data source (notebook, Lakehouse, DB DDL)
+  2. Update design docs immediately after implementation — if they diverge, document both and explain why
+  3. Add schema gap analysis sections comparing planned vs. built
+  4. Before writing any schema-dependent code (semantic models, Data Agent, API queries), verify all table/column names and types against source of truth
+- **Implementation:** Reconciled `docs/data-schema.md` to match `notebooks/01-create-sample-data.py` schemas, updated all sample queries, documented design vs. reality gaps
+- **Impact:** Prevents future schema-based errors; establishes "code is truth" culture
+- **Owner:** Saul (Data Engineer)
+- **Status:** Implemented
+
+### Lakehouse Context Auto-Detection in Notebooks (2026-07)
+- **Decision:** All Fabric notebooks using `saveAsTable()` with unqualified names MUST include context-detection cell
+- **Problem:** Notebooks uploaded via REST API have phantom lakehouse binding (UI shows it, Spark runtime doesn't activate context) → `saveAsTable()` fails with "No default context found"
+- **Solution:** Context-detection cell that checks if `spark.catalog.currentDatabase()` is bound, auto-discovers available lakehouse if not, fails clearly if none available
+- **Rationale:** API upload creates phantom binding. Manual workaround (portal detach/reattach) is fragile. Auto-detection is safe and only runs if context not already set.
+- **Impact:** `notebooks/01-create-sample-data.py` updated with Section 0 context cell; any future write-Delta notebooks should use same pattern
+- **Owner:** Saul (Data Engineer)
+- **Status:** Implemented
 
 ### Semantic Model Schema Alignment (2026-04-24)
 - **Decision:** Rewrite semantic model script to match actual Delta table schemas from notebook
