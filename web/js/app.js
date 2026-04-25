@@ -101,10 +101,11 @@
             const tab = document.createElement('div');
             tab.className = 'tab';
             tab.dataset.agent = key;
+            tab.style.color = agent.textColor || agent.accent;
             tab.onclick = () => switchToAgent(key);
 
             tab.innerHTML = `
-                <img class="tab-icon" src="${agent.icon}" alt="">
+                <div class="tab-icon"></div>
                 <div class="tab-label">
                     <span class="tab-name">${agent.name}</span>
                     <span class="tab-desc">${agent.shortDesc || ''}</span>
@@ -112,6 +113,12 @@
                 <div class="tab-unread" id="unread-${key}"></div>
             `;
             strip.appendChild(tab);
+
+            // Inline SVG so it inherits color via currentColor
+            const iconContainer = tab.querySelector('.tab-icon');
+            fetch(agent.icon)
+                .then(r => r.text())
+                .then(svg => { iconContainer.innerHTML = svg; });
         }
     }
 

@@ -104,3 +104,15 @@
   - Designed to scale — as agent-client.js evolves to emit richer SSE events, reasoning steps can show SQL queries, data retrieved, etc.
   - No framework dependencies — keeps bundle small and perf fast for mobile
 
+### Colored Agent Tabs — Inline SVG + textColor (2025-07)
+- **Task:** Make each agent tab always display in its brand color (icon AND text), not just when active
+- **Approach:**
+  - All 6 SVG icons updated: `fill="#1E1E1E"` → `fill="currentColor"` (kept `fill="white"` on diehard lightning bolt)
+  - Added `textColor` property to each agent in `web/config.js` — separate from `accent` because some colors (e.g. GearUp yellow #FFCC00) need darkening for text readability (#B38600)
+  - `buildTabs()` in `app.js` changed from `<img>` to inline SVG injection via `fetch()` + `innerHTML` — allows SVGs to inherit CSS `color` via `currentColor`
+  - Tab color set via `tab.style.color = agent.textColor || agent.accent`
+  - CSS uses `opacity: 0.7` (inactive) → `0.85` (hover) → `1.0` (active) instead of `color` overrides — preserves agent color at all states
+  - `--active-accent` CSS variable still drives chat area styling (message bubbles, buttons) — unchanged
+- **Key technique:** Inline SVG injection is clean for local files (no CORS). The `currentColor` + CSS `color` inheritance chain means one style property controls both icon and text color.
+- **Files modified:** 6 SVGs in `web/img/`, `web/config.js`, `web/js/app.js`, `web/css/app.css`
+

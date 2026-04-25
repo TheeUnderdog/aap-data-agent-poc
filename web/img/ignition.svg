@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <path d="M18,1 L30,1 L30,5 L18,5 Z" fill="#1E1E1E"/>
-  <path d="M20,5 L28,5 L28,9 L20,9 Z" fill="#1E1E1E"/>
-  <path d="M16,9 L32,9 L32,15 L16,15 Z" fill="#1E1E1E"/>
-  <path d="M20,15 L28,15 L28,30 L20,30 Z" fill="#1E1E1E"/>
-  <path d="M22,30 L26,30 L26,37 L22,37 Z" fill="#1E1E1E"/>
-  <path d="M21,37 L27,37 L25,41 L23,41 Z" fill="#1E1E1E"/>
-  <path d="M27,40 L22,48 L25,44 L20,48 L25,42 Z" fill="#1E1E1E"/>
+  <path d="M18,1 L30,1 L30,5 L18,5 Z" fill="currentColor"/>
+  <path d="M20,5 L28,5 L28,9 L20,9 Z" fill="currentColor"/>
+  <path d="M16,9 L32,9 L32,15 L16,15 Z" fill="currentColor"/>
+  <path d="M20,15 L28,15 L28,30 L20,30 Z" fill="currentColor"/>
+  <path d="M22,30 L26,30 L26,37 L22,37 Z" fill="currentColor"/>
+  <path d="M21,37 L27,37 L25,41 L23,41 Z" fill="currentColor"/>
+  <path d="M27,40 L22,48 L25,44 L20,48 L25,42 Z" fill="currentColor"/>
 </svg>
