@@ -565,13 +565,13 @@ body {
 
 
 
-/* Suggestions lightbulb button (in input bar) */
+/* Suggestions lightbulb button (outside input bubble, right side) */
 .suggestions-btn {
     background: none;
     border: none;
     color: #D4A800;
     cursor: pointer;
-    padding: 4px;
+    padding: 8px;
     border-radius: var(--radius-sm);
     display: flex;
     align-items: center;
@@ -590,29 +590,58 @@ body {
     background: rgba(212, 168, 0, 0.15);
 }
 
-/* Suggestions slide-out panel (inside input-bar, expands upward) */
+/* Suggestions slide-down panel (top of content area, below tab strip) */
 .suggestions-panel {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.3s ease, padding 0.3s ease;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    width: 100%;
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 0 12px;
+    transition: max-height 0.35s ease, padding 0.35s ease;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
 }
 
 .suggestions-panel.open {
-    max-height: 200px;
-    padding: 8px 12px 12px;
+    max-height: 300px;
+    padding: 16px 0 20px;
 }
 
-.suggestions-panel .sample-question {
+.suggestions-panel-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.suggestions-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    font-size: 15px;
+    color: var(--text-secondary);
+}
+
+.suggestions-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.suggestions-header-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.suggestions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.suggestions-grid .sample-question {
     font-size: 13px;
-    padding: 8px 16px;
+    padding: 10px 16px;
 }
 
 /* Chat bubbles */
@@ -834,13 +863,21 @@ body {
     align-items: center;
 }
 
+.input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
 .input-wrapper {
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    width: 100%;
-    max-width: 760px;
-    margin: 0 auto;
+    flex: 1;
+    min-width: 0;
     background: var(--bg-primary);
     border: 1px solid var(--border-medium);
     border-radius: var(--radius-md);

@@ -838,12 +838,16 @@
     // ── Suggestions Slide-Out Panel ────────────────────────────
 
     function updateSuggestionsPanel(agent) {
-        const panel = document.getElementById('suggestions-panel');
-        if (!panel) return;
+        const grid = document.getElementById('suggestions-grid');
+        const headerText = document.getElementById('suggestions-header-text');
+        const headerIcon = document.getElementById('suggestions-header-icon');
+        if (!grid) return;
         const isLightAccent = agent.accent && ['#FFCC00'].includes(agent.accent.toUpperCase());
-        panel.innerHTML = (agent.sampleQuestions || [])
+        grid.innerHTML = (agent.sampleQuestions || [])
             .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
             .join('');
+        if (headerText) headerText.textContent = `Try asking ${agent.name}`;
+        if (headerIcon) injectSvgIcon(headerIcon, agent);
     }
 
     window.toggleSuggestions = function () {
