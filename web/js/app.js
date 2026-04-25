@@ -861,10 +861,48 @@
 
     // ── Mystery Dice — LLM-generated surprise question ──────────
 
+    // Pip layouts for dice faces 1–6 (positions within a 28×28 die, origin at die top-left)
+    const PIP_LAYOUTS = {
+        1: [[14, 14]],
+        2: [[8, 8], [20, 20]],
+        3: [[8, 8], [14, 14], [20, 20]],
+        4: [[8, 8], [20, 8], [8, 20], [20, 20]],
+        5: [[8, 8], [20, 8], [14, 14], [8, 20], [20, 20]],
+        6: [[8, 8], [20, 8], [8, 14], [20, 14], [8, 20], [20, 20]],
+    };
+
+    function randomizeDicePips() {
+        const svg = document.querySelector('#mystery-btn svg');
+        if (!svg) return;
+
+        const leftVal = Math.floor(Math.random() * 6) + 1;
+        const rightVal = Math.floor(Math.random() * 6) + 1;
+
+        // Left die group (first <g>): origin offset x=8, y=24
+        const groups = svg.querySelectorAll('g');
+        if (groups.length < 2) return;
+
+        for (const [gi, cfg] of [[0, { val: leftVal, ox: 8, oy: 24 }],
+                                   [1, { val: rightVal, ox: 28, oy: 26 }]]) {
+            const g = groups[gi];
+            // Remove existing pip circles
+            g.querySelectorAll('circle').forEach(c => c.remove());
+            // Add new pips
+            for (const [px, py] of PIP_LAYOUTS[cfg.val]) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', cfg.ox + px);
+                circle.setAttribute('cy', cfg.oy + py);
+                circle.setAttribute('r', '2.8');
+                circle.setAttribute('fill', 'currentColor');
+                g.appendChild(circle);
+            }
+        }
+    }
+
     window.generateMysteryQuestion = async function () {
         const btn = document.getElementById('mystery-btn');
         const input = document.getElementById('message-input');
-        if (!btn || !input) return;
+        if (!btn || !input || btn.disabled) return;
 
         const agentKey = activeAgent;
         const agent = config.agents[agentKey];
@@ -878,7 +916,10 @@
             targetAgent = config.agents[targetKey];
         }
 
-        // Animate the dice
+        // Randomize pips and animate the dice
+        randomizeDicePips();
+        btn.classList.remove('rolling');
+        void btn.offsetWidth; // force reflow so animation restarts
         btn.classList.add('rolling');
         btn.disabled = true;
 
@@ -903,15 +944,29 @@
             let question = '';
 
             if (contentType.includes('text/event-stream')) {
-                // Parse SSE stream — collect content events
-                const text = await res.text();
-                for (const line of text.split('\n')) {
-                    if (!line.startsWith('data: ')) continue;
-                    try {
-                        const evt = JSON.parse(line.slice(6));
-                        if (evt.type === 'content' && evt.data) question += evt.data;
-                        if (evt.type === 'done' && evt.data) question = evt.data;
-                    } catch (_) { /* skip non-JSON lines */ }
+                // Parse SSE stream using streaming reader (same pattern as agent-client)
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    const events = buffer.split('\n\n');
+                    buffer = events.pop();
+
+                    for (const event of events) {
+                        const dataLine = event.trim();
+                        if (!dataLine.startsWith('data: ')) continue;
+                        try {
+                            const payload = JSON.parse(dataLine.slice(6));
+                            if (payload.content) question += payload.content;
+                            else if (payload.type === 'content' && payload.data) question += payload.data;
+                            else if (payload.type === 'done' && payload.data) question = payload.data;
+                        } catch (_) { /* skip non-JSON */ }
+                    }
                 }
             } else {
                 const data = await res.json();
