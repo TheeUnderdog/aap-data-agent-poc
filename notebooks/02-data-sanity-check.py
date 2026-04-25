@@ -10,6 +10,7 @@
 # - **Block 1:** Data Census — row counts, date ranges, FK integrity, null rates
 # - **Block 2:** Distribution Sanity — tier splits, channel mix, per-agent checks
 # - **Block 3:** Business Logic — tier-correlated metrics, seasonality, churn, lifecycle
+# - **Block 4:** LLM Diagnostic Report — structured fix instructions for Fabric Copilot
 #
 # Each check gets PASS / WARN / FAIL. Final scorecard tells you if the data is demo-ready.
 
@@ -651,3 +652,214 @@ if warns:
 
 if not fails and not warns:
     print("\n🎉 All checks passed! Data looks demo-ready.")
+
+# %% [markdown]
+# ## Block 4: LLM Diagnostic Report
+#
+# For each FAIL or WARN result, emits a structured diagnostic block that the
+# Fabric portal's embedded Copilot can use to fix `01-create-sample-data.py`
+# in-place.  The mapping between check names and generator code locations is
+# maintained in `DIAGNOSTIC_MAP`.
+
+# %%
+# ── Block 4: LLM Diagnostic Report ─────────────────────────────────────────────
+
+GENERATOR_FILE = "notebooks/01-create-sample-data.py"
+
+DIAGNOSTIC_MAP = {
+    "Row counts": {
+        "section": "Table-specific generation loops (varies by table)",
+        "lines": "varies",
+        "root_cause": "The NUM_* constant for the affected table is set to the wrong value.",
+        "fix": "Adjust the NUM_* constant (e.g., NUM_MEMBERS, NUM_TRANSACTIONS) for the table that has the wrong row count.",
+    },
+    "Date range": {
+        "section": "DATE_START / DATE_END constants — lines ~49-50",
+        "lines": "~49-50",
+        "root_cause": "DATE_START and/or DATE_END constants don't span the expected date range.",
+        "fix": "Adjust DATE_START and DATE_END to cover the required range (e.g., DATE_START = date(2023, 1, 1)).",
+    },
+    "FK integrity": {
+        "section": "Generation order dependencies (varies by table)",
+        "lines": "varies",
+        "root_cause": "Child records reference IDs that don't exist in the parent table. Generation order or ID list is wrong.",
+        "fix": "Ensure child generation loops draw from the parent table's actual ID list (e.g., member_ids, store_ids).",
+    },
+    "Null rates": {
+        "section": "Field generation in data-append logic (varies by table)",
+        "lines": "varies",
+        "root_cause": "A field is sometimes set to None when it shouldn't be, or vice versa.",
+        "fix": "Check conditional None assignments in the affected field's generation code and adjust the probability or condition.",
+    },
+    "Tier split": {
+        "section": "pick_tier() function — lines ~292-297",
+        "lines": "~292-297",
+        "root_cause": "The probability thresholds in pick_tier() produce the wrong tier distribution.",
+        "fix": "Adjust the probability thresholds in pick_tier(). Current thresholds: 0.60 (Bronze), 0.85 (Silver), 0.95 (Gold), else Platinum. Change these to match the desired tier split.",
+    },
+    "Channel mix": {
+        "section": "CHANNELS / CHANNEL_WEIGHTS — lines ~378-379",
+        "lines": "~378-379",
+        "root_cause": "The CHANNEL_WEIGHTS ratios produce the wrong channel distribution.",
+        "fix": "Adjust CHANNEL_WEIGHTS list. Currently [0.70, 0.20, 0.10] for in-store/online/phone. Change to desired ratios.",
+    },
+    "Return rate": {
+        "section": "Transaction type selection — line ~413",
+        "lines": "~413",
+        "root_cause": "Flat 8% return rate applied uniformly via `random.random() < 0.92`.",
+        "fix": "Adjust the 0.92 threshold to change the overall return rate. Consider varying by category or store for more realism.",
+    },
+    "Coupon status": {
+        "section": "Coupon generation — Section 7 (line ~530+)",
+        "lines": "~530+",
+        "root_cause": "Coupon status distribution (active/redeemed/expired) is off from expected proportions.",
+        "fix": "Adjust the status assignment probabilities in the coupon generation section.",
+    },
+    "Category concentration": {
+        "section": "SKU category selection — line ~221",
+        "lines": "~221",
+        "root_cause": "`random.choice(cat_list)` gives uniform category distribution instead of realistic concentration.",
+        "fix": "Replace `random.choice(cat_list)` with `random.choices(cat_list, weights=[...])` using realistic category weights.",
+    },
+    "Category return variance": {
+        "section": "Transaction item return flag — lines ~455-462",
+        "lines": "~455-462",
+        "root_cause": "Returns inherit from parent transaction uniformly — no per-category variance in return rates.",
+        "fix": "Add a category-specific return rate multiplier dict and apply it when setting the is_return flag on transaction items.",
+    },
+    "Regional variance": {
+        "section": "Store generation + transaction-store assignment — lines ~136-145, ~411",
+        "lines": "~136-145, ~411",
+        "root_cause": "Stores assigned uniformly to regions; transactions pick a random store with no regional weighting.",
+        "fix": "Weight store selection by region population or add region-based transaction volume multipliers.",
+    },
+    "Store return outliers": {
+        "section": "Return rate is flat per store — line ~413",
+        "lines": "~413",
+        "root_cause": "Every store has the same ~8% return rate. No per-store variance exists.",
+        "fix": "Add per-store return rate variance (e.g., assign each store a base_return_rate = 0.08 ± random(0, 0.03)).",
+    },
+    "Campaign redemption variance": {
+        "section": "Coupon redemption logic — Section 7",
+        "lines": "Section 7",
+        "root_cause": "Campaign redemption rates are not differentiated enough across campaigns.",
+        "fix": "Assign per-campaign redemption rate multipliers in the coupon_rules generation or coupon redemption logic.",
+    },
+    "Discount type comparison": {
+        "section": "Coupon rule generation — Section 7",
+        "lines": "Section 7",
+        "root_cause": "Discount types (percentage, fixed, BOGO) may not vary in appeal / redemption rate.",
+        "fix": "Assign different base redemption rates per discount_type (e.g., BOGO higher than percentage).",
+    },
+    "CSR department activity": {
+        "section": "CSR + CSR activity generation — Sections 8-9",
+        "lines": "Sections 8-9",
+        "root_cause": "CSR departments don't have enough differentiation in activity type distribution.",
+        "fix": "Weight activity_type distribution by department (e.g., 'Returns' department has more return-related activities).",
+    },
+    "Tier spend progression": {
+        "section": "TIER_VALUE_RANGE dict — lines ~389-394",
+        "lines": "~389-394",
+        "root_cause": "Tier value ranges overlap too much or are not progressive enough.",
+        "fix": "Widen gaps between tier value ranges so higher tiers have clearly higher spend (e.g., Bronze: 15-60, Platinum: 100-500).",
+    },
+    "Tier frequency ratio": {
+        "section": "TIER_TXN_WEIGHT dict — line ~383",
+        "lines": "~383",
+        "root_cause": "Tier transaction weight multipliers are not differentiated enough.",
+        "fix": "Increase the weight spread. Currently Bronze:1, Silver:1.5, Gold:2.5, Platinum:4 — widen to e.g. Bronze:1, Platinum:6.",
+    },
+    "Tier opt-in progression": {
+        "section": "TIER_EMAIL_OPTIN / TIER_SMS_OPTIN — lines ~308-309",
+        "lines": "~308-309",
+        "root_cause": "Opt-in probability differences are too small between tiers.",
+        "fix": "Widen the gap between tier opt-in rates (e.g., Bronze email 0.50, Platinum email 0.95).",
+    },
+    "Tier coupon redemption": {
+        "section": "Coupon redemption by tier — Section 7",
+        "lines": "Section 7",
+        "root_cause": "Tier-based coupon redemption rates are not differentiated enough.",
+        "fix": "Ensure per-tier redemption rate multipliers are applied (e.g., Platinum 2x, Bronze 0.7x).",
+    },
+    "Seasonality (CoV)": {
+        "section": "MONTH_WEIGHTS dict — lines ~372-375",
+        "lines": "~372-375",
+        "root_cause": "Monthly weight values are not extreme enough to produce visible seasonality.",
+        "fix": "Increase weight spread (e.g., Jan: 0.4, Dec: 2.0 instead of current 0.6/1.6).",
+    },
+    "Churn candidates exist": {
+        "section": "Member status assignment — lines ~320-321",
+        "lines": "~320-321",
+        "root_cause": "member_status is assigned randomly at creation and NEVER changes over time. No temporal churn is modeled.",
+        "fix": "Add a post-generation step: for members whose last transaction was 180+ days ago, flip some to 'inactive'. Or derive status from recency of last transaction during generation.",
+    },
+    "Active member recency": {
+        "section": "Member status assignment — lines ~320-321",
+        "lines": "~320-321",
+        "root_cause": "All members labeled 'active' at ~88% rate regardless of actual transaction activity.",
+        "fix": "Same fix as churn: derive member_status from transaction recency instead of random assignment at creation time.",
+    },
+    "Enrollment timing by tier": {
+        "section": "TIER_ENROLL_RANGES dict — lines ~300-305",
+        "lines": "~300-305",
+        "root_cause": "Enrollment date ranges may overlap too much between tiers.",
+        "fix": "Narrow the ranges or increase separation between tier enrollment windows so Platinum members enrolled clearly earlier.",
+    },
+}
+
+
+# ── Emit structured diagnostics for each FAIL / WARN ───────────────────────────
+
+issues = [(b, n, s, d) for b, n, s, d in results if s in ("FAIL", "WARN")]
+
+if issues:
+    print()
+    print("═" * 65)
+    print("  🔧 BLOCK 4 — LLM DIAGNOSTIC REPORT")
+    print("  Target: " + GENERATOR_FILE)
+    print("═" * 65)
+
+    sections_affected = set()
+
+    for block, name, status, detail in issues:
+        diag = DIAGNOSTIC_MAP.get(name)
+        section_label = diag["section"] if diag else "Unknown — manual investigation needed"
+        root_cause    = diag["root_cause"] if diag else "No automated root-cause mapping for this check."
+        fix_pattern   = diag["fix"] if diag else "Inspect the generator code manually for this check."
+
+        if diag:
+            sections_affected.add(section_label)
+
+        icon = "❌" if status == "FAIL" else "⚠️"
+        print()
+        print("═" * 65)
+        print(f"🔧 FIX NEEDED: {name} — {icon} {status}")
+        print("─" * 65)
+        print(f"📊 Result: {detail}")
+        print(f"📁 Generator: {GENERATOR_FILE}")
+        print(f"📍 Section: {section_label}")
+        print(f"🔍 Root Cause: {root_cause}")
+        print(f"💡 Suggested Fix: {fix_pattern}")
+        print("═" * 65)
+
+    # ── Repair summary ──────────────────────────────────────────────────────────
+    print()
+    print("─" * 65)
+    print("📋 REPAIR SUMMARY FOR LLM:")
+    print(f"   File to modify: {GENERATOR_FILE}")
+    print(f"   Total fixes needed: {len(issues)}")
+    print(f"   Sections affected: {', '.join(sorted(sections_affected)) if sections_affected else 'Unknown'}")
+    print()
+    print("   To fix: Open 01-create-sample-data.py in the Fabric notebook editor,")
+    print("   use Copilot to apply each fix above, then re-run both notebooks.")
+    print("─" * 65)
+
+else:
+    print()
+    print("═" * 65)
+    print("  ✅ BLOCK 4 — LLM DIAGNOSTIC REPORT")
+    print("═" * 65)
+    print("  No failures or warnings detected.")
+    print("  The generated data passes all sanity checks — clean bill of health.")
+    print("  No changes needed in " + GENERATOR_FILE + ".")
+    print("═" * 65)
