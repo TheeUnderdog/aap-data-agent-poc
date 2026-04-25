@@ -10,6 +10,15 @@
 
 ## Learnings
 
+### Monochrome Metro Icon Redesign + Bebas Neue Font (2025-07-25)
+- **Task:** Redesigned all 6 agent tab icons to flat monochrome metro style; switched wordmark font to Bebas Neue
+- **Icon style rules:** Single fill color `#1E1E1E` only. No secondary colors, no gradients, no strokes with different colors. Pure silhouettes recognizable at 26×26px. viewBox="0 0 48 48" for all.
+- **Icon design approach:** Use `fill-rule="evenodd"` for cutout/negative-space details within a single path (e.g., partspro document with text lines). Keeps SVG monochrome while allowing visual detail.
+- **Icon mapping:** crew-chief=steering wheel, pit-crew=wrench, gearup=star, ignition=megaphone, partspro=document, diehard=storefront
+- **Font:** Bebas Neue from Google Fonts — condensed geometric display font, closest to AAP's custom industrial typeface. Only has weight 400. Sized 26px desktop, 20px tablet, 18px small mobile.
+- **Tab accent colors:** No CSS changes needed — `--active-accent` variable drives tab name color and active border. Monochrome icons are color-agnostic.
+- **Files modified:** All 6 SVGs in `web/img/`, `web/index.html` (font import), `web/css/app.css` (wordmark styles + responsive sizes)
+
 ### Responsive Design Implementation (2026-07)
 - **Breakpoints:** Desktop (≥1024px baseline), Tablet (768–1023px), Mobile (<768px), Small mobile (<375px)
 - **Approach:** Desktop-first with cascading `max-width` media queries — preserves existing desktop layout as baseline
@@ -25,6 +34,14 @@
   - Login button: full-width on mobile for easy thumb tap
 - **Files modified:** `web/css/app.css` (responsive media queries added, base layout dvh)
 - **No JS changes needed** — all responsive behavior handled via CSS media queries
+
+### Favicon Replacement (2025-07)
+- **Task:** Replaced incorrect favicon with proper AAP racing/checkered flag icon
+- **Design:** Dark circle (#1E1E1E) background, white waving checkered flag with 4-row checkerboard pattern (clip-path), white flagpole, 3 speed/motion streaks below flag with decreasing opacity
+- **HTML fix:** `index.html` line 10 was pointing to `img/aap-logo.svg` — updated to `img/favicon.svg`
+- **Files modified:** `web/img/favicon.svg` (rewritten), `web/index.html` (favicon link)
+- **SVG technique:** Uses `clipPath` to mask checkerboard rectangles into a waving flag shape defined by cubic Bézier curves. Speed streaks use opacity fade (0.9 → 0.7 → 0.5) for depth
+- **Brand note:** AAP brand identity = racing/motorsports. Checkered flag + speed streaks = core icon motif
 
 ### Azure Static Web Apps Backend Ready (2026-04-25)
 - **Basher status:** Full SWA deployment stack completed — ready for Linus integration

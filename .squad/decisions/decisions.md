@@ -609,3 +609,133 @@ The `Copilot/linguisticMetadata.json` path is inferred from the Fabric definitio
 3. Verify in Fabric portal → Prep data for AI → check that synonyms and instructions appear
 4. Test with natural language: "show me all agents" should resolve to `csr` table
 5. If linguistic metadata file isn't consumed, consider manual entry via Fabric portal UI as fallback
+
+---
+
+## Monochrome Metro Icon Redesign + Bebas Neue Wordmark Font (2026-04-25)
+
+**Author:** Linus (Frontend Dev)  
+**Date:** 2026-04-25  
+**Status:** Implemented  
+
+All 6 agent tab icons redesigned to match AAP mobile app's flat, single-color silhouette aesthetic. ADVANCE wordmark switched to Bebas Neue display font.
+
+### Icons — Flat Monochrome Metro Style
+
+| Agent | Icon | Style |
+|-------|------|-------|
+| crew-chief | Steering wheel (circle + 3 spokes) | Stroke + fill, clean geometry |
+| pit-crew | Wrench silhouette | Single filled path |
+| gearup | Five-point star | Filled polygon, loyalty/rewards |
+| ignition | Megaphone/bullhorn | Filled path, marketing |
+| partspro | Document with lines (product catalog) | Filled path, evenodd cutouts |
+| diehard | Storefront with awning + door | Filled paths, store operations |
+
+**All icons use ill="#1E1E1E" only.** No gradients, no secondary colors. Strokes also use #1E1E1E.
+
+### Font — "ADVANCE" Wordmark
+
+- Switched .wordmark-primary from Open Sans 700 to **Bebas Neue** (Google Fonts)
+- Bebas Neue: condensed, geometric display font — closest match to AAP's custom condensed industrial typeface
+- Font-weight: 400 (Bebas Neue single weight only)
+- Font-size: 26px desktop (was 22px; Bebas Neue narrower/taller)
+- Responsive: 20px tablet, 18px small mobile
+- All other text remains Open Sans
+
+### Tab Accent Colors
+
+No changes — tab labels and active borders still use --active-accent CSS variable. Monochrome icons work well alongside colored tab names.
+
+### Files Modified
+
+- web/img/crew-chief.svg — new steering wheel
+- web/img/pit-crew.svg — new wrench
+- web/img/gearup.svg — new star
+- web/img/ignition.svg — new megaphone
+- web/img/partspro.svg — new document/catalog
+- web/img/diehard.svg — new storefront
+- web/index.html — added Bebas Neue to Google Fonts import
+- web/css/app.css — updated .wordmark-primary font-family/size, responsive sizes
+
+---
+
+## Reasoning Sidebar Architecture (2026-01-24)
+
+**Author:** Linus (Frontend Dev)  
+**Status:** Implemented  
+
+Add collapsible **Reasoning Sidebar** (right side) to show agent decision-making process in real-time for transparency and debugging visibility. Marketing team users (non-technical) need to see what the agent is doing.
+
+### Design
+
+- Fixed right sidebar (~360px desktop, full-width mobile)
+- Toggle button in top-bar-right (info icon)
+- Color-coded steps: routing (blue), API calls (amber), responses (green), errors (red)
+- Timestamps + duration tracking for each step
+- Auto-scroll to bottom as steps arrive
+- Fade-in animations for visual polish
+
+### Data Model
+
+```js
+{
+    type: 'routing' | 'agent-call' | 'agent-response' | 'thinking' | 'error',
+    agent: 'pit-crew',
+    message: 'Analyzing query keywords...',
+    timestamp: Date.now(),
+    duration: null  // filled when step completes
+}
+```
+
+### Architecture
+
+- Global easoningSteps[] array in pp.js
+- Exposed window.addReasoningStep() and window.completeLastReasoningStep() for cross-file use
+- Cleared on each new message send
+- xecutive.js emits routing/synthesis steps
+- gent-client.js can emit API call timing (future: SSE step events from backend)
+
+### Rationale
+
+1. **Transparency builds trust** — Marketing users feel confident when they see the agent "working"
+2. **Debugging visibility** — Dave can see what's happening when something goes wrong
+3. **Extensible** — As backend becomes richer (SQL queries, data stats), we can pipe that through
+4. **Non-intrusive** — Closed by default, users opt in when curious
+5. **Vanilla JS** — No framework dependencies, keeps bundle small
+
+### Files Changed
+
+- web/index.html — reasoning sidebar HTML
+- web/css/app.css — reasoning panel styles
+- web/js/app.js — reasoning state + rendering
+- web/js/executive.js — Crew Chief routing hooks
+
+---
+
+## Responsive Design Breakpoints & Approach (2026-07)
+
+**Author:** Linus (Frontend Dev)  
+**Status:** Implemented  
+
+Implement responsive layout using CSS-only media queries with four breakpoints for tablet and mobile support.
+
+### Breakpoints
+
+- **Desktop** (≥1024px) — existing layout, no changes
+- **Tablet** (768–1023px) — tab descriptions hidden, chat full-width, input full-width
+- **Mobile** (<768px) — single-column, sticky input, vertical sample questions, scroll-snap tabs, 44px touch targets
+- **Small mobile** (<375px) — further size reductions for narrow screens
+
+### Approach
+
+- **Desktop-first** — existing layout is baseline; layer responsive overrides on top
+- **CSS-only** — no JavaScript needed for layout changes; media queries + flexbox handle all reflow
+- **100dvh** used alongside 100vh for mobile browser address bar handling (Safari, Chrome mobile)
+- **ont-size: 16px** on mobile input prevents iOS auto-zoom behavior
+- **nv(safe-area-inset-bottom)** on input bar handles iPhone notch/home indicator
+
+### Impact
+
+- web/css/app.css — sole file modified
+- No changes to HTML structure or JavaScript
+- Marketing team users on tablets/phones can now use the chat UI comfortably
