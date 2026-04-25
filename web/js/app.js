@@ -10,7 +10,7 @@
     let chatHistories = {};   // agentKey → [{role, content, timestamp}]
     let unreadAgents = {};    // agentKey → boolean
     let isWaiting = false;
-    let reasoningSteps = [];  // Array of reasoning steps for current query
+    let reasoningGroups = []; // Array of { question, agentKey, steps[], tokens, collapsed }
     let reasoningPanelOpen = false;
     let tokenUsage = { prompt: 0, completion: 0, total: 0 }; // Session token accumulator
 
@@ -354,9 +354,18 @@
 
         showTypingIndicator(agent);
 
-        // Clear reasoning steps for new query
-        reasoningSteps = [];
-        renderReasoningSteps();
+        // Start a new reasoning group for this question — collapse previous groups
+        for (const g of reasoningGroups) g.collapsed = true;
+        const agentLabel = agentKey === 'crew-chief' ? 'Crew Chief' : agent.name;
+        reasoningGroups.push({
+            question: text,
+            agentKey: agentKey,
+            agentLabel: agentLabel,
+            steps: [],
+            tokens: { prompt: 0, completion: 0, total: 0 },
+            collapsed: false
+        });
+        renderReasoningPanel();
 
         // Add initial reasoning step — no fake narration, just the facts
         addReasoningStep('thinking', agentKey,
@@ -565,25 +574,31 @@
 
     // ── Reasoning Panel ─────────────────────────────────────────
 
+    function currentGroup() {
+        return reasoningGroups.length > 0 ? reasoningGroups[reasoningGroups.length - 1] : null;
+    }
+
     function addReasoningStep(type, agent, message) {
+        const group = currentGroup();
+        if (!group) return;
+
         const now = Date.now();
         // Auto-complete previous step so every bubble gets a duration
-        if (reasoningSteps.length > 0) {
-            const prev = reasoningSteps[reasoningSteps.length - 1];
+        if (group.steps.length > 0) {
+            const prev = group.steps[group.steps.length - 1];
             if (prev.duration === null) {
                 prev.duration = now - prev.timestamp;
             }
         }
-        const step = {
+        group.steps.push({
             type: type,
             agent: agent,
             message: message,
             timestamp: now,
             duration: null
-        };
-        reasoningSteps.push(step);
-        renderReasoningSteps();
-        
+        });
+        renderReasoningPanel();
+
         // Auto-scroll reasoning panel to bottom
         const panel = document.getElementById('reasoning-steps');
         if (panel) {
@@ -594,53 +609,104 @@
     }
 
     function completeLastReasoningStep() {
-        if (reasoningSteps.length > 0) {
-            const lastStep = reasoningSteps[reasoningSteps.length - 1];
+        const group = currentGroup();
+        if (group && group.steps.length > 0) {
+            const lastStep = group.steps[group.steps.length - 1];
             lastStep.duration = Date.now() - lastStep.timestamp;
-            renderReasoningSteps();
+            renderReasoningPanel();
         }
     }
 
-    function renderReasoningSteps() {
+    function renderReasoningPanel() {
         const container = document.getElementById('reasoning-steps');
         if (!container) return;
 
-        if (reasoningSteps.length === 0) {
+        if (reasoningGroups.length === 0) {
             container.innerHTML = '<div class="reasoning-empty">Send a message to see agent reasoning</div>';
             return;
         }
 
         container.innerHTML = '';
-        for (let i = 0; i < reasoningSteps.length; i++) {
-            const step = reasoningSteps[i];
+        for (let gi = 0; gi < reasoningGroups.length; gi++) {
+            const group = reasoningGroups[gi];
 
-            // Arrow connector between steps
-            if (i > 0) {
-                const arrow = document.createElement('div');
-                arrow.className = 'reasoning-arrow';
-                arrow.innerHTML = '↓';
-                container.appendChild(arrow);
-            }
-
-            const div = document.createElement('div');
-            div.className = `reasoning-bubble ${step.type}`;
-
-            let durationHtml = '';
-            if (step.duration !== null) {
-                const ms = step.duration;
-                const str = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
-                durationHtml = `<span class="reasoning-bubble-duration">⏱ ${str}</span>`;
-            }
-
-            div.innerHTML = `
-                <div class="reasoning-bubble-text">${escapeHtml(step.message)}${durationHtml}</div>
+            // Question group header
+            const header = document.createElement('div');
+            header.className = 'reasoning-group-header' + (group.collapsed ? ' collapsed' : '');
+            header.innerHTML = `
+                <span class="reasoning-group-chevron">${group.collapsed ? '▸' : '▾'}</span>
+                <span class="reasoning-group-agent">${escapeHtml(group.agentLabel)}</span>
+                <span class="reasoning-group-question">${escapeHtml(truncate(group.question, 60))}</span>
+                ${group.tokens.total > 0 ? `<span class="reasoning-group-tokens">🪙 ${group.tokens.total.toLocaleString()}</span>` : ''}
             `;
+            header.addEventListener('click', () => {
+                group.collapsed = !group.collapsed;
+                renderReasoningPanel();
+            });
+            container.appendChild(header);
 
-            container.appendChild(div);
+            // Steps (hidden when collapsed)
+            if (!group.collapsed) {
+                const body = document.createElement('div');
+                body.className = 'reasoning-group-body';
+
+                for (let i = 0; i < group.steps.length; i++) {
+                    const step = group.steps[i];
+
+                    if (i > 0) {
+                        const arrow = document.createElement('div');
+                        arrow.className = 'reasoning-arrow';
+                        arrow.innerHTML = '↓';
+                        body.appendChild(arrow);
+                    }
+
+                    const div = document.createElement('div');
+                    div.className = `reasoning-bubble ${step.type}`;
+
+                    let durationHtml = '';
+                    if (step.duration !== null) {
+                        const ms = step.duration;
+                        const str = ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`;
+                        durationHtml = `<span class="reasoning-bubble-duration">⏱ ${str}</span>`;
+                    }
+
+                    div.innerHTML = `
+                        <div class="reasoning-bubble-text">${escapeHtml(step.message)}${durationHtml}</div>
+                    `;
+                    body.appendChild(div);
+                }
+
+                // Per-question token counter
+                if (group.tokens.total > 0) {
+                    const tc = document.createElement('div');
+                    tc.className = 'token-counter';
+                    tc.innerHTML = `
+                        <div class="token-counter-header">
+                            <span class="token-counter-icon">🪙</span>
+                            <span class="token-counter-title">Tokens</span>
+                            <span class="token-value token-total">${group.tokens.total.toLocaleString()}</span>
+                        </div>
+                        <div class="token-counter-breakdown">
+                            <div class="token-row"><span class="token-label">Prompt</span><span class="token-value">${group.tokens.prompt.toLocaleString()}</span></div>
+                            <div class="token-row"><span class="token-label">Completion</span><span class="token-value">${group.tokens.completion.toLocaleString()}</span></div>
+                        </div>
+                    `;
+                    body.appendChild(tc);
+                }
+
+                container.appendChild(body);
+            }
         }
 
-        // Re-render token counter at the bottom
-        renderTokenCounter();
+        // Session total token counter (if more than one group has tokens)
+        const groupsWithTokens = reasoningGroups.filter(g => g.tokens.total > 0);
+        if (groupsWithTokens.length > 1 || tokenUsage.total > 0) {
+            renderSessionTokenCounter(container);
+        }
+    }
+
+    function truncate(str, max) {
+        return str.length > max ? str.slice(0, max - 1) + '…' : str;
     }
 
     window.toggleReasoning = function () {
@@ -661,31 +727,36 @@
     window.addReasoningStep = addReasoningStep;
     window.completeLastReasoningStep = completeLastReasoningStep;
 
-    function addTokenUsage(usage) {
+    function addTokenUsage(usage, agentKey) {
         if (!usage) return;
-        tokenUsage.prompt += (usage.prompt_tokens || 0);
-        tokenUsage.completion += (usage.completion_tokens || 0);
-        tokenUsage.total += (usage.total_tokens || 0);
-        renderTokenCounter();
+        const p = usage.prompt_tokens || 0;
+        const c = usage.completion_tokens || 0;
+        const t = usage.total_tokens || 0;
+
+        // Session totals
+        tokenUsage.prompt += p;
+        tokenUsage.completion += c;
+        tokenUsage.total += t;
+
+        // Per-question group
+        const group = currentGroup();
+        if (group) {
+            group.tokens.prompt += p;
+            group.tokens.completion += c;
+            group.tokens.total += t;
+        }
+        renderReasoningPanel();
     }
 
-    function renderTokenCounter() {
-        const container = document.getElementById('reasoning-steps');
-        if (!container) return;
-        let counter = container.querySelector('.token-counter');
-        if (tokenUsage.total === 0) {
-            if (counter) counter.remove();
-            return;
-        }
-        if (!counter) {
-            counter = document.createElement('div');
-            counter.className = 'token-counter';
-            container.appendChild(counter);
-        }
+    function renderSessionTokenCounter(container) {
+        if (tokenUsage.total === 0) return;
+
+        const counter = document.createElement('div');
+        counter.className = 'token-counter session-token-counter';
         counter.innerHTML = `
             <div class="token-counter-header">
                 <span class="token-counter-icon">🪙</span>
-                <span class="token-counter-title">Tokens</span>
+                <span class="token-counter-title">Session Total</span>
                 <span class="token-value token-total">${tokenUsage.total.toLocaleString()}</span>
             </div>
             <div class="token-counter-breakdown">
@@ -693,10 +764,7 @@
                 <div class="token-row"><span class="token-label">Completion</span><span class="token-value">${tokenUsage.completion.toLocaleString()}</span></div>
             </div>
         `;
-        // Ensure counter is always at the bottom
-        if (counter !== container.lastElementChild) {
-            container.appendChild(counter);
-        }
+        container.appendChild(counter);
     }
 
     window.addTokenUsage = addTokenUsage;
@@ -780,6 +848,12 @@
     window.handleNewChat = function () {
         const agentKey = activeAgent;
         chatHistories[agentKey] = [];
+
+        // Reset reasoning panel
+        reasoningGroups = [];
+        tokenUsage = { prompt: 0, completion: 0, total: 0 };
+        renderReasoningPanel();
+
         renderChat(agentKey);
         document.getElementById('message-input').focus();
     };

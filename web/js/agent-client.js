@@ -191,7 +191,7 @@
                         reply = payload.content;
                     }
                     if (payload.usage && window.addTokenUsage) {
-                        window.addTokenUsage(payload.usage);
+                        window.addTokenUsage(payload.usage, agentKey);
                     }
 
                     // Error
