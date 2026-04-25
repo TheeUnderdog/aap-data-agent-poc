@@ -108,6 +108,11 @@ def fabric_post(token: str, path: str, body: dict = None) -> requests.Response:
     return r
 
 
+def fabric_delete(token: str, path: str) -> requests.Response:
+    r = requests.delete(f"{FABRIC_API}{path}", headers=fabric_headers(token))
+    return r
+
+
 def fabric_patch(token: str, path: str, body: dict) -> requests.Response:
     r = requests.patch(
         f"{FABRIC_API}{path}",
@@ -400,6 +405,22 @@ def poll_job(token: str, job_url: str, max_wait: int = 1200) -> bool:
                 reason = data.get("failureReason", {})
                 msg = reason.get("message", "No details") if isinstance(reason, dict) else str(reason)
                 print(f"\n   ❌ Notebook {status.lower()}: {msg}")
+                # Dump full response for debugging
+                import json as _json
+                for key in ("executionData", "error", "errorMessage", "properties"):
+                    if key in data:
+                        print(f"\n   📋 {key}:")
+                        val = data[key]
+                        if isinstance(val, (dict, list)):
+                            print(f"      {_json.dumps(val, indent=2)[:2000]}")
+                        else:
+                            print(f"      {str(val)[:2000]}")
+                # Show any keys we might be missing
+                extra_keys = [k for k in data.keys() if k not in ("id", "status", "startTimeUtc", "endTimeUtc", "failureReason")]
+                if extra_keys:
+                    print(f"\n   🔑 Additional response keys: {extra_keys}")
+                    for ek in extra_keys[:5]:
+                        print(f"      {ek}: {str(data[ek])[:500]}")
                 return False
             else:
                 print(f"   ⏳ {status}... ({elapsed}s)")
@@ -423,6 +444,7 @@ def main():
     parser.add_argument("--auth", choices=["browser", "device-code"], default="browser", help="Auth method")
     parser.add_argument("--dry-run", action="store_true", help="Convert and show payload but don't upload")
     parser.add_argument("--skip-run", action="store_true", help="Upload only, don't execute the notebook")
+    parser.add_argument("--force", action="store_true", help="Delete and recreate notebook (bypasses update cache)")
     args = parser.parse_args()
 
     print("╔══════════════════════════════════════════════════════════╗")
@@ -468,6 +490,17 @@ def main():
 
     # Upload or update notebook
     existing_id = find_existing_notebook(token, workspace_id, NOTEBOOK_DISPLAY_NAME)
+
+    if existing_id and args.force:
+        print(f"   🗑️  --force: Deleting existing notebook {existing_id}...")
+        dr = fabric_delete(token, f"/workspaces/{workspace_id}/notebooks/{existing_id}")
+        if dr.status_code in (200, 202, 204):
+            print("   ✅ Deleted. Waiting 5s for propagation...")
+            time.sleep(5)
+            existing_id = None
+        else:
+            print(f"   ⚠️  Delete returned {dr.status_code}: {dr.text[:300]}")
+            print("   Falling back to update...")
 
     if existing_id:
         ok = update_notebook_definition(token, workspace_id, existing_id, fabric_content)

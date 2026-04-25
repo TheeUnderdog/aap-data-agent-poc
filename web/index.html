@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advance Insights — AAP Data Agent</title>
+    <link rel="stylesheet" href="css/app.css">
+    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <img src="img/aap-logo.svg" alt="Advance Auto Parts" class="login-logo">
+            <h1>Advance Insights</h1>
+            <p>AAP Rewards & Loyalty Data Agent</p>
+            <button id="login-btn" class="btn-primary" onclick="handleLogin()">
+                Sign in with Microsoft
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App (hidden until auth) -->
+    <div id="app" class="app hidden">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <img src="img/aap-logo.svg" alt="AAP" class="top-bar-logo">
+                <span class="top-bar-title">Advance Insights</span>
+            </div>
+            <div class="top-bar-right">
+                <span id="user-name" class="user-name"></span>
+                <button id="logout-btn" class="btn-text" onclick="handleLogout()">Sign out</button>
+            </div>
+        </header>
+
+        <!-- Agent Tab Strip -->
+        <nav class="tab-strip" id="tab-strip">
+            <!-- Tabs injected by app.js -->
+        </nav>
+
+        <!-- Chat Area -->
+        <main class="chat-area" id="chat-area">
+            <!-- Messages injected by app.js -->
+        </main>
+
+        <!-- Input Bar -->
+        <footer class="input-bar">
+            <div class="input-wrapper">
+                <textarea
+                    id="message-input"
+                    class="message-input"
+                    placeholder="Ask a question..."
+                    rows="1"
+                    onkeydown="handleInputKeydown(event)"
+                ></textarea>
+                <button id="send-btn" class="send-btn" onclick="handleSend()" title="Send message">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts (order matters) -->
+    <script src="config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/agent-client.js"></script>
+    <script src="js/executive.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

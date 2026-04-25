@@ -1,0 +1,128 @@
+/**
+ * Advance Insights — The Boss (Executive Orchestrator)
+ * Client-side agent that routes questions to specialist agents,
+ * fans out queries in parallel, and synthesizes a unified response.
+ */
+(function () {
+    'use strict';
+
+    const config = window.APP_CONFIG;
+    const routing = config.executiveRouting;
+
+    /**
+     * Classify a user question into one or more specialist agent keys
+     * based on keyword matching from the routing config.
+     */
+    function classifyQuestion(question) {
+        const lower = question.toLowerCase();
+        const scores = {};
+
+        for (const [agentKey, keywords] of Object.entries(routing)) {
+            let score = 0;
+            for (const kw of keywords) {
+                if (lower.includes(kw)) score++;
+            }
+            if (score > 0) scores[agentKey] = score;
+        }
+
+        // Sort by score descending
+        const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+
+        if (ranked.length === 0) {
+            // Can't classify — fan out to all specialists
+            return Object.keys(routing);
+        }
+
+        // Take top agents (up to 3), but include ties
+        const topScore = ranked[0][1];
+        const threshold = Math.max(1, topScore - 1);
+        const selected = ranked
+            .filter(([, s]) => s >= threshold)
+            .slice(0, 3)
+            .map(([key]) => key);
+
+        return selected;
+    }
+
+    /**
+     * Get a friendly name for attribution in the response
+     */
+    function agentDisplayName(agentKey) {
+        const agent = config.agents[agentKey];
+        return agent ? agent.name : agentKey;
+    }
+
+    /**
+     * Send a question to The Boss. Classifies, fans out, synthesizes.
+     * @param {string} question - The user's question
+     * @returns {Promise<string>} - Synthesized executive response
+     */
+    async function askTheBoss(question) {
+        const client = window.AgentClient;
+        const targets = classifyQuestion(question);
+
+        console.log(`[TheBoss] Routing to: ${targets.map(agentDisplayName).join(', ')}`);
+
+        // Fan out to all target agents in parallel
+        const queries = targets.map(async (agentKey) => {
+            try {
+                const response = await client.sendMessage(agentKey, question);
+                return { agentKey, response, error: null };
+            } catch (err) {
+                console.warn(`[TheBoss] ${agentDisplayName(agentKey)} failed:`, err.message);
+                return { agentKey, response: null, error: err.message };
+            }
+        });
+
+        const results = await Promise.all(queries);
+        const successful = results.filter(r => r.response);
+        const failed = results.filter(r => r.error);
+
+        if (successful.length === 0) {
+            return "I tried reaching my team but couldn't get a response. " +
+                   "Please try again, or switch to a specialist tab for direct access.";
+        }
+
+        return synthesize(question, successful, failed);
+    }
+
+    /**
+     * Synthesize specialist responses into an executive summary
+     */
+    function synthesize(question, successful, failed) {
+        const parts = [];
+
+        // Opening
+        if (successful.length === 1) {
+            const agent = agentDisplayName(successful[0].agentKey);
+            parts.push(`I checked with **${agent}** on this. Here's what they found:\n`);
+        } else {
+            const names = successful.map(r => `**${agentDisplayName(r.agentKey)}**`);
+            parts.push(`I talked to my team — ${names.join(' and ')} — and here's what we found:\n`);
+        }
+
+        // Each agent's contribution
+        for (const result of successful) {
+            const name = agentDisplayName(result.agentKey);
+            if (successful.length > 1) {
+                parts.push(`**${name}** reports:\n${result.response}\n`);
+            } else {
+                parts.push(result.response);
+            }
+        }
+
+        // Note any failures
+        if (failed.length > 0) {
+            const failedNames = failed.map(r => agentDisplayName(r.agentKey)).join(', ');
+            parts.push(`\n_Note: I couldn't reach ${failedNames} this time. You can try asking them directly._`);
+        }
+
+        return parts.join('\n');
+    }
+
+    // Expose globally
+    window.Executive = {
+        askTheBoss,
+        classifyQuestion,
+    };
+})();

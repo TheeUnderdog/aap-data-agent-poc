@@ -95,8 +95,8 @@
     "category": "store_performance"
   },
   {
-    "question": "What coupon actions did CSR agents perform this month?",
-    "sql": "SELECT agent_name, agent_department, activity_type, COUNT(*) AS action_count FROM semantic.v_audit_trail WHERE activity_date >= DATEADD(month, -1, CAST(GETDATE() AS DATE)) GROUP BY agent_name, agent_department, activity_type ORDER BY action_count DESC",
+    "question": "What coupon actions did CSRs perform this month?",
+    "sql": "SELECT csr_name, csr_department, activity_type, COUNT(*) AS action_count FROM semantic.v_audit_trail WHERE activity_date >= DATEADD(month, -1, CAST(GETDATE() AS DATE)) GROUP BY csr_name, csr_department, activity_type ORDER BY action_count DESC",
     "category": "engagement"
   },
   {

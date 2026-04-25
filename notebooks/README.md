@@ -31,16 +31,16 @@
 
 | Table | Rows |
 |---|---|
-| `mirrored.stores` | 500 |
-| `mirrored.sku_reference` | 2,000 |
-| `mirrored.loyalty_members` | 5,000 |
-| `mirrored.transactions` | 50,000 |
-| `mirrored.transaction_items` | ~150,000 |
-| `mirrored.member_points` | 100,000 |
-| `mirrored.coupon_rules` | 50 |
-| `mirrored.coupons` | 20,000 |
-| `mirrored.agents` | 200 |
-| `mirrored.agent_activities` | 10,000 |
+| `stores` | 500 |
+| `sku_reference` | 2,000 |
+| `loyalty_members` | 5,000 |
+| `transactions` | 50,000 |
+| `transaction_items` | ~150,000 |
+| `member_points` | 100,000 |
+| `coupon_rules` | 50 |
+| `coupons` | 20,000 |
+| `csr` | 200 |
+| `csr_activities` | 10,000 |
 
 ### 5. Next Step — Create Semantic Views
 
@@ -54,5 +54,5 @@
 
 - Data generation is deterministic (seed = 42) — re-running produces identical data
 - Date range: 2023-01-01 to 2026-04-01
-- All tables live in the `mirrored` schema to simulate PostgreSQL mirror output
+- All tables live in the default Lakehouse database (Fabric Spark doesn't support custom schemas)
 - Seasonal patterns: spring/summer months have higher transaction volume

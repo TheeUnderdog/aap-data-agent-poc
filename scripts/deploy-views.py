@@ -59,7 +59,9 @@ def split_sql_on_go(sql_text: str) -> list:
     statements = []
     for block in blocks:
         trimmed = block.strip()
-        if not trimmed or re.match(r'^\s*--', trimmed):
+        # Skip blocks that are empty or contain ONLY comments
+        non_comment = re.sub(r'--[^\n]*', '', trimmed).strip()
+        if not non_comment:
             continue
 
         # Extract view name (schema-qualified or plain)

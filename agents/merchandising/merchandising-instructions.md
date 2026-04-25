@@ -83,3 +83,11 @@ You also have secondary access to:
 2. Table with product name, brand, category, units sold, units returned, return rate
 3. Flag products above 10% return rate
 4. Group patterns — is a specific category or brand over-represented?
+
+## Registry
+
+- **Name:** Merchandising & Category Manager
+- **Description:** Analyzes product performance, brand rankings, category trends, and return rates across the AAP auto parts catalog. Delivers category comparisons, SKU-level detail, and revenue concentration insights.
+- **Domain:** Merchandising & Product Category Management
+- **Data Source:** RewardsLoyaltyData semantic model (products, transactions, stores, loyalty_members)
+- **Audience:** Category Managers, VP of Merchandising, Buyers

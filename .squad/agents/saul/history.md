@@ -138,3 +138,33 @@ Scripts that call Fabric REST API need browser auth popups. They must be run dir
 **Files Modified:**
 - `scripts/configure-linguistic-schema.py` — Corrected `TABLE_SYNONYMS`, `COLUMN_SYNONYMS`, `VALUE_SYNONYMS`, and `AI_INSTRUCTIONS` to match actual Lakehouse table names
 
+### Documentation Reconciliation (2026-04-25)
+**Problem:** The `docs/data-schema.md` file was written as a DESIGN SPEC before the notebook was implemented. The notebook made different implementation choices (different table names, column names, types, and table groups). The doc was NEVER updated to match reality. This caused Livingston to build a semantic model from wrong specs, costing hours of debugging.
+
+**Key Mismatches Identified:**
+1. **Table names:** Design spec included `members`, `member_tiers`, `products`, `product_categories`, `points_ledger`, `rewards`, `reward_redemptions`, `campaigns`, `campaign_responses`, and `audit_log` — NONE of which exist in the notebook
+2. **Actual tables:** Notebook creates `loyalty_members`, `sku_reference`, `member_points`, `coupon_rules`, `coupons`, `csr`, `csr_activities` — several NOT in the design spec
+3. **Schema differences:** 
+   - Tier info is denormalized into `loyalty_members.tier` column (no separate `member_tiers` table)
+   - Products simplified to single `sku_reference` table (no `product_categories` hierarchy)
+   - Coupons replace the rewards catalog concept (no `rewards`/`reward_redemptions` tables)
+   - CSR tracking added (`csr` and `csr_activities` tables not in design spec)
+   - Marketing campaigns deferred (no `campaigns`/`campaign_responses` tables)
+
+**Resolution:**
+- **Updated status header:** Changed from "PLACEHOLDER SCHEMA — Awaiting Production Access" to "ACTIVE POC SCHEMA — Mirrored from Sample Data Generator" to clarify this is NOW the actual schema
+- **Rewrote §2 (Schema Overview):** Replaced old 5-table-group design with actual 10 tables from notebook, added table summary with row counts, updated ER diagram to show actual relationships
+- **Replaced §3 (Full DDL):** Removed PostgreSQL DDL, replaced with PySpark schema definitions from notebook (all 10 tables with column names, PySpark types, descriptions, references to notebook line numbers)
+- **Added §3.11 (Schema Gap Analysis):** Documents tables in design spec but NOT implemented, tables implemented but NOT in design spec, and key structural differences. Serves as migration guide for production schema
+- **Updated §4 (Sample Data Description):** Replaced design targets with actual row counts, distributions, and data generation notes from notebook
+- **Updated §5 (Contract Views):** Marked all views as "Not Yet Deployed" with note that semantic model uses DirectLake mode querying tables directly. Updated view definitions to use actual table names. Added note about DirectLake vs SQL view tradeoffs
+- **Replaced §7 (Sample Queries):** Rewrote ALL 20 queries to use actual table names (`loyalty_members`, `transactions`, `sku_reference`, `member_points`, `coupons`, `stores`, etc.) instead of view names or wrong table names. Updated SQL syntax to T-SQL (GETDATE(), DATEADD(), etc.)
+- **Kept §1 (Schema Design Philosophy):** Architecture principles (contract-based design, abstraction via views) remain valid even though views aren't deployed yet
+
+**Critical Lesson:** **Design docs lie. Code doesn't.** The notebook is the source of truth, not the design doc. The design doc should be updated AFTER implementation to document reality, or at minimum flagged as "not yet implemented." This reconciliation should have happened immediately after the notebook was created.
+
+**Files Modified:**
+- `docs/data-schema.md` — Reconciled entire document (sections 2, 3, 4, 5, 7) to match actual Lakehouse schema from `notebooks/01-create-sample-data.py`
+
+**Verification Strategy:** Cross-reference every table name, column name, and type against the notebook's `StructType` schemas and `saveAsTable()` calls before writing any consuming code (semantic model, Data Agent instructions, API queries, etc.)
+

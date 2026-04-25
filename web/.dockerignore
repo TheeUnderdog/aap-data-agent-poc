@@ -1,0 +1,14 @@
+.git
+.gitignore
+.github
+.squad
+.copilot
+agents
+config
+docs
+notebooks
+reports
+scripts
+MANUAL_DEPLOYMENT_STEPS.md
+README.md
+*.md

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Steering wheel icon -->
+  <circle cx="24" cy="24" r="18" fill="none" stroke="#1A1A1A" stroke-width="4"/>
+  <circle cx="24" cy="24" r="5" fill="#1A1A1A"/>
+  <!-- Spokes -->
+  <rect x="22" y="6" width="4" height="13" rx="2" fill="#1A1A1A"/>
+  <rect x="22" y="29" width="4" height="13" rx="2" fill="#1A1A1A"/>
+  <rect x="6" y="22" width="13" height="4" rx="2" fill="#1A1A1A"/>
+  <rect x="29" y="22" width="13" height="4" rx="2" fill="#1A1A1A"/>
+</svg>

@@ -83,3 +83,11 @@ You also have secondary access to:
 1. Table with agent name, department, activity count, activity types handled
 2. Note the team average for context
 3. Show activity type distribution for the top agents
+
+## Registry
+
+- **Name:** Customer Service & Support Analyst
+- **Description:** Analyzes CSR agent activity, member service patterns, and audit trails for the AAP rewards program support operation. Provides activity breakdowns, member lookups, and chronological audit records.
+- **Domain:** Customer Service & Support Operations
+- **Data Source:** RewardsLoyaltyData semantic model (csr_activities, csr, loyalty_members, audit_log)
+- **Audience:** Customer Service Managers, Support Team Leads, Quality Assurance Supervisors

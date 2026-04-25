@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Wrench -->
+  <path d="M10,38 L26,22 C24,18 25,13 29,10 C33,6 39,6 42,9 L35,16 L36,20 L40,21 L46,14 C46,20 42,25 38,27 C34,29 30,28 28,26 L12,42 C11,43 9,43 8,42 L6,40 C5,39 5,37 6,36 Z" fill="#2B6CB0"/>
+  <!-- Headset ear cup -->
+  <rect x="2" y="8" width="7" height="12" rx="3" fill="#2B6CB0"/>
+  <!-- Headband -->
+  <path d="M5,14 C5,6 12,2 18,2" fill="none" stroke="#2B6CB0" stroke-width="3" stroke-linecap="round"/>
+  <!-- Mic boom -->
+  <path d="M3,20 L3,26 L8,28" fill="none" stroke="#2B6CB0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
