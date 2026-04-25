@@ -883,7 +883,9 @@
         btn.disabled = true;
 
         const existing = (agent.sampleQuestions || []).join('; ');
-        const prompt = `You are helping demo an analytics chat app for Advance Auto Parts loyalty/rewards data. Suggest exactly ONE creative, specific analytics question that a business analyst might ask about ${agent.description || targetAgent.description}. The question should be different from these: ${existing}. Reply with ONLY the question text, no numbering, no quotes, no explanation.`;
+        const basePrompt = agent.mysteryPrompt || targetAgent.mysteryPrompt
+            || `Generate ONE creative analytics question about ${agent.description || targetAgent.description}.`;
+        const prompt = `${basePrompt}\n\nDo NOT repeat or rephrase any of these existing questions: ${existing}\n\nReply with ONLY the question text — no numbering, no quotes, no explanation.`;
 
         try {
             const res = await fetch('/api/chat', {

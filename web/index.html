@@ -120,8 +120,22 @@
                     </svg>
                 </button>
                 <button id="mystery-btn" class="mystery-btn" onclick="generateMysteryQuestion()" title="Roll the dice — surprise question">
-                    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
-                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM7.5 18c-.83 0-1.5-.67-1.5-1.5S6.67 15 7.5 15s1.5.67 1.5 1.5S8.33 18 7.5 18zm0-9C6.67 9 6 8.33 6 7.5S6.67 6 7.5 6 9 6.67 9 7.5 8.33 9 7.5 9zm4.5 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5 4.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm0-9c-.83 0-1.5-.67-1.5-1.5S15.67 6 16.5 6s1.5.67 1.5 1.5S17.33 9 16.5 9z"/>
+                    <svg viewBox="0 0 28 28" width="28" height="28">
+                        <!-- Hanging string -->
+                        <path d="M11.5 1.5 L14 6.5 L16.5 1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <!-- Left die (2 pips) -->
+                        <g transform="rotate(-15 9 16)">
+                            <rect x="2" y="9.5" width="14" height="14" rx="2.5" fill="currentColor" stroke="currentColor" stroke-width="0.5" />
+                            <circle cx="6.5" cy="14" r="1.4" fill="var(--bg-surface, #fff)" />
+                            <circle cx="11.5" cy="19" r="1.4" fill="var(--bg-surface, #fff)" />
+                        </g>
+                        <!-- Right die (3 pips) -->
+                        <g transform="rotate(12 19 14)">
+                            <rect x="12" y="7" width="14" height="14" rx="2.5" fill="currentColor" stroke="currentColor" stroke-width="0.5" />
+                            <circle cx="16.5" cy="11" r="1.4" fill="var(--bg-surface, #fff)" />
+                            <circle cx="19" cy="14" r="1.4" fill="var(--bg-surface, #fff)" />
+                            <circle cx="21.5" cy="17" r="1.4" fill="var(--bg-surface, #fff)" />
+                        </g>
                     </svg>
                 </button>
             </div>

@@ -66,7 +66,8 @@ window.APP_CONFIG = {
                 "Show me a cross-department summary of Q4 performance",
                 "Which product categories drive the most reward redemptions?",
                 "Compare campaign engagement rates across our top 10 stores"
-            ]
+            ],
+            mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative cross-functional question a VP might ask that spans at least two of: loyalty tiers, campaign performance, store operations, merchandising, or customer service. Think about comparisons, correlations, or surprising angles."
         },
         "pit-crew": {
             id: "e2cf8db6-2e51-45b6-bb2d-edfeeeb8b38a",
@@ -85,7 +86,8 @@ window.APP_CONFIG = {
                 "Which stores have the most escalated service issues?",
                 "What's the customer satisfaction score trend over 6 months?",
                 "List unresolved tickets older than 7 days"
-            ]
+            ],
+            mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative customer service question a support manager might ask. Think about: CSR agent performance patterns, service escalation trends, complaint correlations with product categories or stores, resolution time outliers, or member tier vs. support experience."
         },
         "gearup": {
             id: "b03579f9-1074-4578-8165-6954a83b31c5",
@@ -104,7 +106,8 @@ window.APP_CONFIG = {
                 "What's our monthly enrollment trend this year?",
                 "How many points were redeemed last quarter?",
                 "Which rewards are most popular among Gold tier members?"
-            ]
+            ],
+            mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative loyalty program question a rewards program manager might ask. Think about: tier migration patterns, churn risk signals, points liability trends, enrollment cohort behavior, engagement drop-offs, or reward redemption anomalies."
         },
         "ignition": {
             id: "f0272a61-7e54-408f-bf70-28495982567b",
@@ -123,7 +126,8 @@ window.APP_CONFIG = {
                 "Compare engagement across our active promotions",
                 "What's the ROI on our top 5 campaigns?",
                 "Which customer segments respond best to email vs. SMS?"
-            ]
+            ],
+            mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative marketing question a campaign manager might ask. Think about: coupon redemption funnels, campaign A/B comparisons, tier-targeted promo lift, seasonal campaign timing, discount type effectiveness (% off vs. fixed $), or dormant member reactivation."
         },
         "partspro": {
             id: "1062ac57-5132-4cf1-afbd-71e1e973fbc8",
@@ -142,7 +146,8 @@ window.APP_CONFIG = {
                 "What products are trending up in sales vs. last quarter?",
                 "List categories with declining sales over 3 months",
                 "What's the average basket size by product category?"
-            ]
+            ],
+            mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative merchandising question a category manager might ask. Think about: product return rate patterns by category, brand concentration risk, SKU-level margin outliers, cross-sell affinity between categories, seasonal product mix shifts, or inventory velocity by region."
         },
         "diehard": {
             id: "e8fc166b-360e-4b0a-922b-05ca8bba3ff4",
@@ -161,7 +166,8 @@ window.APP_CONFIG = {
                 "Compare weekend vs. weekday sales across districts",
                 "What's the average transaction value by store?",
                 "Which locations have the highest return rates?"
-            ]
+            ],
+            mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative store operations question a district manager might ask. Think about: store-level return rate outliers, regional revenue variance, channel mix (online vs. in-store) shifts, weekend vs. weekday patterns, new store ramp-up benchmarks, or underperforming locations relative to their market."
         }
     },
 
