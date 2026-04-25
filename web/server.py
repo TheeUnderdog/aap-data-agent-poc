@@ -196,10 +196,64 @@ def chat_proxy():
                 })
                 return
 
-            # 5. Retrieve response
+            # 5. Retrieve run steps (real reasoning data)
             yield sse_event({"status": "reading", "message": "Reading response…"})
 
+            try:
+                steps = fabric_api("GET", f"threads/{thread_id}/runs/{run_id}/steps")
+                print(f"📋 Raw run steps response: {json.dumps(steps, indent=2)[:2000]}")
+                step_list = steps.get("data", [])
+                if step_list:
+                    reasoning_steps = []
+                    for s in step_list:
+                        step_detail = s.get("step_details", {})
+                        step_type = step_detail.get("type", "unknown")
+                        step_info = {
+                            "id": s.get("id"),
+                            "type": step_type,
+                            "status": s.get("status"),
+                            "created_at": s.get("created_at"),
+                            "completed_at": s.get("completed_at"),
+                        }
+                        # Extract tool call details
+                        if step_type == "tool_calls":
+                            tool_calls = step_detail.get("tool_calls", [])
+                            step_info["tool_calls"] = []
+                            for tc in tool_calls:
+                                tc_info = {
+                                    "id": tc.get("id"),
+                                    "type": tc.get("type"),
+                                }
+                                if tc.get("type") == "code_interpreter":
+                                    ci = tc.get("code_interpreter", {})
+                                    tc_info["input"] = ci.get("input", "")
+                                    outputs = ci.get("outputs", [])
+                                    tc_info["outputs"] = [
+                                        o.get("logs", o.get("text", str(o)))
+                                        for o in outputs
+                                    ]
+                                elif tc.get("type") == "retrieval":
+                                    tc_info["retrieval"] = tc.get("retrieval", {})
+                                elif tc.get("type") == "function":
+                                    fn = tc.get("function", {})
+                                    tc_info["function_name"] = fn.get("name", "")
+                                    tc_info["arguments"] = fn.get("arguments", "")
+                                    tc_info["output"] = fn.get("output", "")
+                                step_info["tool_calls"].append(tc_info)
+                        elif step_type == "message_creation":
+                            mc = step_detail.get("message_creation", {})
+                            step_info["message_id"] = mc.get("message_id")
+                        reasoning_steps.append(step_info)
+                    yield sse_event({"reasoning": reasoning_steps})
+                    print(f"📋 Sent {len(reasoning_steps)} run steps to client")
+            except Exception as e:
+                print(f"⚠️  Could not fetch run steps: {e}")
+                # Non-fatal — continue to deliver the response
+
+            # 6. Retrieve response
+
             msgs = fabric_api("GET", f"threads/{thread_id}/messages")
+            print(f"📨 Raw messages response: {json.dumps(msgs, indent=2)[:2000]}")
 
             reply = ""
             for m in msgs.get("data", []):

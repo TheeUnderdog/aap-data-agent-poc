@@ -71,7 +71,7 @@
             let url, headers, body;
 
             if (USE_PROXY) {
-                // Local proxy handles auth — just send agentId + messages
+                // Local proxy handles auth — returns SSE stream with reasoning + response
                 url = "/api/chat";
                 headers = { "Content-Type": "application/json" };
                 body = JSON.stringify({
@@ -100,6 +100,14 @@
                     this._handleHttpError(res.status, agentKey);
                 }
 
+                const contentType = res.headers.get("content-type") || "";
+
+                // Handle SSE stream from proxy (has reasoning + status + content events)
+                if (contentType.includes("text/event-stream")) {
+                    return await this._handleSSEResponse(res, agentKey);
+                }
+
+                // Handle plain JSON (direct Fabric API or fallback)
                 const data = await res.json();
                 const reply =
                     data.content ??
@@ -120,6 +128,136 @@
                 const msg = `${LOG_PREFIX} Request to "${agentKey}" failed: ${err.message}`;
                 console.error(msg);
                 throw new Error(msg);
+            }
+        }
+
+        /**
+         * Parse an SSE stream from the proxy. Fires reasoning events via
+         * window.addReasoningStep and returns the final response text.
+         */
+        async _handleSSEResponse(res, agentKey) {
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            let reply = "";
+            let lastError = null;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+
+                // Process complete SSE events (each ends with \n\n)
+                const events = buffer.split("\n\n");
+                buffer = events.pop(); // keep incomplete event in buffer
+
+                for (const event of events) {
+                    const dataLine = event.trim();
+                    if (!dataLine.startsWith("data: ")) continue;
+
+                    let payload;
+                    try {
+                        payload = JSON.parse(dataLine.slice(6));
+                    } catch {
+                        continue;
+                    }
+
+                    // Log raw SSE event for debugging
+                    console.log(`${LOG_PREFIX} SSE [${agentKey}]:`, payload);
+
+                    // Status updates → reasoning step
+                    if (payload.status && window.addReasoningStep) {
+                        const statusLabels = {
+                            connecting: "Connecting to agent",
+                            sending: "Sending question",
+                            processing: "Agent processing",
+                            reading: "Reading response",
+                        };
+                        window.addReasoningStep(
+                            "agent-call",
+                            agentKey,
+                            payload.message || statusLabels[payload.status] || payload.status
+                        );
+                    }
+
+                    // Real run steps (reasoning data from Fabric API)
+                    if (payload.reasoning && window.addReasoningStep) {
+                        this._processRunSteps(payload.reasoning, agentKey);
+                    }
+
+                    // Final content
+                    if (payload.content) {
+                        reply = payload.content;
+                    }
+
+                    // Error
+                    if (payload.error) {
+                        lastError = payload.error;
+                    }
+                }
+            }
+
+            if (lastError && !reply) {
+                throw new Error(`${LOG_PREFIX} ${lastError}`);
+            }
+
+            if (!reply) {
+                reply = "The agent completed but returned no response.";
+            }
+
+            this._history[agentKey].push({ role: "assistant", content: reply });
+            return reply;
+        }
+
+        /**
+         * Process real run steps from the Assistants API and surface them
+         * as reasoning steps in the UI.
+         */
+        _processRunSteps(steps, agentKey) {
+            for (const step of steps) {
+                if (step.type === "tool_calls" && step.tool_calls) {
+                    for (const tc of step.tool_calls) {
+                        if (tc.type === "code_interpreter") {
+                            // Show the actual SQL/code the agent wrote
+                            const code = tc.input || "(no input)";
+                            const outputs = (tc.outputs || []).join("\n");
+                            window.addReasoningStep(
+                                "thinking",
+                                agentKey,
+                                "Code interpreter",
+                                `**Query/Code:**\n\`\`\`\n${code}\n\`\`\`${outputs ? `\n\n**Output:**\n\`\`\`\n${outputs}\n\`\`\`` : ""}`
+                            );
+                        } else if (tc.type === "retrieval") {
+                            window.addReasoningStep(
+                                "thinking",
+                                agentKey,
+                                "Data retrieval",
+                                tc.retrieval ? JSON.stringify(tc.retrieval, null, 2) : null
+                            );
+                        } else if (tc.type === "function") {
+                            window.addReasoningStep(
+                                "thinking",
+                                agentKey,
+                                `Function: ${tc.function_name || "unknown"}`,
+                                `**Arguments:** ${tc.arguments || "(none)"}\n**Result:** ${tc.output || "(pending)"}`
+                            );
+                        } else {
+                            window.addReasoningStep(
+                                "thinking",
+                                agentKey,
+                                `Tool call: ${tc.type}`,
+                                JSON.stringify(tc, null, 2)
+                            );
+                        }
+                    }
+                } else if (step.type === "message_creation") {
+                    window.addReasoningStep(
+                        "agent-response",
+                        agentKey,
+                        "Composing response"
+                    );
+                }
             }
         }
 

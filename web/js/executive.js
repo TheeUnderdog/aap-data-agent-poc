@@ -35,7 +35,7 @@
 
         if (ranked.length === 0) {
             // Can't classify — fan out to all specialists
-            classifyQuestion._lastDetail = 'No keyword matches found. Broadcasting to all specialists.';
+            classifyQuestion._lastDetail = 'No keyword matches — broadcasting to all specialists.';
             return Object.keys(routing);
         }
 
@@ -47,12 +47,17 @@
             .slice(0, 3)
             .map(([key]) => key);
 
-        // Build detail string showing keyword matches
-        const detailLines = selected.map(key => {
+        // Build detail showing actual keyword match data
+        const detailLines = [];
+        for (const key of selected) {
             const name = agentDisplayName(key);
             const kws = matchedKeywords[key].map(k => `"${k}"`).join(', ');
-            return `${name}: matched ${kws} (score: ${scores[key]})`;
-        });
+            detailLines.push(`${name}: matched ${kws} (score ${scores[key]})`);
+        }
+        const unmatched = Object.keys(routing).filter(k => !scores[k]);
+        if (unmatched.length > 0) {
+            detailLines.push(`No hits: ${unmatched.map(agentDisplayName).join(', ')}`);
+        }
         classifyQuestion._lastDetail = detailLines.join('\n');
 
         return selected;
@@ -80,7 +85,9 @@
 
         // Add reasoning step for routing decision with keyword match details
         if (window.addReasoningStep) {
-            window.addReasoningStep('routing', 'crew-chief', `Routing to: ${targetNames}`, classifyQuestion._lastDetail);
+            window.addReasoningStep('routing', 'crew-chief',
+                `Routing to ${targetNames}`,
+                classifyQuestion._lastDetail);
         }
 
         // Fan out to all target agents in parallel
@@ -88,7 +95,8 @@
             try {
                 // Add reasoning step for each agent call
                 if (window.addReasoningStep) {
-                    window.addReasoningStep('agent-call', agentKey, `Querying ${agentDisplayName(agentKey)}...`);
+                    window.addReasoningStep('agent-call', agentKey,
+                        `Querying ${agentDisplayName(agentKey)}...`);
                 }
 
                 const response = await client.sendMessage(agentKey, question);
@@ -100,8 +108,10 @@
 
                 // Add response reasoning step with preview
                 if (window.addReasoningStep) {
-                    const preview = response.length > 200 ? response.substring(0, 200) + '…' : response;
-                    window.addReasoningStep('agent-response', agentKey, `${agentDisplayName(agentKey)} responded`, preview);
+                    const preview = response.length > 300 ? response.substring(0, 300) + '…' : response;
+                    window.addReasoningStep('agent-response', agentKey,
+                        `${agentDisplayName(agentKey)} responded (${response.length} chars)`,
+                        preview);
                 }
 
                 return { agentKey, response, error: null };
@@ -129,10 +139,13 @@
         // Add synthesis reasoning step
         if (window.addReasoningStep) {
             const agentList = successful.map(r => agentDisplayName(r.agentKey)).join(', ');
-            const failedList = failed.length > 0 ? `\nFailed: ${failed.map(r => agentDisplayName(r.agentKey) + ' (' + r.error + ')').join(', ')}` : '';
+            let detail = `Sources: ${agentList} (${successful.length} responded)`;
+            if (failed.length > 0) {
+                detail += `\nFailed: ${failed.map(r => agentDisplayName(r.agentKey) + ' (' + r.error + ')').join(', ')}`;
+            }
             window.addReasoningStep('thinking', 'crew-chief',
-                `Synthesizing responses from ${successful.length} agent(s)...`,
-                `Combining answers from: ${agentList}${failedList}`);
+                `Synthesizing ${successful.length} response(s)...`,
+                detail);
         }
 
         return synthesize(question, successful, failed);

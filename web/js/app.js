@@ -321,25 +321,20 @@
         reasoningSteps = [];
         renderReasoningSteps();
 
-        // Add initial reasoning step
+        // Add initial reasoning step — no fake narration, just the facts
         addReasoningStep('thinking', agentKey,
-            'Analyzing query...',
             agentKey === 'crew-chief'
-                ? 'Crew Chief will classify keywords and route to specialist agents.'
-                : `Direct query to ${agent.name}. No routing needed.`);
+                ? 'Classifying query for routing...'
+                : `Sending to ${agent.name}...`);
 
         try {
             let response;
             if (agentKey === 'crew-chief') {
                 response = await window.Executive.askCrewChief(text);
             } else {
-                addReasoningStep('agent-call', agentKey,
-                    `Calling ${agent.name} API...`,
-                    `Sending to Fabric Data Agent endpoint: ${agent.name}`);
+                addReasoningStep('agent-call', agentKey, `Calling ${agent.name}...`);
                 response = await window.AgentClient.sendMessage(agentKey, text);
                 completeLastReasoningStep();
-                const preview = response.length > 200 ? response.substring(0, 200) + '…' : response;
-                addReasoningStep('agent-response', agentKey, 'Response received', preview);
             }
 
             removeTypingIndicator();
@@ -553,9 +548,12 @@
         }
 
         container.innerHTML = '';
-        for (const step of reasoningSteps) {
+        for (let i = 0; i < reasoningSteps.length; i++) {
+            const step = reasoningSteps[i];
             const div = document.createElement('div');
             div.className = `reasoning-step ${step.type}`;
+            // Add connector class for all but last step
+            if (i < reasoningSteps.length - 1) div.classList.add('has-connector');
             
             const timeStr = new Date(step.timestamp).toLocaleTimeString([], { 
                 hour: '2-digit', 
@@ -563,11 +561,19 @@
                 second: '2-digit'
             });
 
+            const typeIcon = {
+                'routing': '🧭',
+                'agent-call': '📡',
+                'agent-response': '✅',
+                'thinking': '💭',
+                'error': '❌'
+            }[step.type] || '•';
+
             const typeLabel = {
-                'routing': 'Routing',
-                'agent-call': 'API Call',
-                'agent-response': 'Response',
-                'thinking': 'Thinking',
+                'routing': 'Routing Decision',
+                'agent-call': 'Agent Query',
+                'agent-response': 'Agent Response',
+                'thinking': 'Reasoning',
                 'error': 'Error'
             }[step.type] || step.type;
 
@@ -577,22 +583,25 @@
                 const durationStr = durationMs < 1000 
                     ? `${durationMs}ms` 
                     : `${(durationMs / 1000).toFixed(2)}s`;
-                durationHtml = `<div class="reasoning-step-duration">Completed in ${durationStr}</div>`;
+                durationHtml = `<div class="reasoning-step-duration">⏱ ${durationStr}</div>`;
             }
 
             let detailHtml = '';
             if (step.detail) {
-                const detailId = `reasoning-detail-${container.children.length}`;
+                // Convert newlines to paragraphs for readability
+                const formatted = escapeHtml(step.detail)
+                    .split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
                 detailHtml = `
                     <details class="reasoning-step-detail">
-                        <summary class="reasoning-detail-toggle">Show model thoughts</summary>
-                        <blockquote class="reasoning-detail-content">${escapeHtml(step.detail)}</blockquote>
+                        <summary class="reasoning-detail-toggle">💭 Show reasoning</summary>
+                        <div class="reasoning-detail-content">${formatted}</div>
                     </details>
                 `;
             }
 
             div.innerHTML = `
                 <div class="reasoning-step-header">
+                    <span class="reasoning-step-icon">${typeIcon}</span>
                     <span class="reasoning-step-type">${typeLabel}</span>
                     <span class="reasoning-step-time">${timeStr}</span>
                 </div>
