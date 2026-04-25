@@ -185,3 +185,18 @@ Scripts that call Fabric REST API need browser auth popups. They must be run dir
 
 **Impact:** Summary cell at the end (`spark.sql(f"SELECT COUNT(*) ...")`) also benefits from this fix — same unqualified table name issue.
 
+### Delta overwriteSchema Pattern for Idempotent Notebooks (2026-07)
+**Problem:** Re-running the sample data notebook after schema changes (e.g., adding `campaign_name` to `coupon_rules`) caused `AnalysisException: [_LEGACY_ERROR_TEMP_DELTA_0007] A schema mismatch detected when writing to the Delta table`. Delta's `mode("overwrite")` overwrites data but preserves the existing table schema — if the new DataFrame has different columns, it fails.
+
+**Fix:** Added `.option("overwriteSchema", "true")` to all 10 `saveAsTable()` calls. The pattern is now:
+```python
+df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("tablename")
+```
+
+**Why this matters:** Without `overwriteSchema`, any column addition/removal/rename in the notebook requires manually dropping the Delta table first. With it, the notebook is fully idempotent — safe to re-run anytime regardless of what schema the table currently has.
+
+**Hard Rule:** All Delta write notebooks in this project should use `overwriteSchema` on every `saveAsTable()` call. Data is regenerated from scratch each run; there's no reason to preserve stale schemas.
+
+**Files Modified:**
+- `notebooks/01-create-sample-data.py` — All 10 `saveAsTable()` calls updated
+
