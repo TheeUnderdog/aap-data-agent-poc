@@ -424,7 +424,7 @@ for t in tier_order:
         print(f"  {t:<12} {r['txn_count']:>10,} txns  avg ${r['avg_txn']:>8.2f}  per-member ${r['spend_per_member']:>10,.2f}")
 
 # Check progressive ordering: spend_per_member must increase with tier
-spm = [tier_spend.get(t, {}).get("spend_per_member", 0) for t in tier_order]
+spm = [float(tier_spend[t]["spend_per_member"]) if t in tier_spend else 0 for t in tier_order]
 spend_progressive = all(spm[i] < spm[i+1] for i in range(len(spm)-1) if spm[i] > 0 and spm[i+1] > 0)
 record("Logic", "Tier spend progression", "PASS" if spend_progressive else "FAIL",
        f"B=${spm[0]:,.0f} → S=${spm[1]:,.0f} → G=${spm[2]:,.0f} → P=${spm[3]:,.0f}" +
@@ -448,7 +448,7 @@ for r in sorted(tier_freq_df, key=lambda x: x["txns_per_member"]):
 # Check: Platinum should be at least 1.5x Bronze
 plat_freq = tier_freq.get("Platinum", 0)
 bronze_freq = tier_freq.get("Bronze", 1)
-freq_ratio = plat_freq / bronze_freq if bronze_freq else 0
+freq_ratio = float(plat_freq) / float(bronze_freq) if bronze_freq else 0
 freq_ok = freq_ratio >= 1.5
 record("Logic", "Tier frequency ratio", "PASS" if freq_ok else "FAIL",
        f"Platinum/Bronze ratio: {freq_ratio:.1f}x" + (" — too flat!" if not freq_ok else ""))
@@ -469,8 +469,8 @@ for t in tier_order:
         print(f"  {t:<12} Email: {r['email_pct']}%  SMS: {r['sms_pct']}%")
 
 # Check: Platinum email opt-in > Bronze email opt-in
-plat_email = optin_map.get("Platinum", {}).get("email_pct", 0)
-bronze_email = optin_map.get("Bronze", {}).get("email_pct", 0)
+plat_email = float(optin_map["Platinum"]["email_pct"]) if "Platinum" in optin_map else 0
+bronze_email = float(optin_map["Bronze"]["email_pct"]) if "Bronze" in optin_map else 0
 optin_ok = plat_email > bronze_email
 record("Logic", "Tier opt-in progression", "PASS" if optin_ok else "FAIL",
        f"Platinum email {plat_email}% vs Bronze {bronze_email}%")
