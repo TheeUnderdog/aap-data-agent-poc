@@ -916,8 +916,7 @@
             targetAgent = config.agents[targetKey];
         }
 
-        // Randomize pips and animate the dice
-        randomizeDicePips();
+        // Start dice spinning (pips randomize when response arrives)
         btn.classList.remove('rolling');
         void btn.offsetWidth; // force reflow so animation restarts
         btn.classList.add('rolling');
@@ -992,6 +991,7 @@
                 input.focus();
             }
         } finally {
+            randomizeDicePips();
             btn.classList.remove('rolling');
             btn.disabled = false;
         }
