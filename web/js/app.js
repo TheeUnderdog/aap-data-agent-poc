@@ -859,6 +859,87 @@
         if (btn) btn.classList.toggle('active', opening);
     };
 
+    // ── Mystery Dice — LLM-generated surprise question ──────────
+
+    window.generateMysteryQuestion = async function () {
+        const btn = document.getElementById('mystery-btn');
+        const input = document.getElementById('message-input');
+        if (!btn || !input) return;
+
+        const agentKey = activeAgent;
+        const agent = config.agents[agentKey];
+
+        // Pick an agent with a Fabric ID (for crew-chief, use a random specialist)
+        let targetKey = agentKey;
+        let targetAgent = agent;
+        if (!agent.id) {
+            const specialists = Object.keys(config.agents).filter(k => config.agents[k].id);
+            targetKey = specialists[Math.floor(Math.random() * specialists.length)];
+            targetAgent = config.agents[targetKey];
+        }
+
+        // Animate the dice
+        btn.classList.add('rolling');
+        btn.disabled = true;
+
+        const existing = (agent.sampleQuestions || []).join('; ');
+        const prompt = `You are helping demo an analytics chat app for Advance Auto Parts loyalty/rewards data. Suggest exactly ONE creative, specific analytics question that a business analyst might ask about ${agent.description || targetAgent.description}. The question should be different from these: ${existing}. Reply with ONLY the question text, no numbering, no quotes, no explanation.`;
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agentId: targetAgent.id,
+                    messages: [{ role: 'user', content: prompt }],
+                }),
+            });
+
+            if (!res.ok) throw new Error(`API returned ${res.status}`);
+
+            const contentType = res.headers.get('content-type') || '';
+            let question = '';
+
+            if (contentType.includes('text/event-stream')) {
+                // Parse SSE stream — collect content events
+                const text = await res.text();
+                for (const line of text.split('\n')) {
+                    if (!line.startsWith('data: ')) continue;
+                    try {
+                        const evt = JSON.parse(line.slice(6));
+                        if (evt.type === 'content' && evt.data) question += evt.data;
+                        if (evt.type === 'done' && evt.data) question = evt.data;
+                    } catch (_) { /* skip non-JSON lines */ }
+                }
+            } else {
+                const data = await res.json();
+                question = data.content
+                    ?? data.choices?.[0]?.message?.content
+                    ?? data.result
+                    ?? '';
+            }
+
+            question = question.replace(/^["'\s]+|["'\s]+$/g, '').trim();
+            if (question) {
+                input.value = question;
+                input.style.height = 'auto';
+                input.style.height = input.scrollHeight + 'px';
+                input.focus();
+            }
+        } catch (err) {
+            console.error('[Mystery] Failed to generate question:', err);
+            // Fallback: pick a random sample question the user hasn't seen
+            const pool = agent.sampleQuestions || [];
+            if (pool.length) {
+                input.value = pool[Math.floor(Math.random() * pool.length)];
+                input.focus();
+            }
+        } finally {
+            btn.classList.remove('rolling');
+            btn.disabled = false;
+        }
+    };
+
     // ── Auto-init on page load ──────────────────────────────────
 
     if (document.readyState === 'loading') {
