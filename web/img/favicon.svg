@@ -1,17 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- Dark circle background -->
-  <circle cx="32" cy="32" r="31" fill="#1E1E1E"/>
-  
-  <!-- AAP logo scaled and centered inside circle -->
-  <g transform="translate(8, 19.5) scale(1.4)">
-    <!-- Yellow diagonal stripe -->
-    <path d="M22.6046 18.0059H19.418L30.4736 0.314453H33.6602L22.6046 18.0059Z" fill="#FFCC00"/>
-    
-    <!-- White paths forming the "A" -->
-    <path d="M27.2712 0.314453H20.898L18.8253 3.62836L17.2141 6.21027H23.5873L27.2712 0.314453Z" fill="white"/>
-    <path d="M10.8407 6.21045L7.15283 12.1063H13.526L13.9875 11.3703L17.2139 6.21045H10.8407Z" fill="white"/>
-    <path d="M8.13568 0.314453H2.29955L1.53174 6.21027H4.4518H8.95521H10.8409L13.5103 1.93361L14.5248 0.314453H8.13568Z" fill="white"/>
-    <path d="M16.2155 18.0057L18.4433 14.4412L19.8994 12.106H13.5262L9.84229 18.0057H16.2155Z" fill="white"/>
-    <path d="M0 18.0057H3.46906L5.15983 15.3005L7.15295 12.106H0.767808L0 18.0057Z" fill="white"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- AAP checkered flag favicon -->
+  <!-- Flag pole -->
+  <rect x="10" y="8" width="3" height="50" rx="1.5" fill="#1E1E1E"/>
+  <!-- Flag body (waving shape) -->
+  <path d="M13 8 Q32 4, 54 10 Q56 10, 56 12 L56 36 Q56 38, 54 38 Q32 32, 13 36 Z" fill="#1E1E1E"/>
+  <!-- Checkerboard pattern - row 1 -->
+  <path d="M16 10.5 Q25 8.5, 24 9 L24 16 Q25 15.5, 16 17.5 Z" fill="white"/>
+  <path d="M32 8.5 Q41 8.5, 40 9.5 L40 16.5 Q41 16, 32 15.5 Z" fill="white"/>
+  <path d="M48 11 Q53 12, 54 12.5 L54 19.5 Q53 19, 48 18 Z" fill="white"/>
+  <!-- Checkerboard pattern - row 2 -->
+  <path d="M24 16 Q33 14, 32 15.5 L32 23 Q33 22, 24 23.5 Z" fill="white"/>
+  <path d="M40 16.5 Q49 17, 48 18 L48 25.5 Q49 25, 40 24 Z" fill="white"/>
+  <!-- Checkerboard pattern - row 3 -->
+  <path d="M16 24.5 Q25 22.5, 24 23.5 L24 30.5 Q25 30, 16 31.5 Z" fill="white"/>
+  <path d="M32 23 Q41 23, 40 24 L40 31 Q41 30.5, 32 30 Z" fill="white"/>
+  <path d="M48 25.5 Q53 26.5, 54 27 L54 34 Q53 33.5, 48 32.5 Z" fill="white"/>
+  <!-- Pole ball top -->
+  <circle cx="11.5" cy="7" r="3" fill="#1E1E1E"/>
 </svg>
