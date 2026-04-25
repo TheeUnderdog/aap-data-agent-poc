@@ -128,6 +128,7 @@
             tab.style.color = agent.textColor || agent.accent;
             tab.onclick = () => switchToAgent(key);
 
+            tab.title = agent.about || agent.description || '';
             tab.innerHTML = `
                 <div class="tab-icon"></div>
                 <div class="tab-label">
@@ -195,26 +196,27 @@
             area.innerHTML = `
                 <div class="welcome-message" id="welcome-section">
                     <div class="welcome-icon" data-agent-key="${agentKey}"></div>
-                    <h2>${agent.name}${agent.about ? `<button class="info-btn" onclick="toggleInfoPopup(this)" title="About this agent">&#9432;</button>` : ''}</h2>
+                    <h2>${agent.name}</h2>
                     <div class="agent-tagline">${agent.description}</div>
-                    ${agent.about ? `<div class="info-popup">${escapeHtml(agent.about)}</div>` : ''}
+                    ${agent.about ? `<div class="agent-about">${escapeHtml(agent.about)}</div>` : ''}
                     <p>${agent.welcome}</p>
                     ${samplesHtml ? `<div class="sample-questions">${samplesHtml}</div>` : ''}
                 </div>
             `;
             injectSvgIcon(area.querySelector('.welcome-icon'), agent);
         } else {
-            // Compact suggestions pinned at top — scroll up to find them
+            // Keep the full welcome — it scrolls up naturally as messages are added
             area.innerHTML = `
-                <div class="welcome-compact" id="welcome-section">
-                    <div class="welcome-compact-header">
-                        <div class="welcome-compact-icon" data-agent-key="${agentKey}"></div>
-                        <span class="welcome-compact-label">Try asking ${agent.name}</span>
-                    </div>
-                    ${samplesHtml ? `<div class="sample-questions compact">${samplesHtml}</div>` : ''}
+                <div class="welcome-message" id="welcome-section">
+                    <div class="welcome-icon" data-agent-key="${agentKey}"></div>
+                    <h2>${agent.name}</h2>
+                    <div class="agent-tagline">${agent.description}</div>
+                    ${agent.about ? `<div class="agent-about">${escapeHtml(agent.about)}</div>` : ''}
+                    <p>${agent.welcome}</p>
+                    ${samplesHtml ? `<div class="sample-questions">${samplesHtml}</div>` : ''}
                 </div>
             `;
-            injectSvgIcon(area.querySelector('.welcome-compact-icon'), agent);
+            injectSvgIcon(area.querySelector('.welcome-icon'), agent);
 
             for (const msg of history) {
                 area.appendChild(createMessageEl(msg, agent));
@@ -261,34 +263,6 @@
 
     function addMessageToUI(msg, agent) {
         const area = document.getElementById('chat-area');
-
-        // On first message, swap full welcome for compact version
-        const fullWelcome = area.querySelector('.welcome-message');
-        if (fullWelcome) {
-            const agentKey = activeAgent;
-            const agentCfg = config.agents[agentKey];
-            const isLightAccent = agentCfg.accent && ['#FFCC00'].includes(agentCfg.accent.toUpperCase());
-            const samplesHtml = (agentCfg.sampleQuestions || [])
-                .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
-                .join('');
-
-            const compact = document.createElement('div');
-            compact.className = 'welcome-compact';
-            compact.id = 'welcome-section';
-            compact.innerHTML = `
-                <div class="welcome-compact-header">
-                    <div class="welcome-compact-icon" data-agent-key="${agentKey}"></div>
-                    <span class="welcome-compact-label">Try asking ${agentCfg.name}</span>
-                </div>
-                ${samplesHtml ? `<div class="sample-questions compact">${samplesHtml}</div>` : ''}
-            `;
-            fullWelcome.replaceWith(compact);
-            injectSvgIcon(compact.querySelector('.welcome-compact-icon'), agentCfg);
-
-            // Show the suggestions chip
-            const chip = document.getElementById('suggestions-chip');
-            if (chip) chip.classList.remove('hidden');
-        }
 
         area.appendChild(createMessageEl(msg, agent));
         scrollToBottom();
@@ -556,21 +530,7 @@
 
     // ── Info Popup ──────────────────────────────────────────────
 
-    window.toggleInfoPopup = function(btn) {
-        const popup = btn.closest('.welcome-message').querySelector('.info-popup');
-        if (!popup) return;
-        const isOpen = popup.classList.contains('open');
-        // Close any other open popups first
-        document.querySelectorAll('.info-popup.open').forEach(p => p.classList.remove('open'));
-        if (!isOpen) popup.classList.add('open');
-    };
-
-    // Close popup when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.info-btn') && !e.target.closest('.info-popup')) {
-            document.querySelectorAll('.info-popup.open').forEach(p => p.classList.remove('open'));
-        }
-    });
+    // (Info popup removed — about text is always shown inline)
 
     // ── Reasoning Panel ─────────────────────────────────────────
 
