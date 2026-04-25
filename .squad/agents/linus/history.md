@@ -10,6 +10,14 @@
 
 ## Learnings
 
+### Icon Concept Corrections (2026-04-25)
+- **Task:** Fixed 4 agent tab icons to correct concepts
+- **Icon mapping:** gearup=gear, ignition=spark plug, partspro=piston, diehard=battery+bolt
+- **Style:** Flat monochrome #1E1E1E metro design, recognizable at 26×26px
+- **Technique:** Single-path silhouettes with `fill-rule="evenodd"` for negative-space detail
+- **Files modified:** `web/img/gearup.svg`, `web/img/ignition.svg`, `web/img/partspro.svg`, `web/img/diehard.svg`
+- **Outcome:** Committed as 3982aef
+
 ### Monochrome Metro Icon Redesign + Bebas Neue Font (2025-07-25)
 - **Task:** Redesigned all 6 agent tab icons to flat monochrome metro style; switched wordmark font to Bebas Neue
 - **Icon style rules:** Single fill color `#1E1E1E` only. No secondary colors, no gradients, no strokes with different colors. Pure silhouettes recognizable at 26×26px. viewBox="0 0 48 48" for all.
