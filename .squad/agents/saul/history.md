@@ -204,3 +204,42 @@ df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").sav
 
 **Merged to Decisions:** Added to `.squad/decisions.md` as decision entry. Orchestration log: `2026-04-25T022305Z-saul-overwrite-schema.md`
 
+### LLM Diagnostic Report Block in Sanity Check (2026-07)
+**Problem:** When the sanity check notebook flags FAIL/WARN results, the user must manually figure out what to fix in `01-create-sample-data.py`. This is error-prone and wastes time.
+
+**Solution:** Added Block 4 to `notebooks/02-data-sanity-check.py` — a structured diagnostic report that maps each sanity check failure to the exact section, lines, root cause, and fix pattern in the generator notebook. Output is formatted so the Fabric portal's embedded Copilot can read it and apply fixes in-place.
+
+**Key Design Choices:**
+1. `DIAGNOSTIC_MAP` dict keyed by check name — 22 entries covering all checks in Blocks 1-3
+2. Each entry has: section description, line references, root cause explanation, concrete fix pattern
+3. Output uses visual separators and emoji prefixes for scanability by both humans and LLMs
+4. Repair summary at the end lists total fixes needed and unique sections affected
+5. Clean bill of health message when no issues detected
+6. Block 4 is ADDITIONAL — the existing scorecard stays as-is
+
+**Pattern:** This "diagnostic map" pattern is reusable — any future sanity checks should add an entry to `DIAGNOSTIC_MAP` alongside their `record()` call.
+
+**Files Modified:**
+- `notebooks/02-data-sanity-check.py` — Added Block 4 (lines 654+), updated header to mention Block 4
+
+**Status:** ✅ Committed
+
+### Category Return Rate Variance Fix (2026-07)
+**Problem:** Sanity check Block 4 flagged "Category return variance — WARN": return rates had only 0.1pp spread across categories (max 8.1%, min 8.0%). Root cause: `is_return` was inherited uniformly from the parent transaction type — no per-category logic.
+
+**Fix:** Added `CATEGORY_RETURN_MULTIPLIER` dict (all 10 categories) and `BASE_ITEM_RETURN_RATE = 0.03` to the transaction items section. Logic:
+- Return transactions: all items stay as returns (unchanged)
+- Purchase transactions: each item gets an independent return chance = `BASE_ITEM_RETURN_RATE * CATEGORY_RETURN_MULTIPLIER[cat]`
+- Multipliers range from 0.45 (Coolant — consumable liquid) to 1.5 (Electrical — compatibility issues)
+- Expected item return rates: Electrical ~4.5%, Coolant ~1.35%, overall stays in 5-12% range
+
+**Categories mapped (from CATEGORIES dict in notebook):**
+Batteries (1.25), Engine Oil (0.5), Brakes (0.95), Filters (0.6), Wipers (0.7), Spark Plugs (0.9), Lighting (1.3), Coolant (0.45), Accessories (1.4), Electrical (1.5)
+
+**Key Pattern:** Per-item return decisions on purchase transactions create realistic category-level variance while preserving the transaction-level return type for full-return transactions.
+
+**Files Modified:**
+- `notebooks/01-create-sample-data.py` — Lines ~450-489 (transaction items section)
+
+**Status:** ✅ Complete — awaiting notebook re-run + sanity check validation
+

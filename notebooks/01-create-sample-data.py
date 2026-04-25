@@ -447,17 +447,40 @@ print(f"✅ transactions: {df_txn.count()} rows")
 # ## 5. Transaction Items — ~1,500,000 line items (3 per transaction avg)
 
 # %%
+# Per-category return rate multipliers (applied to BASE_ITEM_RETURN_RATE for purchase txns)
+# Higher = more returns for that category; 1.0 = baseline
+BASE_ITEM_RETURN_RATE = 0.03  # 3% base per-item return rate on purchase transactions
+CATEGORY_RETURN_MULTIPLIER = {
+    "Electrical":   1.5,   # wrong part, compatibility issues
+    "Batteries":    1.25,  # warranty returns
+    "Accessories":  1.4,   # wrong size, don't need
+    "Lighting":     1.3,   # fitment / compatibility
+    "Brakes":       0.95,  # safety-critical, buyers research first
+    "Spark Plugs":  0.9,   # cheap, usually keep
+    "Wipers":       0.7,   # cheap consumable
+    "Filters":      0.6,   # cheap maintenance, just keep it
+    "Engine Oil":   0.5,   # consumable, hard to return opened
+    "Coolant":      0.45,  # consumable liquid, rarely returned
+}
+
 print("Generating ~1.5M transaction items...")
 items_data = []
 item_id = 1
 for txn in transactions_data:
     txn_id = txn[0]
-    is_return = txn[4] == "return"
+    txn_is_return = txn[4] == "return"
     num_items = txn[8]  # item_count
     for _ in range(num_items):
         sku_code, prod_name, cat, unit_price = random.choice(sku_lookup)
         qty = random.choices([1, 2, 3, 4], weights=[60, 25, 10, 5], k=1)[0]
         line_total = round(unit_price * qty, 2)
+        if txn_is_return:
+            # Return transaction — all items are returns
+            is_return = True
+        else:
+            # Purchase transaction — per-item return chance varies by category
+            multiplier = CATEGORY_RETURN_MULTIPLIER.get(cat, 1.0)
+            is_return = random.random() < (BASE_ITEM_RETURN_RATE * multiplier)
         if is_return:
             line_total = -line_total
         items_data.append((
