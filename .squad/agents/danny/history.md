@@ -49,6 +49,28 @@
 4. **Coupon Campaign Effectiveness** — Campaign ROI from v_campaign_effectiveness. Target audience: Marketing, Promotions Manager
 5. **Operational Deep Dive** — Granular transaction and CSR audit trail from v_transaction_history, v_coupon_activity, v_audit_trail. Target audience: Store Operations, CSR Managers
 
+### 2026-07: Business Capability Overview — Executive Summary
+
+**What I Did:**
+- Created `docs/capability-overview.md` as primary stakeholder-facing document for AAP leadership and marketing team
+- Structured for business audience, not technical: prioritized user experience and business value over architecture details
+- Included: (1) Problem statement, (2) Five specialized agents with sample questions, (3) Realistic data volumes, (4) Demo walkthrough narrative, (5) Simple tech foundation paragraph, (6) 7-step production deployment roadmap, (7) Future-state roadmap
+
+**Key Design Decisions:**
+1. **Audience-first framing** — "Natural language access to loyalty data" before mentioning Fabric or Data Agents
+2. **Five agents get personality** — Each with domain, use cases, and 2–3 sample questions pulled from config.js
+3. **Demo story > architecture diagrams** — Step-by-step walkthrough of what a user sees and does
+4. **Realistic data sells credibility** — Specific numbers (50K members, 500K transactions, 5K SKUs, 500 stores) ground the POC
+5. **Deployment path is concrete** — 7 steps, each with timeline and owner, totaling 8–12 weeks to production
+6. **Simple tech section** — One paragraph per component, emphasizing "off-the-shelf enterprise" not custom engineering
+
+**Pattern for stakeholder docs:**
+- Lead with the problem, not the solution
+- Use agent personalities and concrete examples instead of abstract system diagrams
+- Include a clear "what happens next" section with timelines
+- Avoid jargon unless necessary for credibility (mention Fabric once, move on)
+- Always include a "What's Possible Next" section to frame this as Phase 1, not the entire solution
+
 **Key Design Decisions:**
 - **5 reports, not 10** — Focused scope keeps demo implementation lean but still showcases all 9 semantic views
 - **Role-based targeting** — Each report aligns with a distinct AAP stakeholder group (loyalty, ops, merch, marketing, CSR)
@@ -274,6 +296,25 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 
 **Orchestration log:** `.squad/orchestration-log/2026-04-24T15-59-00Z-danny.md`
 
+### 2025-07: Capability Overview Doc Trim
+
+**What I Did:**
+- Trimmed `docs/capability-overview.md` from 277 lines to 106 lines (~62% reduction) per Dave's request for a tighter business-audience doc.
+
+**What I Trimmed:**
+- §1 Intro: Removed meta-paragraph ("this document walks you through…"), kept the hook and product description
+- §2 Business Problem: Collapsed from 4 subsections to 3 tight lines (today/cost/fix). Biggest cut.
+- §3 Agents: Kept all 6 agents with both names and sample questions; trimmed filler phrases ("deep dives into", "handles", "analyzes")
+- §4 Data: Consolidated 8 bullets + 2 paragraphs into 4 bullets + 2 sentences
+- §5 Demo: Cut sub-bullets into single-line step descriptions; removed "Throughout" summary, folded its key point into closing line
+- §6 Technology: Collapsed 5 multi-bullet sections into 5 single-line descriptions + closing statement
+- §7 Deployment: Stripped all timeline details and sub-bullets; one line per step + total estimate
+- §8 Roadmap: Kept bullet list, cut intro/outro prose, trimmed bullet descriptions
+- §9 Next Steps: Cut dev team phases; kept only the 4 AAP leadership action items
+- Preserved closing one-liner as requested
+
+**Key Decision:** Went slightly below the 120-140 target (106 lines) because the content reads cleanly at that length without losing substance. Every section still tells its story; we just stopped telling it twice.
+
 **Status:** Ready for Dave's approval before team begins PBI semantic model configuration in Phase 3
 
 ### 2026-07: Power BI Report Specification Document — Complete Design
@@ -346,3 +387,7 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 **Status:** Ready for Power BI Developer to begin building semantic model & visuals in Phase 3
 
 **Next Action:** Present spec to Dave for sign-off; Power BI team begins report development in parallel with Data Agent configuration
+
+### 2025-07: Capability Overview Rewrite
+
+**Learning:** Dave wants capabilities docs, not sales docs. No "business problem" sections, no "why this matters," no sales language. Just what the system does, what's deployed, and how it works. Factual, tight, capability-focused tone. Keep it under 100 lines.
