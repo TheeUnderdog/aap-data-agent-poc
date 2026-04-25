@@ -391,3 +391,28 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 ### 2025-07: Capability Overview Rewrite
 
 **Learning:** Dave wants capabilities docs, not sales docs. No "business problem" sections, no "why this matters," no sales language. Just what the system does, what's deployed, and how it works. Factual, tight, capability-focused tone. Keep it under 100 lines.
+
+### 2025-07: Documentation Audit — Redundancy Cleanup
+
+**What I Did:**
+- Audited all 10 docs in `docs/`, plus `MANUAL_DEPLOYMENT_STEPS.md`, plus 2 READMEs
+- Deleted 2 redundant implementation plans (`implementation-plan-manual.md` v1.0, `implementation-plan-scripted.md` v2.0) — both superseded by `implementation-plan.md` v3.0
+- Updated `capability-overview.md`: fixed "React SPA" → "Vanilla JS SPA", "Python Flask proxy" → "Python proxy", "Snowflake" → "PostgreSQL"
+- Updated `build-plan.md`: fixed technology table (React/Node.js/MSAL/Bicep → vanilla JS/Python/proxy auth/SWA), replaced speculative repo structure with actual layout
+- Updated `MANUAL_DEPLOYMENT_STEPS.md`: removed Squad agent references from help section
+
+**What was kept and why:**
+- `implementation-plan.md` (v3.0) — canonical implementation plan, strategy-focused
+- `build-plan.md` — unique strategic content (Phase A/B strategy, AAP prerequisites, sprint plan)
+- `overview.md` — accurate executive summary, current
+- `architecture.md` — deep technical architecture, comprehensive
+- `data-schema.md` — documents actual POC schema from notebook
+- `aap-schema-reference.md` — documents real AAP schema (complementary to data-schema.md, not redundant)
+- `capability-overview.md` — stakeholder-facing, what's deployed
+- `semantic-model-architecture.md` — architecture review with actionable recommendations
+- `MANUAL_DEPLOYMENT_STEPS.md` — operational quick-reference with GUIDs (kept at root for discoverability)
+- `notebooks/README.md`, `scripts/README.md` — folder-level setup guides
+
+**What was deleted and why:**
+- `implementation-plan-manual.md` — v1.0 manual portal steps, fully superseded by v3.0
+- `implementation-plan-scripted.md` — v2.0 scripted approach, superseded by v3.0 which is shorter and strategy-focused

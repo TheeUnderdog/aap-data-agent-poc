@@ -97,19 +97,20 @@ The Data Agent is configured to query **semantic views only** — it never sees 
 
 | Component | Technology | What We Build |
 |-----------|------------|---------------|
-| **Frontend** | React + TypeScript | Chat interface, query history, SQL transparency panel |
-| **Backend** | Azure Functions (Node.js) | `/api/query` endpoint — validates token, proxies to Data Agent |
-| **Auth** | MSAL.js + Entra ID | SSO login, token management, role-based access |
-| **Infrastructure** | Bicep templates | Static Web Apps, Functions, Key Vault, DNS |
-| **CI/CD** | GitHub Actions | Build, test, deploy on push to main |
+| **Frontend** | Vanilla JS SPA | Chat interface with agent tabs, reasoning panel, token tracking |
+| **Backend** | Python proxy (server.py) / Azure Functions (Python) | Proxies to Fabric Data Agent API with SSE streaming |
+| **Auth** | Entra ID via proxy | Proxy handles auth to Fabric; SWA provides user auth |
+| **Hosting** | Azure Static Web Apps | SPA + managed Functions, built-in Entra ID integration |
+| **CI/CD** | GitHub Actions | Build, deploy on push to main |
 
-The web app is a **complete, deployable product** — not a mockup. During Phase A, we develop against a local mock of the Data Agent API so the frontend and backend are fully functional before we have Fabric access.
+The web app is a **complete, deployable product** — not a mockup. During Phase A, it develops against a local Python proxy (server.py) that authenticates to Fabric Data Agent API. In production, Azure Static Web Apps + managed Functions serves the same role.
 
 **Key UX decisions:**
 
 - Chat-style interface (not form-based) — feels like asking a person
 - SQL shown below each answer — builds trust, enables validation
-- Query history sidebar — revisit previous questions
+- Agent reasoning panel — shows routing and processing steps in real time
+- Six specialist tabs — each agent has its own color-coded chat tab
 - "Suggested questions" on first load — guides new users
 - Loading states and error handling — production-quality experience
 
@@ -274,47 +275,44 @@ Organized by priority and timing:
 
 ---
 
-## 10. Repository Structure (Target)
+## 10. Repository Structure (Actual)
 
 ```
 AAP Data Agent POC/
 ├── docs/                           # Architecture, plans, schema docs
 ├── scripts/
 │   ├── setup-workspace.ps1         # Fabric workspace provisioning
-│   ├── create-service-principal.sh # Entra ID setup
-│   ├── configure-mirroring.ps1     # PostgreSQL mirroring config
-│   ├── deploy-placeholder-schema.sql
-│   ├── create-semantic-views.sql
-│   ├── schema-swap.ps1
-│   ├── deploy.sh                   # Full deployment orchestrator
-│   └── register-entra-apps.sh
+│   ├── deploy-views.py             # Deploy semantic views to Lakehouse
+│   ├── create-semantic-model.py    # Deploy Power BI semantic model
+│   ├── configure-linguistic-schema.py # Deploy AI synonyms + instructions
+│   ├── upload-notebook.py          # Upload notebook to Fabric workspace
+│   └── drop-legacy-tables.py       # Clean up stale Delta tables
 ├── config/
-│   ├── agent-instructions.md       # Data Agent system prompt
-│   ├── sample-queries.json         # NL→SQL training pairs
-│   └── agent-settings.json
-├── infra/
-│   └── main.bicep                  # All Azure infrastructure
-├── app/
-│   ├── frontend/                   # React SPA
-│   │   ├── src/
-│   │   └── package.json
-│   └── backend/                    # Azure Functions API
-│       ├── src/
-│       └── package.json
-├── model/
-│   └── semantic-model.tmdl         # Power BI semantic model definition
-├── tests/
-│   ├── agent-accuracy.py
-│   ├── api-integration.test.ts
-│   ├── e2e.spec.ts
-│   └── schema-validation.sql
+│   └── (per-agent configs in agents/ folder)
+├── agents/                         # 5 Fabric Data Agent persona configs
+│   ├── customer-service/           # Pit Crew
+│   ├── loyalty-program-manager/    # GearUp
+│   ├── marketing-promotions/       # Ignition
+│   ├── merchandising/              # PartsPro
+│   └── store-operations/           # DieHard
+├── notebooks/
+│   ├── 01-create-sample-data.py    # Generate synthetic loyalty data
+│   └── 02-data-sanity-check.py     # Validate data quality
+├── web/                            # Vanilla JS SPA + config
+│   ├── index.html
+│   ├── config.js
+│   ├── server.py                   # Local dev proxy server
+│   └── staticwebapp.config.json    # Azure SWA routing + auth
+├── api/
+│   └── function_app.py             # Azure Functions backend (Python v2)
+├── model/                          # Semantic model TMDL definitions
 └── .github/
     └── workflows/
-        └── deploy.yml              # CI/CD pipeline
+        └── azure-static-web-apps.yml  # CI/CD pipeline
 ```
 
 ---
 
 **Document Owner:** Lead Architect  
 **Last Updated:** July 2025  
-**Status:** Active — Ready for Team Kickoff
+**Status:** Phase A complete; Phase B awaiting AAP access

@@ -41,9 +41,9 @@ The POC runs on generated data that mirrors the Advance Auto Parts loyalty progr
 
 | Component | Name | Notes |
 |-----------|------|-------|
-| Chat Web App | AAP Data Agent Chat | React SPA with AAP branding, hosted on Azure Static Web Apps |
+| Chat Web App | Advance Insights | Vanilla JS SPA with AAP branding, hosted on Azure Static Web Apps |
 | Crew Chief | Executive Orchestrator | Client-side router that dispatches questions to the right specialist agent |
-| API Backend | Python Flask proxy | Authenticates to Fabric Data Agent API via Entra ID service principal |
+| API Backend | Python proxy (server.py) | Authenticates to Fabric Data Agent API via Entra ID, SSE streaming |
 
 ---
 
@@ -109,5 +109,5 @@ Location performance, regional comparisons, channel mix, and operational metrics
 
 - Confirm real loyalty/rewards schema and map to semantic model
 - Deploy Fabric workspace, Azure Functions, and Static Web App in AAP's Azure tenant
-- Configure Fabric Mirroring from AAP's Snowflake into OneLake
+- Configure Fabric Mirroring from AAP's PostgreSQL into OneLake
 - Retune agent instructions against real data and run UAT with marketing team

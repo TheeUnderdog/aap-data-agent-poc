@@ -179,10 +179,10 @@ Once all 3 manual tasks complete:
 
 ## 📞 Need Help?
 
-Contact Livingston (Data Engineer) or reference:
-- `.squad/agents/livingston/history.md` — full project context
+Reference:
 - `docs/data-schema.md` — schema documentation
 - `docs/architecture.md` — system architecture
+- `docs/capability-overview.md` — what's deployed and how it works
 
 **Workspace ID:** `82f53636-206f-4825-821b-bdaa8e089893`  
 **Lakehouse ID:** `0b895197-a0b2-40b4-9ab3-2daeb0e778c0`  
