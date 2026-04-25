@@ -1,12 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <!-- Battery body -->
-  <rect x="6" y="14" width="36" height="28" rx="3" fill="#B6121B"/>
-  <!-- Battery terminals -->
-  <rect x="13" y="10" width="6" height="6" rx="1" fill="#B6121B"/>
-  <rect x="29" y="10" width="6" height="6" rx="1" fill="#B6121B"/>
-  <!-- Plus/minus indicators -->
-  <rect x="14.5" y="7" width="3" height="3" rx="0.5" fill="#1A1A1A"/>
-  <rect x="30.5" y="7" width="3" height="3" rx="0.5" fill="#1A1A1A"/>
-  <!-- Lightning bolt -->
-  <polygon points="28,18 22,28 26,28 20,40 32,26 27,26 32,18" fill="#FFCF06"/>
+  <path d="M4,16 L8,6 L40,6 L44,16 Z" fill="#1E1E1E"/>
+  <path d="M6,16 L6,42 L42,42 L42,16 L38,16 L38,38 L10,38 L10,16 Z" fill="#1E1E1E"/>
+  <rect x="18" y="24" width="12" height="14" fill="#1E1E1E"/>
 </svg>

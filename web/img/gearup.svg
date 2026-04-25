@@ -1,8 +1,3 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <!-- Gear/cog outer shape -->
-  <path d="M22,4 L26,4 L27,9 L30,10 L34,6 L37,9 L34,14 L36,17 L41,16 L42,20 L38,22 L38,26 L43,27 L42,31 L37,30 L34,33 L36,38 L33,40 L29,36 L26,37 L27,42 L23,43 L22,38 L18,37 L14,42 L11,39 L14,34 L12,31 L7,32 L6,28 L10,26 L10,22 L5,21 L6,17 L11,18 L14,15 L12,10 L15,8 L19,12 L22,10 Z" fill="#FFCF06" stroke="#1A1A1A" stroke-width="1.5"/>
-  <!-- Center hole -->
-  <circle cx="24" cy="23" r="7" fill="white" stroke="#1A1A1A" stroke-width="1.5"/>
-  <!-- Star in center -->
-  <polygon points="24,17 25.5,21 30,21 26.5,23.5 28,27.5 24,25 20,27.5 21.5,23.5 18,21 22.5,21" fill="#1A1A1A"/>
+  <polygon points="24,3 28.5,17.5 44,17.5 31.5,26.5 36,41 24,32 12,41 16.5,26.5 4,17.5 19.5,17.5" fill="#1E1E1E"/>
 </svg>

@@ -213,8 +213,9 @@ body {
 }
 
 .wordmark-primary {
-    font-size: 22px;
-    font-weight: 700;
+    font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
+    font-size: 26px;
+    font-weight: 400;
     letter-spacing: 3px;
     color: var(--aap-white);
     text-transform: uppercase;
@@ -1113,7 +1114,7 @@ body {
     }
 
     .wordmark-primary {
-        font-size: 16px;
+        font-size: 20px;
         letter-spacing: 2px;
     }
 
@@ -1350,7 +1351,7 @@ body {
 
 @media (max-width: 374px) {
     .wordmark-primary {
-        font-size: 14px;
+        font-size: 18px;
     }
 
     .wordmark-secondary {
