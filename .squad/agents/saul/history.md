@@ -200,3 +200,7 @@ df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").sav
 **Files Modified:**
 - `notebooks/01-create-sample-data.py` — All 10 `saveAsTable()` calls updated
 
+**Status:** ✅ Committed (two commits as noted in spawn manifest)
+
+**Merged to Decisions:** Added to `.squad/decisions.md` as decision entry. Orchestration log: `2026-04-25T022305Z-saul-overwrite-schema.md`
+

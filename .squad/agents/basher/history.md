@@ -98,6 +98,10 @@
 - **Decision:** First-time Entra ID app registration manual (portal Client Credentials flow); subsequent deployments scriptable
 - **Outcome:** ✅ Full stack ready for Linus (frontend) integration. Web app can target production SWA or local dev with minimal config changes
 
+**Status:** ✅ Committed as b18b4ff. Orchestration log: `2026-04-25T022305Z-basher-swa-infrastructure.md`
+
+**Known Limitation:** ⚠️ Azure Functions v2 Consumption doesn't support true SSE streaming. Chat responses accumulated and returned as batch. Acceptable for POC; upgrade to Flex Consumption if real-time streaming needed.
+
 ## Upcoming Coordination (2026-04-24T19:04)
 
 **Context for upcoming Data Agent configuration work:**

@@ -1,0 +1,23 @@
+Squad: Merge SWA infrastructure and overwriteSchema pattern into team records
+
+Scribe coordination session merging spawn manifest work:
+
+- Saul (Data Engineer): Added .option("overwriteSchema", "true") to all 10
+  saveAsTable calls in notebooks/01-create-sample-data.py for idempotent
+  re-runs after schema changes. Two commits landed.
+
+- Basher (Backend Dev): Created Azure Static Web Apps deployment infrastructure:
+  staticwebapp.config.json, api/function_app.py, GitHub Actions workflow,
+  SETUP.md, and updated config.js and .gitignore. Committed as b18b4ff.
+
+Recorded in:
+- .squad/orchestration-log/2026-04-25T022305Z-saul-overwrite-schema.md
+- .squad/orchestration-log/2026-04-25T022305Z-basher-swa-infrastructure.md
+- .squad/log/2026-04-25T022305Z-scribe-coordination.md
+- .squad/decisions.md (merged decision: Delta overwriteSchema pattern)
+- .squad/agents/saul/history.md (updated with overwriteSchema accomplishment)
+- .squad/agents/basher/history.md (updated with SWA accomplishment)
+
+Deleted decision inbox entry: saul-overwrite-schema.md (merged to decisions.md)
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

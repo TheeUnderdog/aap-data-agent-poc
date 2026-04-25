@@ -191,6 +191,20 @@
 - **Owner:** Livingston (Data Engineer)
 - **Status:** ✅ Implemented — Phase 2 deployment scripts ready
 
+### Delta overwriteSchema Required on All saveAsTable Calls (2026-07)
+- **Decision:** All `saveAsTable()` calls in Fabric notebooks that regenerate data from scratch MUST include `.option("overwriteSchema", "true")`
+- **Pattern:**
+  ```python
+  df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").saveAsTable("tablename")
+  ```
+- **Rationale:** Notebooks should be idempotent — safe to re-run at any time. Delta's `mode("overwrite")` preserves schema by default; without this option, column additions/removals require manual table cleanup
+- **Impact:** 
+  - `notebooks/01-create-sample-data.py` — All 10 tables updated
+  - Any future write-Delta notebooks should follow the same pattern
+  - Enables safe schema evolution during POC development
+- **Owner:** Saul (Data Engineer)
+- **Status:** ✅ Implemented
+
 ## Governance
 
 - All meaningful changes require team consensus
