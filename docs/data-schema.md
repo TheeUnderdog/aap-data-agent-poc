@@ -1,27 +1,28 @@
 # AAP Data Agent POC — Data Schema Design
 
 **Document Owner:** Data Engineer  
-**Last Updated:** 2025-07  
-**Status:** PLACEHOLDER SCHEMA — Awaiting Production Access
+**Last Updated:** 2025-01 (Reconciled with actual Lakehouse schema)  
+**Status:** ACTIVE POC SCHEMA — Mirrored from Sample Data Generator
 
-> **📋 Update (July 2025):** The real AAP Loyalty Database schema has been received and documented
-> in [`docs/aap-schema-reference.md`](aap-schema-reference.md). That document includes the actual
-> table structure (8 table groups, 6 source systems), a preliminary mapping to our contract views,
-> and a gap analysis. **This placeholder schema remains active** until production database access
-> is available and the semantic views are remapped to real tables.
+> **📋 Important:** This document describes the **actual schema** created by `notebooks/01-create-sample-data.py`
+> and deployed in the Fabric Lakehouse. This is NOT a design spec — it documents what EXISTS.
+> When AAP provides production database access, this schema will be replaced and the semantic
+> layer remapped. See [`docs/aap-schema-reference.md`](aap-schema-reference.md) for preliminary
+> production schema mapping (when available).
 
 ---
 
 ## 1. Schema Design Philosophy
 
-### 1.1 This is a PLACEHOLDER Schema
+### 1.1 This is the POC Schema
 
-This schema is **NOT** the actual Advanced Auto Parts rewards/loyalty data schema. We are designing this POC without access to the real schema. This placeholder is:
+This schema represents the **actual data structure** deployed in the Fabric Lakehouse for POC purposes. It is:
 
 - **Domain-informed:** Based on industry knowledge of auto parts retail and loyalty programs
 - **Realistic:** Structured to support the types of queries a marketing team would actually need
+- **Generated data:** Created by `notebooks/01-create-sample-data.py` with realistic distributions and relationships
 - **Complete enough:** Allows us to build and demo the full technical architecture (Fabric mirroring, Data Agent, web app)
-- **Temporary:** Will be replaced when AAP provides the actual schema
+- **Temporary:** Will be replaced when AAP provides production database access
 
 ### 1.2 Swappable Architecture
 
@@ -36,345 +37,336 @@ The critical design principle is **schema independence**. The rest of the system
 
 ---
 
-## 2. Proposed Placeholder Schema
+## 2. POC Schema — Actual Lakehouse Tables
 
-This schema models a typical auto parts retailer loyalty program with member tiers, points earning/redemption, purchase history, and marketing campaigns.
+This schema is defined by `notebooks/01-create-sample-data.py` and represents what is **actually deployed** in the Fabric Lakehouse.
 
 ### 2.1 Schema Overview
 
-**Table Groups:**
-1. **Customer/Member** — Loyalty program members and tier definitions
-2. **Transaction** — Purchase history and line items
-3. **Points/Rewards** — Points ledger, rewards catalog, redemptions
-4. **Product/Store** — Product catalog and store locations
-5. **Campaign/Marketing** — Marketing campaigns and member responses
+**10 Delta Tables** (no schema prefix — Fabric Lakehouse Spark default database):
+
+| Table | Rows | Description |
+|-------|------|-------------|
+| `stores` | 500 | Store reference data |
+| `sku_reference` | 5,000 | Auto parts product catalog |
+| `loyalty_members` | 50,000 | Member profiles and tier info |
+| `transactions` | 500,000 | 3 years of purchase/return transactions |
+| `transaction_items` | ~1,500,000 | Line items per transaction (~3 avg) |
+| `member_points` | 500,000 | Points activity ledger |
+| `coupon_rules` | 100 | Campaign-aware coupon rule definitions |
+| `coupons` | 200,000 | Coupon issuance and redemption |
+| `csr` | 500 | Customer Service Rep profiles |
+| `csr_activities` | 50,000 | CSR audit trail |
+
+**Data Span:** 2023-01-01 to 2026-04-01 (3+ years of activity)  
+**Generation:** Deterministic (fixed random seed 42 for reproducibility)
 
 ### 2.2 Entity Relationship Summary
 
 ```
-members (1) ──< (M) transactions (1) ──< (M) transaction_items (M) >── (1) products
-   |                                                                           |
-   |                                                                           |
-   ├── member_tiers (lookup)                                    product_categories (lookup)
-   |
-   ├──< points_ledger (M)
-   |
-   ├──< reward_redemptions (M) >── rewards (1)
-   |
-   └──< campaign_responses (M) >── campaigns (1)
+loyalty_members (1) ──< (M) transactions (M) >── (1) stores
+      |                      |
+      |                      └──< transaction_items (M) >── (1) sku_reference
+      |
+      ├──< member_points (M)
+      ├──< coupons (M) >── (1) coupon_rules
+      └──< csr_activities (M) >── (1) csr
 
-transactions (M) >── (1) stores
+Notes:
+- loyalty_members.tier is denormalized (no separate tier table)
+- No separate product_categories table (category is a column in sku_reference)
+- Coupons link to coupon_rules (not a separate rewards catalog)
+- CSR activities track member lifecycle events
 ```
 
 ---
 
-## 3. Full DDL (PostgreSQL Syntax)
+## 3. Full Schema Definition (PySpark Types)
 
-### 3.1 Customer/Member Tables
+The tables below are created using PySpark DataFrames with `StructType` schemas and written as Delta tables. Column types are shown as PySpark types.
 
-```sql
--- Member tier definitions (Silver, Gold, Platinum)
-CREATE TABLE member_tiers (
-    tier_id SERIAL PRIMARY KEY,
-    tier_name VARCHAR(50) NOT NULL UNIQUE,
-    tier_level INT NOT NULL UNIQUE, -- 1=Bronze, 2=Silver, 3=Gold, 4=Platinum
-    min_annual_spend DECIMAL(10,2) NOT NULL,
-    points_multiplier DECIMAL(3,2) NOT NULL, -- 1.0, 1.5, 2.0
-    benefits_description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### 3.1 Stores — Reference data for transaction locations
 
-CREATE INDEX idx_tier_level ON member_tiers(tier_level);
+**Table:** `stores`  
+**Rows:** 500  
+**Written by:** `notebooks/01-create-sample-data.py` line 114
 
-COMMENT ON TABLE member_tiers IS 'Loyalty program tier definitions';
-COMMENT ON COLUMN member_tiers.points_multiplier IS 'Multiplier for points earned on purchases';
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `store_id` | IntegerType | False | Primary key |
+| `store_name` | StringType | False | Display name (e.g., "AAP Store #4123") |
+| `city` | StringType | True | City name |
+| `state` | StringType | True | 2-letter state code |
+| `zip_code` | StringType | True | 5-digit ZIP code |
+| `region` | StringType | True | Northeast, Southeast, Midwest, Southwest, West |
+| `store_type` | StringType | True | "retail" (85%) or "hub" (15%) |
+| `opened_date` | DateType | True | Store opening date (2005-01-01 to 2023-06-01) |
 
--- Loyalty program members
-CREATE TABLE members (
-    member_id SERIAL PRIMARY KEY,
-    external_id VARCHAR(50) UNIQUE, -- AAP customer ID
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(20),
-    date_of_birth DATE,
-    join_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    tier_id INT NOT NULL REFERENCES member_tiers(tier_id),
-    status VARCHAR(20) NOT NULL DEFAULT 'active', -- active, inactive, suspended
-    address_line1 VARCHAR(255),
-    address_line2 VARCHAR(255),
-    city VARCHAR(100),
-    state VARCHAR(2),
-    zip_code VARCHAR(10),
-    opt_in_email BOOLEAN DEFAULT TRUE,
-    opt_in_sms BOOLEAN DEFAULT FALSE,
-    last_purchase_date DATE,
-    lifetime_spend DECIMAL(12,2) DEFAULT 0.00,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+---
 
-CREATE INDEX idx_members_email ON members(email);
-CREATE INDEX idx_members_tier ON members(tier_id);
-CREATE INDEX idx_members_status ON members(status);
-CREATE INDEX idx_members_last_purchase ON members(last_purchase_date);
-CREATE INDEX idx_members_zip ON members(zip_code);
+### 3.2 SKU Reference — Auto parts product catalog
 
-COMMENT ON TABLE members IS 'Loyalty program members';
-COMMENT ON COLUMN members.external_id IS 'Reference to AAP main customer database';
-COMMENT ON COLUMN members.lifetime_spend IS 'Total spend since joining program';
-```
+**Table:** `sku_reference`  
+**Rows:** 2,000  
+**Written by:** `notebooks/01-create-sample-data.py` line 203
 
-### 3.2 Transaction Tables
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `sku` | StringType | False | Primary key, format: "AAP-XXX-#####" |
+| `product_name` | StringType | True | Brand + product name |
+| `category` | StringType | True | Batteries, Engine Oil, Brakes, Filters, Wipers, Spark Plugs, Lighting, Coolant, Accessories, Electrical |
+| `subcategory` | StringType | True | Sub-category within main category |
+| `brand` | StringType | True | Brand name |
+| `unit_price` | DoubleType | True | Unit price in dollars |
+| `is_bonus_eligible` | BooleanType | True | Eligible for bonus points (15% of SKUs) |
+| `is_skip_sku` | BooleanType | True | Excluded from points earning (5% of SKUs) |
+| `created_at` | TimestampType | True | Fixed timestamp: 2026-04-01 00:00:00 |
 
-```sql
--- Stores/locations
-CREATE TABLE stores (
-    store_id SERIAL PRIMARY KEY,
-    store_number VARCHAR(20) UNIQUE NOT NULL,
-    store_name VARCHAR(100) NOT NULL,
-    address_line1 VARCHAR(255),
-    city VARCHAR(100),
-    state VARCHAR(2),
-    zip_code VARCHAR(10),
-    region VARCHAR(50), -- Northeast, Southeast, Midwest, West, etc.
-    phone VARCHAR(20),
-    manager_name VARCHAR(100),
-    opened_date DATE,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+**Categories and Price Ranges:**
+- Batteries: $89.99 - $249.99
+- Engine Oil: $4.99 - $42.99
+- Brakes: $12.99 - $189.99
+- Filters: $5.99 - $34.99
+- Wipers: $3.99 - $29.99
+- Spark Plugs: $2.99 - $18.99
+- Lighting: $4.99 - $79.99
+- Coolant: $6.99 - $44.99
+- Accessories: $2.99 - $89.99
+- Electrical: $3.99 - $299.99
 
-CREATE INDEX idx_stores_region ON stores(region);
-CREATE INDEX idx_stores_state ON stores(state);
-CREATE INDEX idx_stores_active ON stores(is_active);
+---
 
-COMMENT ON TABLE stores IS 'Physical store locations';
+### 3.3 Loyalty Members — 5,000 member profiles with tier distribution
 
--- Product categories
-CREATE TABLE product_categories (
-    category_id SERIAL PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL UNIQUE,
-    parent_category_id INT REFERENCES product_categories(category_id),
-    description TEXT,
-    display_order INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+**Table:** `loyalty_members`  
+**Rows:** 5,000  
+**Written by:** `notebooks/01-create-sample-data.py` line 284
 
-CREATE INDEX idx_categories_parent ON product_categories(parent_category_id);
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `member_id` | LongType | False | Primary key |
+| `first_name` | StringType | True | Member first name |
+| `last_name` | StringType | True | Member last name |
+| `email` | StringType | True | Email address |
+| `phone` | StringType | True | Phone number (###-###-####) |
+| `enrollment_date` | DateType | True | Enrollment date (2020-01-01 to 2026-03-01) |
+| `enrollment_source` | StringType | True | "POS", "Ecomm", or "CustomerFirst" |
+| `member_status` | StringType | True | "active" (88%), "inactive" (9%), or "suspended" (3%) |
+| `tier` | StringType | True | "Bronze" (60%), "Silver" (25%), "Gold" (10%), "Platinum" (5%) |
+| `opt_in_email` | BooleanType | True | Email opt-in flag (72% true) |
+| `opt_in_sms` | BooleanType | True | SMS opt-in flag (45% true) |
+| `diy_account_id` | StringType | True | DIY account link (35% of members have one, format: "DIY-######") |
+| `created_at` | TimestampType | True | Created timestamp (enrollment date + random hour) |
+| `updated_at` | TimestampType | True | Last updated timestamp (random date after enrollment) |
 
-COMMENT ON TABLE product_categories IS 'Product category hierarchy';
+**Tier Distribution:**
+- Bronze: 60%
+- Silver: 25%
+- Gold: 10%
+- Platinum: 5%
 
--- Products
-CREATE TABLE products (
-    product_id SERIAL PRIMARY KEY,
-    sku VARCHAR(50) UNIQUE NOT NULL,
-    product_name VARCHAR(255) NOT NULL,
-    category_id INT NOT NULL REFERENCES product_categories(category_id),
-    brand VARCHAR(100),
-    description TEXT,
-    unit_price DECIMAL(10,2) NOT NULL,
-    cost DECIMAL(10,2), -- For margin analysis
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+---
 
-CREATE INDEX idx_products_category ON products(category_id);
-CREATE INDEX idx_products_brand ON products(brand);
-CREATE INDEX idx_products_sku ON products(sku);
-CREATE INDEX idx_products_active ON products(is_active);
+### 3.4 Transactions — 50,000 transactions with seasonal patterns
 
-COMMENT ON TABLE products IS 'Product catalog - auto parts and accessories';
-COMMENT ON COLUMN products.sku IS 'Stock keeping unit';
+**Table:** `transactions`  
+**Rows:** 50,000  
+**Written by:** `notebooks/01-create-sample-data.py` line 344
 
--- Purchase transactions
-CREATE TABLE transactions (
-    transaction_id SERIAL PRIMARY KEY,
-    transaction_number VARCHAR(50) UNIQUE NOT NULL,
-    member_id INT NOT NULL REFERENCES members(member_id),
-    store_id INT NOT NULL REFERENCES stores(store_id),
-    transaction_date TIMESTAMP NOT NULL,
-    subtotal DECIMAL(10,2) NOT NULL,
-    tax DECIMAL(10,2) NOT NULL,
-    total DECIMAL(10,2) NOT NULL,
-    payment_method VARCHAR(50), -- credit, debit, cash, gift_card
-    points_earned INT DEFAULT 0,
-    discount_amount DECIMAL(10,2) DEFAULT 0.00,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `transaction_id` | LongType | False | Primary key |
+| `member_id` | LongType | True | Foreign key → loyalty_members |
+| `store_id` | IntegerType | True | Foreign key → stores |
+| `transaction_date` | DateType | True | Transaction date (weighted seasonally: spring/summer heavier) |
+| `transaction_type` | StringType | True | "purchase" (92%) or "return" (8%) |
+| `subtotal` | DoubleType | True | Subtotal before tax (negative for returns) |
+| `tax` | DoubleType | True | Tax amount (5-10% of subtotal, negative for returns) |
+| `total` | DoubleType | True | Total amount (subtotal + tax, negative for returns) |
+| `item_count` | IntegerType | True | Number of line items (1-6, weighted toward 1-3) |
+| `channel` | StringType | True | "in-store" (70%), "online" (20%), "mobile" (10%) |
+| `order_id` | StringType | True | Order ID for online/mobile orders (format: "ORD-########") |
+| `created_at` | TimestampType | True | Created timestamp (transaction date + random hour 7-20) |
 
-CREATE INDEX idx_transactions_member ON transactions(member_id);
-CREATE INDEX idx_transactions_store ON transactions(store_id);
-CREATE INDEX idx_transactions_date ON transactions(transaction_date);
-CREATE INDEX idx_transactions_number ON transactions(transaction_number);
+**Seasonal Weights (by month):**
+- Jan-Feb: 0.7 (winter low)
+- Mar: 0.9 (spring ramp-up)
+- Apr-Jun: 1.2-1.3 (spring/summer peak)
+- Jul-Sep: 1.2-1.0 (summer decline)
+- Oct-Dec: 0.9-0.8 (fall/winter low)
 
-COMMENT ON TABLE transactions IS 'Purchase transaction headers';
-COMMENT ON COLUMN transactions.points_earned IS 'Loyalty points earned for this transaction';
+---
 
--- Transaction line items
-CREATE TABLE transaction_items (
-    item_id SERIAL PRIMARY KEY,
-    transaction_id INT NOT NULL REFERENCES transactions(transaction_id) ON DELETE CASCADE,
-    line_number INT NOT NULL,
-    product_id INT NOT NULL REFERENCES products(product_id),
-    quantity INT NOT NULL,
-    unit_price DECIMAL(10,2) NOT NULL,
-    line_total DECIMAL(10,2) NOT NULL,
-    discount_amount DECIMAL(10,2) DEFAULT 0.00,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(transaction_id, line_number)
-);
+### 3.5 Transaction Items — ~150,000 line items (3 per transaction avg)
 
-CREATE INDEX idx_items_transaction ON transaction_items(transaction_id);
-CREATE INDEX idx_items_product ON transaction_items(product_id);
+**Table:** `transaction_items`  
+**Rows:** ~150,000 (varies based on transaction.item_count)  
+**Written by:** `notebooks/01-create-sample-data.py` line 376
 
-COMMENT ON TABLE transaction_items IS 'Individual line items in transactions';
-```
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `item_id` | LongType | False | Primary key |
+| `transaction_id` | LongType | True | Foreign key → transactions |
+| `sku` | StringType | True | Foreign key → sku_reference |
+| `product_name` | StringType | True | Denormalized product name |
+| `category` | StringType | True | Denormalized category |
+| `quantity` | IntegerType | True | Quantity purchased (1-4, weighted toward 1) |
+| `unit_price` | DoubleType | True | Unit price at time of transaction |
+| `line_total` | DoubleType | True | unit_price × quantity (negative for returns) |
+| `is_return` | BooleanType | True | True if parent transaction is a return |
 
-### 3.3 Points/Rewards Tables
+---
 
-```sql
--- Points ledger (all points activity)
-CREATE TABLE points_ledger (
-    ledger_id SERIAL PRIMARY KEY,
-    member_id INT NOT NULL REFERENCES members(member_id),
-    transaction_id INT REFERENCES transactions(transaction_id),
-    activity_type VARCHAR(50) NOT NULL, -- earned, redeemed, expired, adjusted, bonus
-    points_amount INT NOT NULL, -- positive for earn, negative for redeem/expire
-    activity_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expiration_date DATE, -- For earned points
-    source_description TEXT, -- "Purchase at Store #123", "Birthday bonus", etc.
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### 3.6 Member Points — ~100,000 points activity records
 
-CREATE INDEX idx_ledger_member ON points_ledger(member_id);
-CREATE INDEX idx_ledger_transaction ON points_ledger(transaction_id);
-CREATE INDEX idx_ledger_date ON points_ledger(activity_date);
-CREATE INDEX idx_ledger_type ON points_ledger(activity_type);
+**Table:** `member_points`  
+**Rows:** 100,000  
+**Written by:** `notebooks/01-create-sample-data.py` line 454
 
-COMMENT ON TABLE points_ledger IS 'Complete history of all points activity';
-COMMENT ON COLUMN points_ledger.points_amount IS 'Positive = earned/bonus, Negative = redeemed/expired';
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `point_id` | LongType | False | Primary key |
+| `member_id` | LongType | True | Foreign key → loyalty_members |
+| `activity_date` | DateType | True | Date of points activity |
+| `activity_type` | StringType | True | "earn" (55%), "redeem" (20%), "expire" (10%), "adjust" (5%), "bonus" (10%) |
+| `points_amount` | IntegerType | True | Points change (positive for earn/bonus, negative for redeem/expire) |
+| `balance_after` | IntegerType | True | Points balance after this activity (simulated, not cumulative query) |
+| `source` | StringType | True | "purchase", "campaign", "bonus_activity", or "manual_adjust" |
+| `reference_id` | StringType | True | Transaction ID, campaign ID, or ticket ID |
+| `description` | StringType | True | Human-readable description |
+| `created_at` | TimestampType | True | Created timestamp (activity date + random hour 6-22) |
 
--- Rewards catalog
-CREATE TABLE rewards (
-    reward_id SERIAL PRIMARY KEY,
-    reward_code VARCHAR(50) UNIQUE NOT NULL,
-    reward_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    category VARCHAR(100), -- discount, free_product, gift_card, service
-    points_cost INT NOT NULL,
-    cash_value DECIMAL(10,2), -- Equivalent dollar value
-    is_active BOOLEAN DEFAULT TRUE,
-    start_date DATE,
-    end_date DATE,
-    inventory_limit INT, -- NULL = unlimited
-    inventory_remaining INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+**Points Rules (by tier):**
+- Bronze/Silver: 1.0× multiplier (base: 5-250 pts)
+- Gold: 1.5× multiplier
+- Platinum: 2.0× multiplier
 
-CREATE INDEX idx_rewards_category ON rewards(category);
-CREATE INDEX idx_rewards_active ON rewards(is_active);
-CREATE INDEX idx_rewards_points ON rewards(points_cost);
+---
 
-COMMENT ON TABLE rewards IS 'Available rewards in the catalog';
+### 3.7 Coupon Rules — 100 campaign-aware rule definitions
 
--- Reward redemptions
-CREATE TABLE reward_redemptions (
-    redemption_id SERIAL PRIMARY KEY,
-    member_id INT NOT NULL REFERENCES members(member_id),
-    reward_id INT NOT NULL REFERENCES rewards(reward_id),
-    redemption_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    points_spent INT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending', -- pending, fulfilled, cancelled
-    fulfillment_date TIMESTAMP,
-    transaction_id INT REFERENCES transactions(transaction_id), -- If redeemed at POS
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+**Table:** `coupon_rules`  
+**Rows:** 100  
+**Written by:** `notebooks/01-create-sample-data.py`
 
-CREATE INDEX idx_redemptions_member ON reward_redemptions(member_id);
-CREATE INDEX idx_redemptions_reward ON reward_redemptions(reward_id);
-CREATE INDEX idx_redemptions_date ON reward_redemptions(redemption_date);
-CREATE INDEX idx_redemptions_status ON reward_redemptions(status);
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `rule_id` | LongType | False | Primary key |
+| `rule_name` | StringType | True | Display name (e.g., "Holiday % Off #1") |
+| `description` | StringType | True | Human-readable description |
+| `discount_type` | StringType | True | "percentage", "fixed", or "bogo" |
+| `discount_value` | DoubleType | True | Percentage (5-50) or fixed dollar amount (3-75); 0 for BOGO |
+| `min_purchase` | DoubleType | True | Minimum purchase required (0, 10, 15, 20, 25, 30, or 50) |
+| `valid_days` | IntegerType | True | Validity period in days (7, 14, 30, 60, or 90) |
+| `is_active` | BooleanType | True | Active flag (80% true) |
+| `target_tier` | StringType | True | Tier restriction (NULL for all tiers, or "Gold", "Platinum", "Silver") |
+| `campaign_name` | StringType | True | Campaign grouping (e.g., "Holiday Blitz", "Premium Member Exclusive") |
+| `created_at` | TimestampType | True | Fixed timestamp: 2026-04-01 00:00:00 |
 
-COMMENT ON TABLE reward_redemptions IS 'History of reward redemptions';
-```
+**Campaigns** (rules are distributed proportionally by campaign weight):
+- Holiday Blitz (Nov 15–Dec 31, weight 3.0), New Year Kickoff (Jan, weight 1.5), Spring Tune-Up (Mar–Apr, weight 2.0), Summer Road Trip (Jun–Jul, weight 2.0), Back to School (Aug–Sep 15, weight 1.5), Premium Member Exclusive (year-round, Gold/Platinum only), Silver+ Appreciation (year-round, Silver+), Welcome Offer (year-round), Flash Sale (random 2-week windows), Birthday Reward (year-round)
 
-### 3.4 Campaign/Marketing Tables
+---
 
-```sql
--- Marketing campaigns
-CREATE TABLE campaigns (
-    campaign_id SERIAL PRIMARY KEY,
-    campaign_code VARCHAR(50) UNIQUE NOT NULL,
-    campaign_name VARCHAR(255) NOT NULL,
-    campaign_type VARCHAR(50), -- email, sms, direct_mail, push, in_store
-    description TEXT,
-    start_date DATE NOT NULL,
-    end_date DATE,
-    target_tier_id INT REFERENCES member_tiers(tier_id), -- NULL = all tiers
-    target_region VARCHAR(50), -- NULL = all regions
-    offer_description TEXT,
-    discount_type VARCHAR(50), -- percentage, fixed_amount, bonus_points, free_shipping
-    discount_value DECIMAL(10,2),
-    budget_allocated DECIMAL(12,2),
-    created_by VARCHAR(100),
-    status VARCHAR(50) DEFAULT 'draft', -- draft, active, completed, cancelled
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+### 3.8 Coupons — 20,000 issued coupons with redemption tracking
 
-CREATE INDEX idx_campaigns_dates ON campaigns(start_date, end_date);
-CREATE INDEX idx_campaigns_type ON campaigns(campaign_type);
-CREATE INDEX idx_campaigns_status ON campaigns(status);
+**Table:** `coupons`  
+**Rows:** 20,000  
+**Written by:** `notebooks/01-create-sample-data.py` line 552
 
-COMMENT ON TABLE campaigns IS 'Marketing campaigns targeting loyalty members';
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `coupon_id` | LongType | False | Primary key |
+| `coupon_code` | StringType | True | Unique coupon code (format: "AAP-X####-#####") |
+| `coupon_rule_id` | LongType | True | Foreign key → coupon_rules |
+| `member_id` | LongType | True | Foreign key → loyalty_members (NULL for 15% of coupons) |
+| `issued_date` | DateType | True | Date issued |
+| `expiry_date` | DateType | True | Expiry date (issued_date + rule.valid_days) |
+| `status` | StringType | True | "issued" (30%), "redeemed" (35%), "expired" (30%), "voided" (5%) |
+| `redeemed_date` | DateType | True | Date redeemed (NULL unless status = "redeemed") |
+| `redeemed_transaction_id` | LongType | True | Transaction where redeemed (NULL unless status = "redeemed") |
+| `discount_type` | StringType | True | Denormalized from coupon_rule |
+| `discount_value` | DoubleType | True | Denormalized from coupon_rule |
+| `source_system` | StringType | True | "GK", "POS", or "Ecomm" |
+| `created_at` | TimestampType | True | Created timestamp (issued date + random hour) |
 
--- Campaign responses/engagement
-CREATE TABLE campaign_responses (
-    response_id SERIAL PRIMARY KEY,
-    campaign_id INT NOT NULL REFERENCES campaigns(campaign_id),
-    member_id INT NOT NULL REFERENCES members(member_id),
-    sent_date TIMESTAMP,
-    opened_date TIMESTAMP,
-    clicked_date TIMESTAMP,
-    response_type VARCHAR(50), -- sent, opened, clicked, converted, unsubscribed
-    transaction_id INT REFERENCES transactions(transaction_id), -- If resulted in purchase
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+---
 
-CREATE INDEX idx_responses_campaign ON campaign_responses(campaign_id);
-CREATE INDEX idx_responses_member ON campaign_responses(member_id);
-CREATE INDEX idx_responses_type ON campaign_responses(response_type);
-CREATE INDEX idx_responses_transaction ON campaign_responses(transaction_id);
+### 3.9 CSR — 200 Customer Service Rep profiles
 
-COMMENT ON TABLE campaign_responses IS 'Member engagement with marketing campaigns';
-```
+**Table:** `csr`  
+**Rows:** 200  
+**Written by:** `notebooks/01-create-sample-data.py` line 578
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `csr_id` | LongType | False | Primary key |
+| `csr_name` | StringType | True | Full name |
+| `csr_email` | StringType | True | Email (@advanceautoparts.com) |
+| `department` | StringType | True | "Customer Service", "Loyalty Support", "Fraud Prevention", "Tier Management", "Escalations" |
+| `is_active` | BooleanType | True | Active flag (90% true) |
+| `created_at` | TimestampType | True | Fixed timestamp: 2026-04-01 00:00:00 |
+
+---
+
+### 3.10 CSR Activities — 10,000 audit trail records
+
+**Table:** `csr_activities`  
+**Rows:** 10,000  
+**Written by:** `notebooks/01-create-sample-data.py` line 631
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `activity_id` | LongType | False | Primary key |
+| `csr_id` | LongType | True | Foreign key → csr |
+| `member_id` | LongType | True | Foreign key → loyalty_members |
+| `activity_type` | StringType | True | "enrollment", "status_change", "coupon_adjust", "tier_override" |
+| `activity_date` | DateType | True | Date of activity |
+| `details` | StringType | True | JSON string with activity details |
+| `created_at` | TimestampType | True | Created timestamp |
+
+**Activity Types:**
+- `enrollment`: New member enrollment actions
+- `status_change`: Member status changes (active ↔ inactive ↔ suspended)
+- `coupon_adjust`: Coupon void/extend/reissue actions
+- `tier_override`: Manual tier adjustments
+
+- `tier_override`: Manual tier adjustments
+
+---
+
+## 3.11 Schema Gap Analysis
+
+This section documents differences between the original design spec and the actual implemented schema.
+
+**Tables in original spec NOT implemented:**
+- `member_tiers` — Tier info is denormalized into loyalty_members.tier column
+- `products` — Renamed to `sku_reference` with simpler structure
+- `product_categories` — Eliminated; category is a column in sku_reference
+- `points_ledger` — Renamed to `member_points` with different columns
+- `rewards` — Not implemented (coupons serve this purpose in POC)
+- `reward_redemptions` — Not implemented
+- `campaigns` — Not implemented (out of POC scope)
+- `campaign_responses` — Not implemented
+
+**Tables implemented NOT in original spec:**
+- `coupon_rules` — Defines reusable coupon templates
+- `coupons` — Coupon issuance and redemption tracking
+- `csr` — Customer service rep profiles
+- `csr_activities` — Audit trail for CSR actions
+
+**Key structural differences:**
+1. **Denormalization:** Tier info embedded in loyalty_members instead of separate tier table
+2. **Simplified products:** Single sku_reference table instead of products + product_categories
+3. **Coupon-centric rewards:** Coupons replace the separate rewards catalog concept
+4. **CSR audit trail:** Added CSR tracking for member lifecycle events
+5. **No campaigns:** Marketing campaign tracking deferred to production phase
 
 ---
 
 ## 4. Sample Data Description
 
-When loading sample data for testing, use these distributions to create realistic data:
-
-### 4.1 Data Volume Targets
-
-- **Members:** ~50,000 records
-  - 60% Active, 30% Inactive, 10% Suspended
-  - Tier distribution: 50% Bronze, 30% Silver, 15% Gold, 5% Platinum
-  - Geographic distribution across 5 states (VA, NC, PA, OH, FL)
-  - Join dates spread over last 5 years
-
-- **Stores:** 5 locations
-  - 2 in Virginia (Richmond, Norfolk)
-  - 1 in North Carolina (Charlotte)
-  - 1 in Pennsylvania (Philadelphia)
-  - 1 in Ohio (Columbus)
-
-- **Products:** ~500 products
-  - Categories: Batteries (10%), Engine Parts (25%), Brakes (15%), Fluids/Chemicals (15%), Electrical (10%), Body/Trim (10%), Tools (10%), Accessories (5%)
-  - Price range: $5 - $500
-  - Brands: AAP house brands + national brands (Duralast, Bosch, Mobil 1, Castrol, etc.)
+### 4.1 Data Volume (Actual)
 
 - **Transactions:** ~500,000 records
   - Date range: Last 2 years
@@ -416,237 +408,245 @@ When loading sample data for testing, use these distributions to create realisti
 - **Addresses:** Real cities/states, fictional street addresses
 - **Transaction Dates:** Weighted toward recent dates, with seasonal patterns
 - **Product SKUs:** Format `AAP-{CATEGORY}-{NUMBER}` (e.g., `AAP-BAT-1001`)
-- **Points Earned:** Base rate = $1 spent = 1 point, multiplied by tier bonus
-- **Campaign Codes:** Format `{YEAR}{QUARTER}-{TYPE}-{SEQ}` (e.g., `2024Q2-EMAIL-003`)
+### 4.1 Data Volume (Actual)
+
+Generated by `notebooks/01-create-sample-data.py`:
+
+| Table | Rows | Notes |
+|-------|------|-------|
+| `stores` | 500 | National distribution across 5 regions, 46 states |
+| `sku_reference` | 5,000 | 10 product categories, realistic pricing |
+| `loyalty_members` | 50,000 | Tier distribution: 60% Bronze, 25% Silver, 10% Gold, 5% Platinum |
+| `transactions` | 500,000 | Seasonal weighting (spring/summer + holiday peaks), tier-correlated frequency |
+| `transaction_items` | ~1,500,000 | Avg 3 items per transaction |
+| `member_points` | 500,000 | Activity types: 55% earn, 20% redeem, 10% expire, 10% bonus, 5% adjust |
+| `coupon_rules` | 100 | 10 named campaigns, percentage/fixed/BOGO discount types |
+| `coupons` | 200,000 | 70% campaign-aware; tier-based redemption rates (Platinum 55%→Bronze 25%) |
+| `csr` | 500 | 5 departments, 90% active |
+| `csr_activities` | 50,000 | Enrollment, status changes, coupon adjustments, tier overrides |
+| **TOTAL** | **~2,800,000+ rows** | |
+
+**Date Range:** 2023-01-01 to 2026-04-01 (3+ years)  
+**Deterministic:** Fixed random seed (42) for reproducibility
+
+### 4.2 Data Generation Notes
+
+- **Seasonal patterns:** Transactions weighted toward spring/summer months (April-July) to simulate auto maintenance seasonality
+- **Realistic distributions:** Member tier follows loyalty program norms; transaction channels reflect retail dominance (70% in-store)
+- **Relational integrity:** All foreign keys valid; member_points references real transactions when applicable
+- **Price ranges:** SKU pricing based on actual auto parts market ranges per category
+- **Geographic diversity:** Stores span 5 US regions with realistic city/state/ZIP combinations
 
 ---
 
 ## 5. Schema Contract (View Layer)
 
-This is the **CRITICAL INTERFACE** that the rest of the system depends on. All consuming components (Fabric Data Agent, Backend API, Web App) query these views, NOT the raw tables.
+This is the **CRITICAL INTERFACE** that the rest of the system depends on. All consuming components (Fabric Data Agent, Backend API, Web App) should query standardized views, NOT raw tables.
 
-### 5.1 Contract Views DDL
+**Current Status:** The semantic model currently uses **DirectLake mode** which queries the Delta tables directly. SQL views have NOT been deployed yet. This section documents the **intended abstraction layer** for when SQL endpoint views are implemented.
+
+### 5.1 Proposed Contract Views (Not Yet Deployed)
+
+These views will provide a stable query interface when implemented. For now, components query the raw tables listed below.
+
+#### v_member_summary — Member profile with current points and tier
+
+**Purpose:** Single-row summary of each member's current state  
+**Underlying tables:** `loyalty_members`, `member_points`
 
 ```sql
--- Member summary with current points balance
+-- PROPOSED (not yet deployed)
 CREATE OR REPLACE VIEW v_member_summary AS
 SELECT 
     m.member_id,
-    m.external_id,
     m.first_name,
     m.last_name,
     m.email,
     m.phone,
-    m.join_date,
-    m.status,
-    mt.tier_name,
-    mt.tier_level,
-    mt.points_multiplier,
-    m.last_purchase_date,
-    m.lifetime_spend,
-    COALESCE(SUM(pl.points_amount), 0) AS current_points_balance,
-    DATEDIFF(day, m.last_purchase_date, CURRENT_DATE) AS days_since_last_purchase,
-    m.city,
-    m.state,
-    m.zip_code
-FROM members m
-JOIN member_tiers mt ON m.tier_id = mt.tier_id
-LEFT JOIN points_ledger pl ON m.member_id = pl.member_id 
-    AND (pl.expiration_date IS NULL OR pl.expiration_date > CURRENT_DATE)
-GROUP BY m.member_id, m.external_id, m.first_name, m.last_name, m.email, m.phone,
-    m.join_date, m.status, mt.tier_name, mt.tier_level, mt.points_multiplier,
-    m.last_purchase_date, m.lifetime_spend, m.city, m.state, m.zip_code;
+    m.enrollment_date,
+    m.member_status,
+    m.tier,
+    m.opt_in_email,
+    m.opt_in_sms,
+    m.diy_account_id,
+    -- Current points balance (latest balance_after per member)
+    (SELECT mp.balance_after 
+     FROM member_points mp 
+     WHERE mp.member_id = m.member_id 
+     ORDER BY mp.activity_date DESC, mp.point_id DESC 
+     LIMIT 1) AS current_points_balance,
+    m.updated_at AS last_profile_update
+FROM loyalty_members m;
+```
 
-COMMENT ON VIEW v_member_summary IS 'CONTRACT VIEW: Member profile with current points and tier';
+**DirectLake equivalent:** Query `loyalty_members` and aggregate `member_points` manually
 
--- Transaction history with enriched details
+---
+
+#### v_transaction_history — Transaction details with member and store info
+
+**Purpose:** Complete transaction view with denormalized member and store details  
+**Underlying tables:** `transactions`, `loyalty_members`, `stores`, `transaction_items`
+
+```sql
+-- PROPOSED (not yet deployed)
 CREATE OR REPLACE VIEW v_transaction_history AS
 SELECT 
     t.transaction_id,
-    t.transaction_number,
-    t.transaction_date,
     t.member_id,
-    m.first_name || ' ' || m.last_name AS member_name,
+    m.first_name + ' ' + m.last_name AS member_name,
     m.email AS member_email,
-    mt.tier_name AS member_tier,
+    m.tier AS member_tier,
     t.store_id,
     s.store_name,
     s.city AS store_city,
     s.state AS store_state,
     s.region AS store_region,
+    t.transaction_date,
+    t.transaction_type,
     t.subtotal,
     t.tax,
     t.total,
-    t.discount_amount,
-    t.payment_method,
-    t.points_earned,
-    COUNT(ti.item_id) AS item_count,
-    SUM(ti.quantity) AS total_quantity
+    t.item_count,
+    t.channel,
+    t.order_id
 FROM transactions t
-JOIN members m ON t.member_id = m.member_id
-JOIN member_tiers mt ON m.tier_id = mt.tier_id
-JOIN stores s ON t.store_id = s.store_id
-LEFT JOIN transaction_items ti ON t.transaction_id = ti.transaction_id
-GROUP BY t.transaction_id, t.transaction_number, t.transaction_date, t.member_id,
-    m.first_name, m.last_name, m.email, mt.tier_name, t.store_id, s.store_name,
-    s.city, s.state, s.region, t.subtotal, t.tax, t.total, t.discount_amount,
-    t.payment_method, t.points_earned;
+JOIN loyalty_members m ON t.member_id = m.member_id
+JOIN stores s ON t.store_id = s.store_id;
+```
 
-COMMENT ON VIEW v_transaction_history IS 'CONTRACT VIEW: Complete transaction details with member and store info';
+**DirectLake equivalent:** Query `transactions`, `loyalty_members`, and `stores` with relationships
 
--- Points activity timeline
+---
+
+#### v_points_activity — Points ledger with member context
+
+**Purpose:** All points activity with member details  
+**Underlying tables:** `member_points`, `loyalty_members`
+
+```sql
+-- PROPOSED (not yet deployed)
 CREATE OR REPLACE VIEW v_points_activity AS
 SELECT 
-    pl.ledger_id,
-    pl.member_id,
-    m.first_name || ' ' || m.last_name AS member_name,
+    mp.point_id,
+    mp.member_id,
+    m.first_name + ' ' + m.last_name AS member_name,
     m.email AS member_email,
-    mt.tier_name AS member_tier,
-    pl.activity_type,
-    pl.points_amount,
-    pl.activity_date,
-    pl.expiration_date,
-    pl.source_description,
-    pl.transaction_id,
-    t.transaction_number,
-    CASE 
-        WHEN pl.expiration_date IS NOT NULL AND pl.expiration_date <= CURRENT_DATE THEN 'expired'
-        WHEN pl.expiration_date IS NOT NULL AND pl.expiration_date <= CURRENT_DATE + INTERVAL '30 days' THEN 'expiring_soon'
-        ELSE 'active'
-    END AS points_status
-FROM points_ledger pl
-JOIN members m ON pl.member_id = m.member_id
-JOIN member_tiers mt ON m.tier_id = mt.tier_id
-LEFT JOIN transactions t ON pl.transaction_id = t.transaction_id;
+    m.tier AS member_tier,
+    mp.activity_date,
+    mp.activity_type,
+    mp.points_amount,
+    mp.balance_after,
+    mp.source,
+    mp.reference_id,
+    mp.description
+FROM member_points mp
+JOIN loyalty_members m ON mp.member_id = m.member_id;
+```
 
-COMMENT ON VIEW v_points_activity IS 'CONTRACT VIEW: All points activity with expiration tracking';
+**DirectLake equivalent:** Query `member_points` and `loyalty_members` with relationship
 
--- Reward catalog with availability
-CREATE OR REPLACE VIEW v_reward_catalog AS
+---
+
+#### v_coupon_catalog — Active coupons with rule details
+
+**Purpose:** Available coupons with their redemption rules  
+**Underlying tables:** `coupons`, `coupon_rules`, `loyalty_members`
+
+```sql
+-- PROPOSED (not yet deployed)
+CREATE OR REPLACE VIEW v_coupon_catalog AS
 SELECT 
-    r.reward_id,
-    r.reward_code,
-    r.reward_name,
-    r.description,
-    r.category,
-    r.points_cost,
-    r.cash_value,
-    r.is_active,
-    r.start_date,
-    r.end_date,
-    r.inventory_limit,
-    r.inventory_remaining,
-    CASE 
-        WHEN r.is_active = FALSE THEN 'inactive'
-        WHEN r.end_date IS NOT NULL AND r.end_date < CURRENT_DATE THEN 'expired'
-        WHEN r.start_date IS NOT NULL AND r.start_date > CURRENT_DATE THEN 'upcoming'
-        WHEN r.inventory_limit IS NOT NULL AND r.inventory_remaining <= 0 THEN 'out_of_stock'
-        ELSE 'available'
-    END AS availability_status,
-    COUNT(rr.redemption_id) AS total_redemptions
-FROM rewards r
-LEFT JOIN reward_redemptions rr ON r.reward_id = rr.reward_id AND rr.status = 'fulfilled'
-GROUP BY r.reward_id, r.reward_code, r.reward_name, r.description, r.category,
-    r.points_cost, r.cash_value, r.is_active, r.start_date, r.end_date,
-    r.inventory_limit, r.inventory_remaining;
+    c.coupon_id,
+    c.coupon_code,
+    c.member_id,
+    m.first_name + ' ' + m.last_name AS member_name,
+    cr.rule_name,
+    cr.description AS rule_description,
+    c.discount_type,
+    c.discount_value,
+    cr.min_purchase,
+    c.issued_date,
+    c.expiry_date,
+    c.status,
+    c.redeemed_date,
+    c.redeemed_transaction_id,
+    c.source_system
+FROM coupons c
+JOIN coupon_rules cr ON c.coupon_rule_id = cr.rule_id
+LEFT JOIN loyalty_members m ON c.member_id = m.member_id;
+```
 
-COMMENT ON VIEW v_reward_catalog IS 'CONTRACT VIEW: Available rewards with redemption counts';
+**DirectLake equivalent:** Query `coupons`, `coupon_rules`, and `loyalty_members` with relationships
 
--- Store performance metrics
+---
+
+#### v_store_performance — Store transaction aggregates
+
+**Purpose:** Store-level sales and activity metrics  
+**Underlying tables:** `stores`, `transactions`
+
+```sql
+-- PROPOSED (not yet deployed)
 CREATE OR REPLACE VIEW v_store_performance AS
 SELECT 
     s.store_id,
-    s.store_number,
     s.store_name,
     s.city,
     s.state,
     s.region,
-    COUNT(DISTINCT t.transaction_id) AS transaction_count,
+    s.store_type,
+    COUNT(DISTINCT t.transaction_id) AS total_transactions,
     COUNT(DISTINCT t.member_id) AS unique_members,
-    SUM(t.total) AS total_revenue,
-    AVG(t.total) AS avg_transaction_value,
-    SUM(t.points_earned) AS total_points_issued,
-    COUNT(DISTINCT ti.product_id) AS unique_products_sold,
-    SUM(ti.quantity) AS total_units_sold
+    SUM(CASE WHEN t.transaction_type = 'purchase' THEN t.total ELSE 0 END) AS total_sales,
+    SUM(CASE WHEN t.transaction_type = 'return' THEN ABS(t.total) ELSE 0 END) AS total_returns,
+    AVG(CASE WHEN t.transaction_type = 'purchase' THEN t.total ELSE NULL END) AS avg_transaction_value
 FROM stores s
 LEFT JOIN transactions t ON s.store_id = t.store_id
-LEFT JOIN transaction_items ti ON t.transaction_id = ti.transaction_id
-GROUP BY s.store_id, s.store_number, s.store_name, s.city, s.state, s.region;
+GROUP BY s.store_id, s.store_name, s.city, s.state, s.region, s.store_type;
+```
 
-COMMENT ON VIEW v_store_performance IS 'CONTRACT VIEW: Store-level performance metrics';
+**DirectLake equivalent:** Query `stores` and aggregate `transactions` measures in Power BI/semantic model
 
--- Campaign effectiveness
-CREATE OR REPLACE VIEW v_campaign_effectiveness AS
-SELECT 
-    c.campaign_id,
-    c.campaign_code,
-    c.campaign_name,
-    c.campaign_type,
-    c.start_date,
-    c.end_date,
-    c.status,
-    mt.tier_name AS target_tier,
-    c.offer_description,
-    COUNT(DISTINCT cr.member_id) AS members_targeted,
-    SUM(CASE WHEN cr.response_type = 'opened' THEN 1 ELSE 0 END) AS opens,
-    SUM(CASE WHEN cr.response_type = 'clicked' THEN 1 ELSE 0 END) AS clicks,
-    COUNT(DISTINCT cr.transaction_id) AS conversions,
-    SUM(t.total) AS revenue_generated,
-    c.budget_allocated,
-    CASE 
-        WHEN COUNT(DISTINCT cr.member_id) > 0 
-        THEN CAST(SUM(CASE WHEN cr.response_type = 'opened' THEN 1 ELSE 0 END) AS FLOAT) / COUNT(DISTINCT cr.member_id) 
-        ELSE 0 
-    END AS open_rate,
-    CASE 
-        WHEN COUNT(DISTINCT cr.member_id) > 0 
-        THEN CAST(COUNT(DISTINCT cr.transaction_id) AS FLOAT) / COUNT(DISTINCT cr.member_id) 
-        ELSE 0 
-    END AS conversion_rate
-FROM campaigns c
-LEFT JOIN member_tiers mt ON c.target_tier_id = mt.tier_id
-LEFT JOIN campaign_responses cr ON c.campaign_id = cr.campaign_id
-LEFT JOIN transactions t ON cr.transaction_id = t.transaction_id
-GROUP BY c.campaign_id, c.campaign_code, c.campaign_name, c.campaign_type,
-    c.start_date, c.end_date, c.status, mt.tier_name, c.offer_description, c.budget_allocated;
+---
 
-COMMENT ON VIEW v_campaign_effectiveness IS 'CONTRACT VIEW: Campaign performance and ROI metrics';
+#### v_product_popularity — Product sales by category
 
--- Product popularity and performance
+**Purpose:** Product performance metrics  
+**Underlying tables:** `sku_reference`, `transaction_items`
+
+```sql
+-- PROPOSED (not yet deployed)
 CREATE OR REPLACE VIEW v_product_popularity AS
 SELECT 
-    p.product_id,
-    p.sku,
-    p.product_name,
-    p.brand,
-    pc.category_name,
-    p.unit_price,
-    COUNT(DISTINCT ti.transaction_id) AS times_purchased,
-    SUM(ti.quantity) AS total_units_sold,
-    SUM(ti.line_total) AS total_revenue,
-    AVG(ti.quantity) AS avg_quantity_per_transaction,
-    COUNT(DISTINCT t.member_id) AS unique_buyers,
-    MAX(t.transaction_date) AS last_sold_date
-FROM products p
-JOIN product_categories pc ON p.category_id = pc.category_id
-LEFT JOIN transaction_items ti ON p.product_id = ti.product_id
-LEFT JOIN transactions t ON ti.transaction_id = t.transaction_id
-GROUP BY p.product_id, p.sku, p.product_name, p.brand, pc.category_name, p.unit_price;
-
-COMMENT ON VIEW v_product_popularity IS 'CONTRACT VIEW: Product sales performance and popularity';
+    sr.sku,
+    sr.product_name,
+    sr.category,
+    sr.subcategory,
+    sr.brand,
+    sr.unit_price,
+    COUNT(ti.item_id) AS times_sold,
+    SUM(ti.quantity) AS total_quantity_sold,
+    SUM(ti.line_total) AS total_revenue
+FROM sku_reference sr
+LEFT JOIN transaction_items ti ON sr.sku = ti.sku
+GROUP BY sr.sku, sr.product_name, sr.category, sr.subcategory, sr.brand, sr.unit_price;
 ```
+
+**DirectLake equivalent:** Query `sku_reference` and aggregate `transaction_items` measures
+
+---
 
 ### 5.2 Contract View Descriptions
 
-| View Name | Purpose | Primary Consumers |
-|-----------|---------|------------------|
-| `v_member_summary` | Complete member profile with tier and current points balance | Web App (member dashboard), Data Agent, Backend API |
-| `v_transaction_history` | Enriched transaction view with member/store context | Data Agent (purchase queries), Web App (order history) |
-| `v_points_activity` | Points earned/redeemed timeline with expiration tracking | Web App (points history), Data Agent (points queries) |
-| `v_reward_catalog` | Available rewards with redemption stats | Web App (rewards page), Data Agent (reward queries) |
-| `v_store_performance` | Store-level aggregated metrics | Data Agent (store analysis), Power BI reports |
-| `v_campaign_effectiveness` | Campaign ROI and engagement metrics | Data Agent (marketing analysis), Power BI reports |
-| `v_product_popularity` | Product sales performance | Data Agent (product queries), Power BI reports |
+| View Name | Purpose | Primary Consumers | Status |
+|-----------|---------|-------------------|--------|
+| `v_member_summary` | Complete member profile with current points balance | Web App, Data Agent, Backend API | **Not deployed** — query `loyalty_members` + `member_points` |
+| `v_transaction_history` | Enriched transaction view with member/store context | Data Agent, Web App | **Not deployed** — query `transactions` + `loyalty_members` + `stores` |
+| `v_points_activity` | Points earned/redeemed timeline | Web App, Data Agent | **Not deployed** — query `member_points` + `loyalty_members` |
+| `v_coupon_catalog` | Available coupons with rule details | Web App, Data Agent | **Not deployed** — query `coupons` + `coupon_rules` + `loyalty_members` |
+| `v_store_performance` | Store-level aggregated metrics | Data Agent, Power BI reports | **Not deployed** — aggregate `stores` + `transactions` in semantic model |
+| `v_product_popularity` | Product sales performance | Data Agent, Power BI reports | **Not deployed** — aggregate `sku_reference` + `transaction_items` in semantic model |
 
 ### 5.3 Why This Abstraction Works
 
@@ -656,6 +656,11 @@ COMMENT ON VIEW v_product_popularity IS 'CONTRACT VIEW: Product sales performanc
 4. **Performance:** Views can be optimized, indexed, or materialized independently
 5. **Security:** Views can filter sensitive columns without exposing raw tables
 6. **Migration Path:** When real schema arrives, redefine views to point to new tables — zero code changes elsewhere
+
+**Current Reality:** DirectLake mode bypasses SQL views for performance. The semantic model defines relationships and measures directly on the Delta tables. When migrating to production, we can either:
+- Deploy SQL views on the Lakehouse SQL endpoint and update the semantic model to query them
+- Keep DirectLake mode and update table/relationship definitions in the semantic model
+- Hybrid: Use DirectLake for performance-critical paths, SQL views for complex aggregations
 
 ---
 
@@ -751,41 +756,62 @@ Before declaring swap complete:
 
 These queries demonstrate the types of questions AAP's marketing team would ask. Use these to configure and test the Fabric Data Agent.
 
+**Note:** These queries use the **actual table names** from the Lakehouse. When SQL views are deployed, update Data Agent instructions to use view names instead.
+
 ### 7.1 Member Queries
 
 **Q1: "How many active loyalty members do we have?"**
 ```sql
 SELECT COUNT(*) AS active_members
-FROM v_member_summary
-WHERE status = 'active';
+FROM loyalty_members
+WHERE member_status = 'active';
 ```
 
-**Q2: "Show me members who haven't made a purchase in 90 days"**
+**Q2: "Show me members who haven't made a purchase in the last 90 days"**
 ```sql
-SELECT member_id, first_name, last_name, email, tier_name, 
-       last_purchase_date, days_since_last_purchase
-FROM v_member_summary
-WHERE status = 'active' 
-  AND days_since_last_purchase > 90
+SELECT 
+    lm.member_id,
+    lm.first_name,
+    lm.last_name,
+    lm.email,
+    lm.tier,
+    MAX(t.transaction_date) AS last_purchase_date,
+    DATEDIFF(DAY, MAX(t.transaction_date), GETDATE()) AS days_since_last_purchase
+FROM loyalty_members lm
+LEFT JOIN transactions t ON lm.member_id = t.member_id
+WHERE lm.member_status = 'active'
+  AND t.transaction_type = 'purchase'
+GROUP BY lm.member_id, lm.first_name, lm.last_name, lm.email, lm.tier
+HAVING DATEDIFF(DAY, MAX(t.transaction_date), GETDATE()) > 90
 ORDER BY days_since_last_purchase DESC;
 ```
 
 **Q3: "How many members are in each tier?"**
 ```sql
-SELECT tier_name, COUNT(*) AS member_count,
-       ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage
-FROM v_member_summary
-WHERE status = 'active'
-GROUP BY tier_name, tier_level
-ORDER BY tier_level;
+SELECT 
+    tier,
+    COUNT(*) AS member_count,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage
+FROM loyalty_members
+WHERE member_status = 'active'
+GROUP BY tier
+ORDER BY tier;
 ```
 
-**Q4: "Who are our top 10 members by lifetime spend?"**
+**Q4: "Who are our top 10 members by total spend?"**
 ```sql
-SELECT first_name, last_name, email, tier_name, 
-       lifetime_spend, current_points_balance
-FROM v_member_summary
-WHERE status = 'active'
+SELECT 
+    lm.first_name,
+    lm.last_name,
+    lm.email,
+    lm.tier,
+    SUM(t.total) AS lifetime_spend,
+    COUNT(t.transaction_id) AS transaction_count
+FROM loyalty_members lm
+JOIN transactions t ON lm.member_id = t.member_id
+WHERE lm.member_status = 'active'
+  AND t.transaction_type = 'purchase'
+GROUP BY lm.member_id, lm.first_name, lm.last_name, lm.email, lm.tier
 ORDER BY lifetime_spend DESC
 LIMIT 10;
 ```
@@ -793,66 +819,92 @@ LIMIT 10;
 **Q5: "How many members joined in the last 30 days?"**
 ```sql
 SELECT COUNT(*) AS new_members
-FROM v_member_summary
-WHERE join_date >= CURRENT_DATE - INTERVAL '30 days';
+FROM loyalty_members
+WHERE enrollment_date >= DATEADD(DAY, -30, GETDATE());
 ```
 
-### 7.2 Transaction Queries
+### 7.2 Transaction & Product Queries
 
-**Q6: "What are the top 10 products by revenue this quarter?"**
+**Q6: "What are the top 10 products by revenue this year?"**
 ```sql
-SELECT product_name, brand, category_name, 
-       total_revenue, total_units_sold, times_purchased
-FROM v_product_popularity
-WHERE last_sold_date >= DATE_TRUNC('quarter', CURRENT_DATE)
+SELECT 
+    sr.sku,
+    sr.product_name,
+    sr.brand,
+    sr.category,
+    SUM(ti.line_total) AS total_revenue,
+    SUM(ti.quantity) AS total_units_sold,
+    COUNT(DISTINCT ti.transaction_id) AS times_purchased
+FROM transaction_items ti
+JOIN sku_reference sr ON ti.sku = sr.sku
+JOIN transactions t ON ti.transaction_id = t.transaction_id
+WHERE YEAR(t.transaction_date) = YEAR(GETDATE())
+  AND t.transaction_type = 'purchase'
+GROUP BY sr.sku, sr.product_name, sr.brand, sr.category
 ORDER BY total_revenue DESC
 LIMIT 10;
 ```
 
 **Q7: "Which store has the highest average transaction value?"**
 ```sql
-SELECT store_name, city, state, 
-       transaction_count, avg_transaction_value, total_revenue
-FROM v_store_performance
-WHERE transaction_count > 100
+SELECT 
+    s.store_id,
+    s.store_name,
+    s.city,
+    s.state,
+    COUNT(t.transaction_id) AS transaction_count,
+    AVG(t.total) AS avg_transaction_value,
+    SUM(t.total) AS total_revenue
+FROM stores s
+JOIN transactions t ON s.store_id = t.store_id
+WHERE t.transaction_type = 'purchase'
+GROUP BY s.store_id, s.store_name, s.city, s.state
+HAVING COUNT(t.transaction_id) > 100
 ORDER BY avg_transaction_value DESC
 LIMIT 1;
 ```
 
 **Q8: "Show me daily revenue for the last 7 days"**
 ```sql
-SELECT DATE(transaction_date) AS sale_date,
-       COUNT(*) AS transaction_count,
-       SUM(total) AS daily_revenue,
-       AVG(total) AS avg_ticket
-FROM v_transaction_history
-WHERE transaction_date >= CURRENT_DATE - INTERVAL '7 days'
-GROUP BY DATE(transaction_date)
+SELECT 
+    CAST(transaction_date AS DATE) AS sale_date,
+    COUNT(*) AS transaction_count,
+    SUM(total) AS daily_revenue,
+    AVG(total) AS avg_ticket
+FROM transactions
+WHERE transaction_date >= DATEADD(DAY, -7, GETDATE())
+  AND transaction_type = 'purchase'
+GROUP BY CAST(transaction_date AS DATE)
 ORDER BY sale_date DESC;
 ```
 
 **Q9: "What's the total revenue by region this month?"**
 ```sql
-SELECT store_region,
-       SUM(total) AS region_revenue,
-       COUNT(*) AS transaction_count,
-       COUNT(DISTINCT store_id) AS stores_in_region
-FROM v_transaction_history
-WHERE transaction_date >= DATE_TRUNC('month', CURRENT_DATE)
-GROUP BY store_region
+SELECT 
+    s.region AS store_region,
+    SUM(t.total) AS region_revenue,
+    COUNT(t.transaction_id) AS transaction_count,
+    COUNT(DISTINCT s.store_id) AS stores_in_region
+FROM transactions t
+JOIN stores s ON t.store_id = s.store_id
+WHERE t.transaction_date >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+  AND t.transaction_type = 'purchase'
+GROUP BY s.region
 ORDER BY region_revenue DESC;
 ```
 
-**Q10: "What percentage of transactions used each payment method last month?"**
+**Q10: "What percentage of transactions used each channel last month?"**
 ```sql
-SELECT payment_method,
-       COUNT(*) AS transaction_count,
-       ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage,
-       SUM(total) AS total_revenue
-FROM v_transaction_history
-WHERE transaction_date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
-  AND transaction_date < DATE_TRUNC('month', CURRENT_DATE)
-GROUP BY payment_method
+SELECT 
+    channel,
+    COUNT(*) AS transaction_count,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage,
+    SUM(total) AS total_revenue
+FROM transactions
+WHERE transaction_date >= DATEADD(MONTH, -1, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+  AND transaction_date < DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+  AND transaction_type = 'purchase'
+GROUP BY channel
 ORDER BY transaction_count DESC;
 ```
 
@@ -861,91 +913,127 @@ ORDER BY transaction_count DESC;
 **Q11: "What's our points redemption rate by tier?"**
 ```sql
 WITH earned AS (
-    SELECT member_tier, SUM(points_amount) AS total_earned
-    FROM v_points_activity
-    WHERE activity_type = 'earned'
-      AND activity_date >= DATE_TRUNC('year', CURRENT_DATE)
-    GROUP BY member_tier
+    SELECT 
+        lm.tier AS member_tier,
+        SUM(mp.points_amount) AS total_earned
+    FROM member_points mp
+    JOIN loyalty_members lm ON mp.member_id = lm.member_id
+    WHERE mp.activity_type = 'earn'
+      AND YEAR(mp.activity_date) = YEAR(GETDATE())
+    GROUP BY lm.tier
 ),
 redeemed AS (
-    SELECT member_tier, ABS(SUM(points_amount)) AS total_redeemed
-    FROM v_points_activity
-    WHERE activity_type = 'redeemed'
-      AND activity_date >= DATE_TRUNC('year', CURRENT_DATE)
-    GROUP BY member_tier
+    SELECT 
+        lm.tier AS member_tier,
+        ABS(SUM(mp.points_amount)) AS total_redeemed
+    FROM member_points mp
+    JOIN loyalty_members lm ON mp.member_id = lm.member_id
+    WHERE mp.activity_type = 'redeem'
+      AND YEAR(mp.activity_date) = YEAR(GETDATE())
+    GROUP BY lm.tier
 )
-SELECT e.member_tier,
-       e.total_earned,
-       COALESCE(r.total_redeemed, 0) AS total_redeemed,
-       ROUND(COALESCE(r.total_redeemed, 0) * 100.0 / NULLIF(e.total_earned, 0), 2) AS redemption_rate_pct
+SELECT 
+    e.member_tier,
+    e.total_earned,
+    COALESCE(r.total_redeemed, 0) AS total_redeemed,
+    ROUND(COALESCE(r.total_redeemed, 0) * 100.0 / NULLIF(e.total_earned, 0), 2) AS redemption_rate_pct
 FROM earned e
 LEFT JOIN redeemed r ON e.member_tier = r.member_tier
 ORDER BY e.member_tier;
 ```
 
-**Q12: "Show me members with points expiring in the next 30 days"**
+**Q12: "Show me members with high points balances"**
 ```sql
-SELECT member_id, member_name, member_email, member_tier,
-       SUM(points_amount) AS expiring_points,
-       MIN(expiration_date) AS earliest_expiration
-FROM v_points_activity
-WHERE points_status = 'expiring_soon'
-  AND activity_type = 'earned'
-GROUP BY member_id, member_name, member_email, member_tier
-HAVING SUM(points_amount) > 0
-ORDER BY expiring_points DESC;
+WITH latest_balances AS (
+    SELECT 
+        mp.member_id,
+        mp.balance_after AS current_balance,
+        ROW_NUMBER() OVER (PARTITION BY mp.member_id ORDER BY mp.activity_date DESC, mp.point_id DESC) AS rn
+    FROM member_points mp
+)
+SELECT 
+    lm.member_id,
+    lm.first_name,
+    lm.last_name,
+    lm.email,
+    lm.tier,
+    lb.current_balance
+FROM loyalty_members lm
+JOIN latest_balances lb ON lm.member_id = lb.member_id
+WHERE lb.rn = 1
+  AND lb.current_balance > 1000
+  AND lm.member_status = 'active'
+ORDER BY lb.current_balance DESC;
 ```
 
-**Q13: "What are the most popular rewards by redemption count?"**
+**Q13: "What are the most popular coupon types by redemption?"**
 ```sql
-SELECT reward_name, category, points_cost, 
-       cash_value, total_redemptions
-FROM v_reward_catalog
-WHERE total_redemptions > 0
-ORDER BY total_redemptions DESC
+SELECT 
+    cr.rule_name,
+    cr.discount_type,
+    cr.discount_value,
+    COUNT(*) AS total_issued,
+    SUM(CASE WHEN c.status = 'redeemed' THEN 1 ELSE 0 END) AS total_redeemed,
+    ROUND(SUM(CASE WHEN c.status = 'redeemed' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS redemption_rate_pct
+FROM coupons c
+JOIN coupon_rules cr ON c.coupon_rule_id = cr.rule_id
+GROUP BY cr.rule_id, cr.rule_name, cr.discount_type, cr.discount_value
+ORDER BY total_redeemed DESC
 LIMIT 10;
 ```
 
-**Q14: "How many points were issued vs redeemed last month?"**
+**Q14: "How many points were earned vs redeemed last month?"**
 ```sql
 SELECT 
     activity_type,
     SUM(points_amount) AS total_points,
-    COUNT(*) AS transaction_count
-FROM v_points_activity
-WHERE activity_date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month'
-  AND activity_date < DATE_TRUNC('month', CURRENT_DATE)
-  AND activity_type IN ('earned', 'redeemed')
+    COUNT(*) AS activity_count
+FROM member_points
+WHERE activity_date >= DATEADD(MONTH, -1, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+  AND activity_date < DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+  AND activity_type IN ('earn', 'redeem')
 GROUP BY activity_type;
 ```
 
-### 7.4 Campaign Queries
+### 7.4 Store & CSR Queries
 
-**Q15: "Show me campaign performance for email campaigns this year"**
+**Q15: "Which stores have the highest return rate?"**
 ```sql
-SELECT campaign_name, start_date, end_date,
-       members_targeted, opens, clicks, conversions,
-       ROUND(open_rate * 100, 2) AS open_rate_pct,
-       ROUND(conversion_rate * 100, 2) AS conversion_rate_pct,
-       revenue_generated
-FROM v_campaign_effectiveness
-WHERE campaign_type = 'email'
-  AND start_date >= DATE_TRUNC('year', CURRENT_DATE)
-  AND status = 'completed'
-ORDER BY conversion_rate DESC;
+WITH store_stats AS (
+    SELECT 
+        t.store_id,
+        SUM(CASE WHEN t.transaction_type = 'purchase' THEN 1 ELSE 0 END) AS purchases,
+        SUM(CASE WHEN t.transaction_type = 'return' THEN 1 ELSE 0 END) AS returns
+    FROM transactions t
+    WHERE t.transaction_date >= DATEADD(MONTH, -3, GETDATE())
+    GROUP BY t.store_id
+)
+SELECT 
+    s.store_id,
+    s.store_name,
+    s.city,
+    s.state,
+    ss.purchases,
+    ss.returns,
+    ROUND(ss.returns * 100.0 / NULLIF(ss.purchases, 0), 2) AS return_rate_pct
+FROM store_stats ss
+JOIN stores s ON ss.store_id = s.store_id
+WHERE ss.purchases > 50
+ORDER BY return_rate_pct DESC
+LIMIT 10;
 ```
 
-**Q16: "Which campaign generated the most revenue?"**
+**Q16: "What are the most common CSR activities?"**
 ```sql
-SELECT campaign_name, campaign_type, target_tier,
-       members_targeted, conversions, revenue_generated,
-       budget_allocated,
-       ROUND((revenue_generated - budget_allocated) / NULLIF(budget_allocated, 0) * 100, 2) AS roi_pct
-FROM v_campaign_effectiveness
-WHERE status = 'completed'
-  AND revenue_generated IS NOT NULL
-ORDER BY revenue_generated DESC
-LIMIT 1;
+SELECT 
+    activity_type,
+    COUNT(*) AS activity_count,
+    COUNT(DISTINCT member_id) AS unique_members,
+    COUNT(DISTINCT csr_id) AS unique_csrs
+FROM csr_activities
+WHERE activity_date >= DATEADD(MONTH, -1, GETDATE())
+GROUP BY activity_type
+ORDER BY activity_count DESC;
 ```
 
 ### 7.5 Advanced Analytics Queries
@@ -953,63 +1041,82 @@ LIMIT 1;
 **Q17: "What's the customer retention rate by tier?"**
 ```sql
 WITH recent_buyers AS (
-    SELECT DISTINCT member_id, member_tier
-    FROM v_transaction_history
-    WHERE transaction_date >= CURRENT_DATE - INTERVAL '90 days'
+    SELECT DISTINCT t.member_id, lm.tier AS member_tier
+    FROM transactions t
+    JOIN loyalty_members lm ON t.member_id = lm.member_id
+    WHERE t.transaction_date >= DATEADD(DAY, -90, GETDATE())
+      AND t.transaction_type = 'purchase'
 ),
 total_by_tier AS (
-    SELECT tier_name, COUNT(*) AS total_members
-    FROM v_member_summary
-    WHERE status = 'active'
-    GROUP BY tier_name
+    SELECT tier, COUNT(*) AS total_members
+    FROM loyalty_members
+    WHERE member_status = 'active'
+    GROUP BY tier
 )
-SELECT t.tier_name,
-       t.total_members,
-       COUNT(rb.member_id) AS active_buyers_90d,
-       ROUND(COUNT(rb.member_id) * 100.0 / t.total_members, 2) AS retention_rate_pct
+SELECT 
+    t.tier,
+    t.total_members,
+    COUNT(rb.member_id) AS active_buyers_90d,
+    ROUND(COUNT(rb.member_id) * 100.0 / t.total_members, 2) AS retention_rate_pct
 FROM total_by_tier t
-LEFT JOIN recent_buyers rb ON t.tier_name = rb.member_tier
-GROUP BY t.tier_name, t.total_members
+LEFT JOIN recent_buyers rb ON t.tier = rb.member_tier
+GROUP BY t.tier, t.total_members
 ORDER BY retention_rate_pct DESC;
 ```
 
 **Q18: "Show me product category performance by revenue"**
 ```sql
-SELECT category_name,
-       COUNT(DISTINCT product_id) AS products_in_category,
-       SUM(total_units_sold) AS total_units,
-       SUM(total_revenue) AS category_revenue,
-       AVG(unit_price) AS avg_product_price
-FROM v_product_popularity
-GROUP BY category_name
+SELECT 
+    sr.category,
+    COUNT(DISTINCT sr.sku) AS products_in_category,
+    SUM(ti.quantity) AS total_units,
+    SUM(ti.line_total) AS category_revenue,
+    AVG(sr.unit_price) AS avg_product_price
+FROM sku_reference sr
+LEFT JOIN transaction_items ti ON sr.sku = ti.sku
+WHERE ti.is_return = FALSE
+GROUP BY sr.category
 ORDER BY category_revenue DESC;
 ```
 
-**Q19: "What's the average customer lifetime value by acquisition year?"**
+**Q19: "What's the average customer lifetime value by enrollment year?"**
 ```sql
-SELECT EXTRACT(YEAR FROM join_date) AS join_year,
-       COUNT(*) AS members_acquired,
-       AVG(lifetime_spend) AS avg_lifetime_value,
-       AVG(DATEDIFF(day, join_date, COALESCE(last_purchase_date, CURRENT_DATE))) AS avg_days_active
-FROM v_member_summary
-WHERE status = 'active'
-GROUP BY EXTRACT(YEAR FROM join_date)
-ORDER BY join_year DESC;
+SELECT 
+    YEAR(lm.enrollment_date) AS enrollment_year,
+    COUNT(*) AS members_enrolled,
+    AVG(txn_totals.lifetime_spend) AS avg_lifetime_value,
+    AVG(DATEDIFF(DAY, lm.enrollment_date, GETDATE())) AS avg_days_since_enrollment
+FROM loyalty_members lm
+LEFT JOIN (
+    SELECT member_id, SUM(total) AS lifetime_spend
+    FROM transactions
+    WHERE transaction_type = 'purchase'
+    GROUP BY member_id
+) txn_totals ON lm.member_id = txn_totals.member_id
+WHERE lm.member_status = 'active'
+GROUP BY YEAR(lm.enrollment_date)
+ORDER BY enrollment_year DESC;
 ```
 
 **Q20: "Show me purchase frequency by member tier"**
 ```sql
 WITH member_txn_counts AS (
-    SELECT member_id, member_tier, COUNT(*) AS txn_count
-    FROM v_transaction_history
-    WHERE transaction_date >= DATE_TRUNC('year', CURRENT_DATE)
-    GROUP BY member_id, member_tier
+    SELECT 
+        lm.member_id,
+        lm.tier AS member_tier,
+        COUNT(t.transaction_id) AS txn_count
+    FROM loyalty_members lm
+    JOIN transactions t ON lm.member_id = t.member_id
+    WHERE YEAR(t.transaction_date) = YEAR(GETDATE())
+      AND t.transaction_type = 'purchase'
+    GROUP BY lm.member_id, lm.tier
 )
-SELECT member_tier,
-       COUNT(*) AS members,
-       AVG(txn_count) AS avg_transactions_per_member,
-       MIN(txn_count) AS min_transactions,
-       MAX(txn_count) AS max_transactions
+SELECT 
+    member_tier,
+    COUNT(*) AS members_with_purchases,
+    AVG(txn_count) AS avg_transactions_per_member,
+    MIN(txn_count) AS min_transactions,
+    MAX(txn_count) AS max_transactions
 FROM member_txn_counts
 GROUP BY member_tier
 ORDER BY avg_transactions_per_member DESC;

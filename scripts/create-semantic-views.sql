@@ -122,6 +122,7 @@ SELECT
     m.first_name + ' ' + m.last_name AS member_name,
     m.tier AS member_tier,
     cr.rule_name,
+    cr.campaign_name,
     cr.description AS rule_description,
     c.issued_date,
     c.expiry_date,
@@ -283,6 +284,7 @@ CREATE OR ALTER VIEW semantic.v_campaign_effectiveness AS
 SELECT
     cr.rule_id,
     cr.rule_name,
+    cr.campaign_name,
     cr.description,
     cr.discount_type,
     cr.discount_value,
@@ -318,14 +320,14 @@ LEFT JOIN (
 GO
 
 -- ----------------------------------------------------------------------------
--- 9. v_audit_trail — Agent activity with member context
+-- 9. v_audit_trail — CSR activity with member context
 -- ----------------------------------------------------------------------------
 CREATE OR ALTER VIEW semantic.v_audit_trail AS
 SELECT
     aa.activity_id,
-    aa.agent_id,
-    a.agent_name,
-    a.department AS agent_department,
+    aa.csr_id,
+    a.csr_name,
+    a.department AS csr_department,
     aa.member_id,
     m.first_name + ' ' + m.last_name AS member_name,
     m.tier AS member_tier,
@@ -333,8 +335,8 @@ SELECT
     aa.activity_date,
     aa.details,
     aa.created_at
-FROM dbo.agent_activities aa
-JOIN dbo.agents a ON aa.agent_id = a.agent_id
+FROM dbo.csr_activities aa
+JOIN dbo.csr a ON aa.csr_id = a.csr_id
 JOIN dbo.loyalty_members m ON aa.member_id = m.member_id;
 GO
 
