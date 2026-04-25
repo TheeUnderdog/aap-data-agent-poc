@@ -118,3 +118,19 @@ The Fabric semantic model is now live with:
 - Frontend dev (Linus) can begin mock Data Agent integration
 
 **Key alignment point:** Ensure all Phase 2 Data Agent configuration scripts reference the finalized `docs/data-schema.md` and use only `semantic.v_*` contract views, never raw Delta tables.
+
+### Query Handling Edge Cases in Agent Instructions (2026-07)
+- **Scope:** Added `## Query Handling — Edge Cases` section to all 5 Fabric Data Agent instruction files (loyalty-program-manager, store-operations, merchandising, marketing-promotions, customer-service)
+- **Content:** 4 escalation patterns — (1) Ambiguous questions: ask one clarifying question, (2) Partial data: answer what you can and explain the gap, (3) Data not available: be specific about what's missing and suggest alternatives, (4) Out of scope: explain why another agent is better suited before referring
+- **Rationale:** Previous guardrails only had "don't fabricate data" — insufficient for real user interactions where questions are vague, partially answerable, or cross-domain. Consistent wording across all 5 agents ensures uniform UX regardless of which agent handles the query.
+- **Placement:** After `## Guardrails`, before `## Cross-Agent Referrals` in each file
+- **Commit:** 93373c5
+
+### Query Handling — Edge Cases Standardization (2026-04-25)
+- **Task:** Added standardized "Query Handling — Edge Cases" section to all 5 Fabric Data Agent instruction files
+- **Outcome:** ✅ SUCCESS — committed as 93373c5
+- **Files modified:** All 5 agent instruction files
+- **Content:** Four escalation patterns for ambiguous, partial, missing, or out-of-scope queries
+- **Wording:** Identical across all agents for consistent UX
+- **No downstream impact:** Frontend and Data layer unchanged
+

@@ -11,6 +11,37 @@
 
 ## Learnings
 
+### 2026-07: Documentation Consolidation & Cleanup
+
+**What I Did:**
+- **Assessed all 7 markdown docs** in `docs/` folder against the new `web/docs.html` (primary stakeholder-facing documentation)
+- **Removed redundant executive docs:**
+  - Archived `overview.md` — executive summary now in docs.html §1
+  - Archived `capability-overview.md` — agent descriptions, synthetic data overview now in docs.html §2–3
+- **Removed sample SQL queries** from `data-schema.md` §7 (Dave requested "no sample queries")
+  - Deleted 20+ SQL examples (Q1–Q20) that were for agent training reference
+  - Updated section numbering accordingly
+- **Consolidated schema mapping docs** into single reference:
+  - Merged `data-approach.md` (POC design vs. real schema) + `aap-schema-reference.md` (AAP's actual 8 table groups)
+  - Created `production-schema-migration.md` — single source of truth for transition from POC to real data
+  - Includes 7 ready-to-use prompts for Copilot when AAP provides Snowflake DDL
+- **Kept technical references** that provide depth beyond docs.html:
+  - `data-schema.md` — authoritative DDL and contract views for POC schema
+  - `semantic-model-architecture.md` — architecture review with AI readiness guidance
+  - `architecture.md` — deep technical architecture across all 4 phases
+
+**Files Archived:**
+- `overview.md` (covered by docs.html §1)
+- `capability-overview.md` (covered by docs.html §2–3)
+- `data-approach.md` (consolidated into production-schema-migration.md)
+- `aap-schema-reference.md` (consolidated into production-schema-migration.md)
+
+**Lessons:**
+- Dave's shift from "teach the agent via sample queries" to "document the architecture" signals evolving doc maturity
+- Schema abstraction docs (contract views, swap procedures) are critical for production readiness and belong in deep reference only
+- Consolidation improved clarity: data-approach + aap-schema-reference were complementary, not overlapping
+- HTML-first docs for stakeholders; markdown for architects/engineers. Clean separation of concerns.
+
 ### 2025-07: Semantic Model Architecture Review & AI Readiness
 
 **What I Did:**
@@ -295,6 +326,37 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 **Deliverable:** Clean proposal document formatted for stakeholder review with report names, business descriptions, semantic view mappings, and key visuals per report.
 
 **Orchestration log:** `.squad/orchestration-log/2026-04-24T15-59-00Z-danny.md`
+
+### 2026-04: Data Approach Document — Schema Migration Playbook
+
+**What I Did:**
+- Created `docs/data-approach.md` — a 2,000-word strategic document serving dual purpose: (1) as-built documentation of the POC schema, (2) forward-looking playbook for transitioning to AAP's real Snowflake schema
+- Structured for technical audience (Microsoft field team + AAP technical stakeholders)
+
+**Content Structure:**
+1. **§1 Origin & Source Material** — Documented that we worked from a single architecture diagram with no column-level detail; included the Mermaid data flow diagram from `aap-schema-reference.md`
+2. **§2 What We Built** — 10 Delta tables, 2.8M rows, deterministic (seed=42), date range 2023-01-01 to 2026-04-01
+3. **§3 How True We Stayed** — Assessment table comparing 8 AAP table groups to 10 placeholder tables with fidelity ratings (High/Medium/Low); noted schema gaps (stores table not in diagram, added transaction_items)
+4. **§4 Reasonableness Assessment** — Honest evaluation: high confidence on transactions/members/stores (will map easily), medium on points/coupons/SKU (will need remapping), low on campaigns/rewards (may need restructuring)
+5. **§5 Schema Migration Prompts** — 7 actionable prompts (paste-ready for Copilot):
+   - Prompt 1: Schema Comparison & Mapping (output: mapping table)
+   - Prompt 2: Semantic View Remapping (output: 7 new view SQL statements)
+   - Prompt 3: Semantic Model Update (TMDL refreshes DirectLake)
+   - Prompt 4: Linguistic Schema Update (table/column synonyms)
+   - Prompt 5: Data Agent Config Updates (5 agent instruction files)
+   - Prompt 6: Data Generation Sunset (deprecate sample data notebook)
+   - Prompt 7: Validation & Testing (verify equivalence to placeholder)
+6. **§6 North Star** — Goal statement: AAP runs demo on their own data via Snowflake→Fabric Mirroring→Lakehouse→Data Agent→web app
+7. **§7 Prerequisites for Phase B** — Checklist of what AAP must provide (DDL, CrowdTwist model, data access, volumes, store tracking, audit fields, capacity)
+
+**Key Architecture Insights Documented:**
+- Schema abstraction layer isolates risk: when real schema arrives, only 4 areas change (views, TMDL, agent instructions, linguistic schema)
+- Consuming components (web app, agents, API) depend on VIEW INTERFACE, not implementation details
+- Contract views mean the POC proves the architecture works; transitioning to real data is a data mapping exercise, not a code rewrite
+
+**Committed:** `git add docs/data-approach.md && git commit -m "docs: add data approach document with schema migration prompts"`
+
+**Integration:** Document referenced by overview.md §"Schema Migration" and directly supports Phase B implementation plan
 
 ### 2025-07: Capability Overview Doc Trim
 

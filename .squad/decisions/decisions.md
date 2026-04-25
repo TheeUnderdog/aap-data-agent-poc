@@ -739,3 +739,180 @@ Implement responsive layout using CSS-only media queries with four breakpoints f
 - web/css/app.css — sole file modified
 - No changes to HTML structure or JavaScript
 - Marketing team users on tablets/phones can now use the chat UI comfortably
+
+---
+
+## Query Handling — Edge Cases (2026-04-25)
+
+**Author:** Basher (Backend Dev)  
+**Status:** Implemented  
+**Commit:** 93373c5
+
+Added a ## Query Handling — Edge Cases section to all 5 Fabric Data Agent instruction files, standardizing how agents respond when questions can't be fully answered.
+
+### Rationale
+
+The existing guardrails only said "don't fabricate data." In practice, users ask ambiguous questions, partially-answerable questions, and cross-domain questions. Without explicit guidance, agents either silently drop parts of questions or give unhelpful generic refusals.
+
+### Content
+
+Four escalation patterns, applied consistently across all agents:
+
+1. **Ambiguous Questions** — Ask one focused clarifying question before querying
+2. **Partial Data Available** — Answer what you can, explicitly explain the gap
+3. **Data Not Available** — Be specific about what's missing, suggest alternatives
+4. **Out of Scope** — Explain why another agent is better suited before referring
+
+### Team Impact
+
+- **All agents:** Same wording ensures consistent UX regardless of which agent handles the query
+- **Linus (Frontend):** No frontend changes needed — this is agent instruction content only
+- **Livingston:** No data layer changes — instructions reference existing data capabilities
+
+### Files Modified
+
+- gents/customer-service/customer-service-instructions.md
+- gents/loyalty-program-manager/loyalty-program-manager-instructions.md
+- gents/marketing-promotions/marketing-promotions-instructions.md
+- gents/merchandising/merchandising-instructions.md
+- gents/store-operations/store-operations-instructions.md
+
+---
+
+## Business Capability Overview Document (2026-07)
+
+**Owner:** Danny (Lead/Architect)  
+**Status:** Delivered  
+**Related:** docs/capability-overview.md
+
+Created docs/capability-overview.md as the primary stakeholder-facing summary of the AAP Data Agent POC capabilities. Target audience is AAP executives, marketing leadership, and technical sponsors—not the implementation team.
+
+### Rationale
+
+AAP stakeholders need a clear, non-technical explanation of:
+1. What problem the POC solves (data access bottleneck)
+2. What the experience feels like (live demo walkthrough)
+3. How the five specialized agents map to business domains
+4. What real production deployment looks like (step-by-step, timelines)
+5. What comes after the POC (roadmap)
+
+The technical architecture (docs/architecture.md) is excellent for implementation teams but overwhelming for business stakeholders. This document translates capability into business narrative.
+
+---
+
+## Data Approach Document & Schema Migration Prompts (2026-04)
+
+**Owner:** Danny (Lead/Architect)  
+**Status:** Decided & Implemented  
+**Related:** docs/data-approach.md
+
+Created docs/data-approach.md as a living reference document serving two purposes:
+
+1. **As-built documentation:** Explains the POC schema we built (10 Delta tables, 2.8M rows, placeholder data), why we built it that way, and how true we stayed to AAP's architecture diagram
+2. **Forward-looking playbook:** Provides 7 actionable prompts for migrating from placeholder schema to AAP's real Snowflake schema when it becomes available
+
+---
+
+## Documentation Audit — Consolidation (2025-07)
+
+**Owner:** Danny (Lead/Architect)  
+**Status:** Implemented
+
+Consolidate from 3 implementation plans down to 1; update stale technology references across remaining docs.
+
+### Changes
+
+- Deleted docs/implementation-plan-manual.md (v1.0) and docs/implementation-plan-scripted.md (v2.0) — both superseded by docs/implementation-plan.md (v3.0)
+- Fixed technology references in uild-plan.md and capability-overview.md
+- Removed Squad agent name references from MANUAL_DEPLOYMENT_STEPS.md
+
+---
+
+## Documentation Consolidation — July 2026
+
+**Owner:** Danny (Lead/Architect)  
+**Status:** Completed & Documented
+
+Consolidated docs given that web/docs.html now serves as primary stakeholder-facing documentation.
+
+### Decision
+
+1. **Archive executive-level docs** that are now covered by docs.html
+2. **Remove all sample SQL queries** from data-schema.md
+3. **Consolidate schema migration docs** into single production-schema-migration.md
+4. **Keep technical references** that provide depth
+
+---
+
+## Inline SVG Injection for All Agent Icons (2025-07)
+
+**Author:** Linus (Frontend Dev)  
+**Status:** Implemented
+
+Use a shared injectSvgIcon() helper with an in-memory SVG cache for all agent icon rendering.
+
+### Rationale
+
+- **Consistency:** All icons display in their agent's brand color everywhere
+- **Performance:** SVG cache avoids redundant fetches
+- **Maintainability:** Single helper function for all icon locations
+
+---
+
+## Category-Specific Return Rate Multipliers (2026-07)
+
+**Author:** Saul (Data Engineer)  
+**Status:** Implemented
+
+Added per-category return rate multipliers to address unrealistic variance in return rates across categories.
+
+### Decision
+
+- Base return rate: 3%
+- Category-specific multipliers applied
+- Realistic spread: 0.3–3.0x based on product category
+- Categories like electronics now show higher return rates than consumables
+
+---
+
+## Category-Weighted Product Selection for Return Transactions (2026-07)
+
+**Author:** Saul (Data Engineer)  
+**Status:** Implemented
+
+Use category-weighted product selection for return transactions using andom.choices() with category-specific weights rather than uniform selection.
+
+### Weight Distribution
+
+| Category     | Weight |
+|-------------|--------|
+| Electrical  | 3.0    |
+| Lighting    | 2.5    |
+| Accessories | 2.2    |
+| Batteries   | 1.8    |
+| Brakes      | 1.3    |
+| Spark Plugs | 1.1    |
+| Wipers      | 0.8    |
+| Filters     | 0.5    |
+| Engine Oil  | 0.3    |
+| Coolant     | 0.3    |
+
+---
+
+## LLM Diagnostic Report in Sanity Check Notebook (2026-07)
+
+**Author:** Saul (Data Engineer)  
+**Status:** Implemented
+
+Add a structured LLM diagnostic report to 
+otebooks/02-data-sanity-check.py that maps each FAIL/WARN check result to its root cause and fix pattern in  1-create-sample-data.py.
+
+### Rationale
+
+- The sanity check notebook identifies problems but doesn't tell you HOW to fix them
+- The Fabric portal has embedded Copilot that can edit notebooks — but it needs structured instructions
+- A DIAGNOSTIC_MAP dictionary provides a maintainable mapping from check names to generator code locations
+
+### Convention Established
+
+Every sanity check added to  2-data-sanity-check.py should have a matching entry in DIAGNOSTIC_MAP with section, lines, root_cause, and fix fields.
