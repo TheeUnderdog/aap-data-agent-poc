@@ -14,6 +14,30 @@
     let reasoningPanelOpen = false;
     let tokenUsage = { prompt: 0, completion: 0, total: 0 }; // Session token accumulator
 
+    // ── SVG Icon Injection ───────────────────────────────────────
+    // Shared cache + helper to inline SVGs so they inherit CSS color via currentColor
+
+    const svgCache = {};
+
+    async function injectSvgIcon(container, agent, className) {
+        const color = agent.textColor || agent.accent;
+        container.style.color = color;
+
+        if (svgCache[agent.icon]) {
+            container.innerHTML = svgCache[agent.icon];
+            return;
+        }
+
+        try {
+            const resp = await fetch(agent.icon);
+            const svgText = await resp.text();
+            svgCache[agent.icon] = svgText;
+            container.innerHTML = svgText;
+        } catch (e) {
+            container.innerHTML = `<img src="${agent.icon}" alt="${agent.name}">`;
+        }
+    }
+
     // ── Initialization ──────────────────────────────────────────
 
     function isConfigured() {
@@ -114,11 +138,9 @@
             `;
             strip.appendChild(tab);
 
-            // Inline SVG so it inherits color via currentColor
+            // Inline SVG so it inherits color via currentColor (uses shared cache)
             const iconContainer = tab.querySelector('.tab-icon');
-            fetch(agent.icon)
-                .then(r => r.text())
-                .then(svg => { iconContainer.innerHTML = svg; });
+            injectSvgIcon(iconContainer, agent);
         }
     }
 
@@ -172,23 +194,25 @@
         if (!hasMessages) {
             area.innerHTML = `
                 <div class="welcome-message" id="welcome-section">
-                    <img class="welcome-icon" src="${agent.icon}" alt="${agent.name}">
+                    <div class="welcome-icon" data-agent-key="${agentKey}"></div>
                     <h2>${agent.name}</h2>
                     <p>${agent.welcome}</p>
                     ${samplesHtml ? `<div class="sample-questions">${samplesHtml}</div>` : ''}
                 </div>
             `;
+            injectSvgIcon(area.querySelector('.welcome-icon'), agent);
         } else {
             // Compact suggestions pinned at top — scroll up to find them
             area.innerHTML = `
                 <div class="welcome-compact" id="welcome-section">
                     <div class="welcome-compact-header">
-                        <img class="welcome-compact-icon" src="${agent.icon}" alt="${agent.name}">
+                        <div class="welcome-compact-icon" data-agent-key="${agentKey}"></div>
                         <span class="welcome-compact-label">Try asking ${agent.name}</span>
                     </div>
                     ${samplesHtml ? `<div class="sample-questions compact">${samplesHtml}</div>` : ''}
                 </div>
             `;
+            injectSvgIcon(area.querySelector('.welcome-compact-icon'), agent);
 
             for (const msg of history) {
                 area.appendChild(createMessageEl(msg, agent));
@@ -219,7 +243,7 @@
         } else {
             div.innerHTML = `
                 <div class="message-avatar">
-                    <img src="${agent.icon}" alt="${agent.name}">
+                    <div class="avatar-icon"></div>
                 </div>
                 <div class="message-bubble">
                     <button class="copy-btn" onclick="copyMessage(this)" title="Copy">📋</button>
@@ -227,6 +251,7 @@
                     <div class="message-meta">${agent.name} · ${timeStr}</div>
                 </div>
             `;
+            injectSvgIcon(div.querySelector('.avatar-icon'), agent);
         }
 
         return div;
@@ -250,12 +275,13 @@
             compact.id = 'welcome-section';
             compact.innerHTML = `
                 <div class="welcome-compact-header">
-                    <img class="welcome-compact-icon" src="${agentCfg.icon}" alt="${agentCfg.name}">
+                    <div class="welcome-compact-icon" data-agent-key="${agentKey}"></div>
                     <span class="welcome-compact-label">Try asking ${agentCfg.name}</span>
                 </div>
                 ${samplesHtml ? `<div class="sample-questions compact">${samplesHtml}</div>` : ''}
             `;
             fullWelcome.replaceWith(compact);
+            injectSvgIcon(compact.querySelector('.welcome-compact-icon'), agentCfg);
 
             // Show the suggestions chip
             const chip = document.getElementById('suggestions-chip');
@@ -273,7 +299,7 @@
         div.id = 'typing-indicator';
         div.innerHTML = `
             <div class="message-avatar">
-                <img src="${agent.icon}" alt="${agent.name}">
+                <div class="avatar-icon"></div>
             </div>
             <div class="message-bubble">
                 <div class="typing-indicator">
@@ -282,6 +308,7 @@
             </div>
         `;
         area.appendChild(div);
+        injectSvgIcon(div.querySelector('.avatar-icon'), agent);
         scrollToBottom();
     }
 

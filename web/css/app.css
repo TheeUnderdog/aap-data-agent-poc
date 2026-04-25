@@ -463,6 +463,15 @@ body {
     margin-bottom: 20px;
     filter: drop-shadow(0 4px 12px rgba(0,0,0,0.15));
     animation: welcomePulse 2s ease-in-out infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
 }
 
 @keyframes welcomePulse {
@@ -547,6 +556,15 @@ body {
     width: 24px;
     height: 24px;
     border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome-compact-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
 }
 
 .welcome-compact-label {
@@ -628,9 +646,22 @@ body {
     border: 2px solid var(--active-accent);
 }
 
-.message-avatar img {
+.message-avatar img,
+.avatar-icon {
     width: 20px;
     height: 20px;
+}
+
+.avatar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
 }
 
 .message-bubble {
@@ -1230,7 +1261,8 @@ body {
         height: 28px;
     }
 
-    .message-avatar img {
+    .message-avatar img,
+    .avatar-icon {
         width: 18px;
         height: 18px;
     }
