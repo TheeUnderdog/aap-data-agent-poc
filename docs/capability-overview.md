@@ -7,7 +7,7 @@
 
 ## Synthetic Data
 
-The POC runs on generated data that mirrors a real auto parts loyalty program:
+The POC runs on generated data that mirrors the Advance Auto Parts loyalty program schema as we understand it now:
 
 - **50,000 members** across Bronze, Silver, Gold, and Platinum tiers
 - **500,000+ transactions** spanning 3+ years with seasonal patterns
@@ -21,12 +21,21 @@ The POC runs on generated data that mirrors a real auto parts loyalty program:
 
 ## Fabric Workspace
 
-Deployed entities in the `AAP Rewards Loyalty` workspace:
+Deployed entities in the `AAP-RewardsLoyalty-POC` workspace:
 
-- **Lakehouse** — `aap_rewards_lakehouse` containing all mirrored Delta tables
-- **Mirrored tables** — members, transactions, transaction_items, points_ledger, rewards, reward_redemptions, products, product_categories, stores, campaigns, campaign_responses, coupons, coupon_redemptions, csr_interactions
-- **Semantic model** — `AAP Rewards Loyalty Model` (10 tables, 7 relationships, 16 DAX measures)
-- **Data Agents** — 5 domain-specific Fabric Data Agents (see below)
+| Entity | Name | Notes |
+|--------|------|-------|
+| Lakehouse | `RewardsLoyaltyData` | All Delta tables, SQL analytics endpoint |
+| Notebook | `01-create-sample-data` | Generates all synthetic data into lakehouse tables |
+| Notebook | `02-data-sanity-check` | 4-block validation pipeline with LLM diagnostic report |
+| Semantic Model | `AAP Rewards Loyalty Model` | 10 tables, 7 relationships, 16 DAX measures |
+| Data Agent | Pit Crew (Customer Service) | See agent list below |
+| Data Agent | GearUp (Loyalty Program) | See agent list below |
+| Data Agent | Ignition (Marketing) | See agent list below |
+| Data Agent | PartsPro (Merchandising) | See agent list below |
+| Data Agent | DieHard (Store Operations) | See agent list below |
+
+**Tables:** members, transactions, transaction_items, points_ledger, rewards, reward_redemptions, products, product_categories, stores, campaigns, campaign_responses, coupons, coupon_redemptions, csr_interactions
 
 ---
 
@@ -75,9 +84,16 @@ Location performance, regional comparisons, channel mix, and operational metrics
 - **Branded web app** — AAP-themed React SPA hosted on Azure Static Web Apps
 - **Six agent tabs** — Color-coded icons; click a tab to chat with that specialist
 - **Natural language input** — Users type plain English questions, no SQL required
-- **Transparent results** — Every response shows the answer, the underlying SQL query, and the data table
+- **Agent Reasoning panel** — Expandable sidebar shows routing decisions, agent calls, and processing steps in real time
 - **Welcome page** — Each agent displays a description and sample questions to get started
 - **Crew Chief routing** — Cross-functional questions auto-dispatch to the right specialist
+
+---
+
+## Source Code & Documentation
+
+- **Source repository** — All web app code, provisioning scripts, notebooks, agent instructions, and docs in a single Git repo
+- **Documentation** — Architecture overview, implementation plan, data schema reference, and this capability overview in `docs/`
 
 ---
 
