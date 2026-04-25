@@ -10,3 +10,8 @@
 scripts/.env.fabric
 
 __pycache__/
+
+# Azure Functions local settings (contains connection strings)
+api/local.settings.json
+api/.python_packages/
+api/.venv/

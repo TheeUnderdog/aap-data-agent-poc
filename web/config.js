@@ -3,7 +3,9 @@
  * Fill in your Fabric workspace ID, agent GUIDs, and Entra ID app registration.
  */
 window.APP_CONFIG = {
-    // Auth mode: true = local proxy handles auth, false = MSAL direct
+    // Auth mode: true = proxy handles auth (local server.py or SWA Functions), false = MSAL direct
+    // On SWA, relative /api/* URLs route to managed Functions automatically.
+    // Locally, server.py proxies /api/* at localhost:5000. Both work with useProxy: true.
     useProxy: true,
 
     // Fabric workspace GUID (from portal URL)

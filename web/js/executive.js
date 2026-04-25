@@ -61,15 +61,43 @@
         const client = window.AgentClient;
         const targets = classifyQuestion(question);
 
-        console.log(`[CrewChief] Routing to: ${targets.map(agentDisplayName).join(', ')}`);
+        const targetNames = targets.map(agentDisplayName).join(', ');
+        console.log(`[CrewChief] Routing to: ${targetNames}`);
+
+        // Add reasoning step for routing decision
+        if (window.addReasoningStep) {
+            window.addReasoningStep('routing', 'crew-chief', `Routing to: ${targetNames}`);
+        }
 
         // Fan out to all target agents in parallel
         const queries = targets.map(async (agentKey) => {
             try {
+                // Add reasoning step for each agent call
+                if (window.addReasoningStep) {
+                    window.addReasoningStep('agent-call', agentKey, `Querying ${agentDisplayName(agentKey)}...`);
+                }
+
                 const response = await client.sendMessage(agentKey, question);
+
+                // Complete the reasoning step
+                if (window.completeLastReasoningStep) {
+                    window.completeLastReasoningStep();
+                }
+
+                // Add response reasoning step
+                if (window.addReasoningStep) {
+                    window.addReasoningStep('agent-response', agentKey, `${agentDisplayName(agentKey)} responded`);
+                }
+
                 return { agentKey, response, error: null };
             } catch (err) {
                 console.warn(`[CrewChief] ${agentDisplayName(agentKey)} failed:`, err.message);
+
+                // Add error reasoning step
+                if (window.addReasoningStep) {
+                    window.addReasoningStep('error', agentKey, `${agentDisplayName(agentKey)} failed: ${err.message}`);
+                }
+
                 return { agentKey, response: null, error: err.message };
             }
         });
@@ -81,6 +109,11 @@
         if (successful.length === 0) {
             return "I tried reaching my team but couldn't get a response. " +
                    "Please try again, or switch to a specialist tab for direct access.";
+        }
+
+        // Add synthesis reasoning step
+        if (window.addReasoningStep) {
+            window.addReasoningStep('thinking', 'crew-chief', `Synthesizing responses from ${successful.length} agent(s)...`);
         }
 
         return synthesize(question, successful, failed);

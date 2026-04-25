@@ -10,6 +10,8 @@
     let chatHistories = {};   // agentKey → [{role, content, timestamp}]
     let unreadAgents = {};    // agentKey → boolean
     let isWaiting = false;
+    let reasoningSteps = [];  // Array of reasoning steps for current query
+    let reasoningPanelOpen = false;
 
     // ── Initialization ──────────────────────────────────────────
 
@@ -124,6 +126,10 @@
             t.classList.toggle('active', t.dataset.agent === agentKey);
         });
 
+        // Update active agent label (mobile)
+        const label = document.getElementById('active-agent-label');
+        if (label) label.textContent = agent.name;
+
         // Clear unread
         unreadAgents[agentKey] = false;
         const dot = document.getElementById(`unread-${agentKey}`);
@@ -134,6 +140,9 @@
 
         // Focus input
         document.getElementById('message-input').focus();
+
+        // Close sidebar if open (mobile)
+        closeSidebar();
     }
 
     // ── Chat Rendering ──────────────────────────────────────────
@@ -142,32 +151,46 @@
         const area = document.getElementById('chat-area');
         const agent = config.agents[agentKey];
         const history = chatHistories[agentKey];
+        const hasMessages = history && history.length > 0;
 
         area.innerHTML = '';
 
-        if (!history || history.length === 0) {
-            // Show welcome message + sample questions
-            const isLightAccent = agent.accent && ['#FFCF06'].includes(agent.accent.toUpperCase());
-            const samplesHtml = (agent.sampleQuestions || [])
-                .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
-                .join('');
+        // Always render sample questions at the top (full welcome when empty, compact when chatting)
+        const isLightAccent = agent.accent && ['#FFCF06'].includes(agent.accent.toUpperCase());
+        const samplesHtml = (agent.sampleQuestions || [])
+            .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
+            .join('');
 
+        if (!hasMessages) {
             area.innerHTML = `
-                <div class="welcome-message">
+                <div class="welcome-message" id="welcome-section">
                     <img class="welcome-icon" src="${agent.icon}" alt="${agent.name}">
                     <h2>${agent.name}</h2>
                     <p>${agent.welcome}</p>
                     ${samplesHtml ? `<div class="sample-questions">${samplesHtml}</div>` : ''}
                 </div>
             `;
-            return;
+        } else {
+            // Compact suggestions pinned at top — scroll up to find them
+            area.innerHTML = `
+                <div class="welcome-compact" id="welcome-section">
+                    <div class="welcome-compact-header">
+                        <img class="welcome-compact-icon" src="${agent.icon}" alt="${agent.name}">
+                        <span class="welcome-compact-label">Try asking ${agent.name}</span>
+                    </div>
+                    ${samplesHtml ? `<div class="sample-questions compact">${samplesHtml}</div>` : ''}
+                </div>
+            `;
+
+            for (const msg of history) {
+                area.appendChild(createMessageEl(msg, agent));
+            }
+            scrollToBottom();
         }
 
-        for (const msg of history) {
-            area.appendChild(createMessageEl(msg, agent));
-        }
-
-        scrollToBottom();
+        // Show/hide the suggestions chip based on whether there are messages
+        const chip = document.getElementById('suggestions-chip');
+        if (chip) chip.classList.toggle('hidden', !hasMessages);
     }
 
     function createMessageEl(msg, agent) {
@@ -204,9 +227,32 @@
     function addMessageToUI(msg, agent) {
         const area = document.getElementById('chat-area');
 
-        // Remove welcome message if present
-        const welcome = area.querySelector('.welcome-message');
-        if (welcome) welcome.remove();
+        // On first message, swap full welcome for compact version
+        const fullWelcome = area.querySelector('.welcome-message');
+        if (fullWelcome) {
+            const agentKey = activeAgent;
+            const agentCfg = config.agents[agentKey];
+            const isLightAccent = agentCfg.accent && ['#FFCF06'].includes(agentCfg.accent.toUpperCase());
+            const samplesHtml = (agentCfg.sampleQuestions || [])
+                .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
+                .join('');
+
+            const compact = document.createElement('div');
+            compact.className = 'welcome-compact';
+            compact.id = 'welcome-section';
+            compact.innerHTML = `
+                <div class="welcome-compact-header">
+                    <img class="welcome-compact-icon" src="${agentCfg.icon}" alt="${agentCfg.name}">
+                    <span class="welcome-compact-label">Try asking ${agentCfg.name}</span>
+                </div>
+                ${samplesHtml ? `<div class="sample-questions compact">${samplesHtml}</div>` : ''}
+            `;
+            fullWelcome.replaceWith(compact);
+
+            // Show the suggestions chip
+            const chip = document.getElementById('suggestions-chip');
+            if (chip) chip.classList.remove('hidden');
+        }
 
         area.appendChild(createMessageEl(msg, agent));
         scrollToBottom();
@@ -271,12 +317,22 @@
 
         showTypingIndicator(agent);
 
+        // Clear reasoning steps for new query
+        reasoningSteps = [];
+        renderReasoningSteps();
+
+        // Add initial reasoning step
+        addReasoningStep('thinking', agentKey, 'Analyzing query...');
+
         try {
             let response;
             if (agentKey === 'crew-chief') {
                 response = await window.Executive.askCrewChief(text);
             } else {
+                addReasoningStep('agent-call', agentKey, `Calling ${agent.name} API...`);
                 response = await window.AgentClient.sendMessage(agentKey, text);
+                completeLastReasoningStep();
+                addReasoningStep('agent-response', agentKey, 'Response received');
             }
 
             removeTypingIndicator();
@@ -295,6 +351,8 @@
         } catch (err) {
             removeTypingIndicator();
             console.error(`[App] Error from ${agent.name}:`, err);
+
+            addReasoningStep('error', agentKey, `Error: ${err.message}`);
 
             if (err instanceof window.AuthError) {
                 window.AuthManager.login();
@@ -447,6 +505,104 @@
         return div.innerHTML;
     }
 
+    // ── Reasoning Panel ─────────────────────────────────────────
+
+    function addReasoningStep(type, agent, message) {
+        const step = {
+            type: type,
+            agent: agent,
+            message: message,
+            timestamp: Date.now(),
+            duration: null
+        };
+        reasoningSteps.push(step);
+        renderReasoningSteps();
+        
+        // Auto-scroll reasoning panel to bottom
+        const panel = document.getElementById('reasoning-steps');
+        if (panel) {
+            requestAnimationFrame(() => {
+                panel.scrollTop = panel.scrollHeight;
+            });
+        }
+    }
+
+    function completeLastReasoningStep() {
+        if (reasoningSteps.length > 0) {
+            const lastStep = reasoningSteps[reasoningSteps.length - 1];
+            lastStep.duration = Date.now() - lastStep.timestamp;
+            renderReasoningSteps();
+        }
+    }
+
+    function renderReasoningSteps() {
+        const container = document.getElementById('reasoning-steps');
+        if (!container) return;
+
+        if (reasoningSteps.length === 0) {
+            container.innerHTML = '<div class="reasoning-empty">Send a message to see agent reasoning</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        for (const step of reasoningSteps) {
+            const div = document.createElement('div');
+            div.className = `reasoning-step ${step.type}`;
+            
+            const timeStr = new Date(step.timestamp).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+
+            const typeLabel = {
+                'routing': 'Routing',
+                'agent-call': 'API Call',
+                'agent-response': 'Response',
+                'thinking': 'Thinking',
+                'error': 'Error'
+            }[step.type] || step.type;
+
+            let durationHtml = '';
+            if (step.duration !== null) {
+                const durationMs = step.duration;
+                const durationStr = durationMs < 1000 
+                    ? `${durationMs}ms` 
+                    : `${(durationMs / 1000).toFixed(2)}s`;
+                durationHtml = `<div class="reasoning-step-duration">Completed in ${durationStr}</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="reasoning-step-header">
+                    <span class="reasoning-step-type">${typeLabel}</span>
+                    <span class="reasoning-step-time">${timeStr}</span>
+                </div>
+                <div class="reasoning-step-message">${escapeHtml(step.message)}</div>
+                ${durationHtml}
+            `;
+
+            container.appendChild(div);
+        }
+    }
+
+    window.toggleReasoning = function () {
+        reasoningPanelOpen = !reasoningPanelOpen;
+        const panel = document.getElementById('reasoning-panel');
+        const btn = document.getElementById('reasoning-toggle');
+        
+        if (reasoningPanelOpen) {
+            panel.classList.add('open');
+            btn.classList.add('active');
+        } else {
+            panel.classList.remove('open');
+            btn.classList.remove('active');
+        }
+    };
+
+    // Expose reasoning functions for executive.js to use
+    window.addReasoningStep = addReasoningStep;
+    window.completeLastReasoningStep = completeLastReasoningStep;
+
     // ── Global Handlers ─────────────────────────────────────────
 
     window.handleLogin = function () {
@@ -490,6 +646,53 @@
             btn.textContent = '✓';
             setTimeout(() => { btn.textContent = '📋'; }, 1500);
         });
+    };
+
+    // ── Hamburger Menu (Mobile) ─────────────────────────────────
+
+    window.toggleSidebar = function () {
+        const sidebar = document.getElementById('tab-strip');
+        const overlay = document.getElementById('sidebar-overlay');
+        const isOpen = sidebar.classList.contains('open');
+
+        if (isOpen) {
+            closeSidebar();
+        } else {
+            sidebar.classList.add('open');
+            overlay.classList.add('open');
+        }
+    };
+
+    function closeSidebar() {
+        const sidebar = document.getElementById('tab-strip');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+    }
+
+    // Close sidebar on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeSidebar();
+        }
+    });
+
+    // ── New Chat Button ─────────────────────────────────────────
+
+    window.handleNewChat = function () {
+        const agentKey = activeAgent;
+        chatHistories[agentKey] = [];
+        renderChat(agentKey);
+        document.getElementById('message-input').focus();
+    };
+
+    // ── Suggestions Chip (scroll to top) ────────────────────────
+
+    window.scrollToSuggestions = function () {
+        const section = document.getElementById('welcome-section');
+        if (section) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
 
     // ── Auto-init on page load ──────────────────────────────────
