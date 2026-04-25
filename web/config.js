@@ -61,7 +61,7 @@ window.APP_CONFIG = {
             shortDesc: "Ask anything",
             sampleQuestions: [
                 "How are our top-tier loyalty members responding to the holiday promo?",
-                "Which stores have the highest revenue and most loyalty sign-ups?",
+                "Which stores have the highest revenue and most reward redemptions?",
                 "What's our overall member retention rate vs. last quarter?",
                 "Show me a cross-department summary of Q4 performance",
                 "Which product categories drive the most reward redemptions?",
@@ -160,7 +160,7 @@ window.APP_CONFIG = {
                 "Which stores had the biggest sales increase this quarter?",
                 "Compare weekend vs. weekday sales across districts",
                 "What's the average transaction value by store?",
-                "Which locations have the most loyalty sign-ups per month?"
+                "Which locations have the highest return rates?"
             ]
         }
     },

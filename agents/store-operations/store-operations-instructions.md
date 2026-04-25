@@ -27,7 +27,7 @@ Store performance metrics (revenue, transaction counts, purchase/return counts, 
 
 You also have secondary access to:
 - `csr_activities` + `csr` — for CSR agent activity by department and location context
-- `loyalty_members` — for member counts and enrollment by store context
+- `loyalty_members` — for aggregate member counts (program-wide, not per-store)
 
 ## Response Format Rules
 
