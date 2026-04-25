@@ -157,7 +157,7 @@
         area.innerHTML = '';
 
         // Always render sample questions at the top (full welcome when empty, compact when chatting)
-        const isLightAccent = agent.accent && ['#FFCF06'].includes(agent.accent.toUpperCase());
+        const isLightAccent = agent.accent && ['#FFCC00'].includes(agent.accent.toUpperCase());
         const samplesHtml = (agent.sampleQuestions || [])
             .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
             .join('');
@@ -233,7 +233,7 @@
         if (fullWelcome) {
             const agentKey = activeAgent;
             const agentCfg = config.agents[agentKey];
-            const isLightAccent = agentCfg.accent && ['#FFCF06'].includes(agentCfg.accent.toUpperCase());
+            const isLightAccent = agentCfg.accent && ['#FFCC00'].includes(agentCfg.accent.toUpperCase());
             const samplesHtml = (agentCfg.sampleQuestions || [])
                 .map(q => `<button class="sample-question"${isLightAccent ? ' data-accent-light' : ''} onclick="handleSampleQuestion(this)">${escapeHtml(q)}</button>`)
                 .join('');

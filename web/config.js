@@ -53,7 +53,7 @@ window.APP_CONFIG = {
             id: null, // Client-side orchestrator — no Fabric agent
             name: "Crew Chief",
             icon: "img/crew-chief.svg",
-            accent: "#1A1A1A",
+            accent: "#1E1E1E",
             welcome: "I coordinate the full team. Ask me anything \u2014 I'll get the right people on it.",
             description: "Executive orchestrator",
             shortDesc: "Ask anything",
@@ -87,7 +87,7 @@ window.APP_CONFIG = {
             id: "b03579f9-1074-4578-8165-6954a83b31c5",
             name: "GearUp",
             icon: "img/gearup.svg",
-            accent: "#FFCF06",
+            accent: "#FFCC00",
             welcome: "Let's check in on the loyalty program. What do you want to know?",
             description: "Loyalty Program Manager",
             shortDesc: "Loyalty & rewards",
