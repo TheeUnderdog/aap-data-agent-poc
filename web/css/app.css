@@ -167,7 +167,7 @@ body {
     height: 100dvh;
 }
 
-/* Top Bar */
+/* Top Bar — AAP wordmark style */
 .top-bar {
     display: flex;
     align-items: center;
@@ -195,21 +195,53 @@ body {
 .top-bar-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .top-bar-logo {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: auto;
     filter: drop-shadow(0 0 6px rgba(255,204,0,0.3));
+    flex-shrink: 0;
 }
 
-.top-bar-title {
-    font-size: 19px;
+.top-bar-wordmark {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+    gap: 1px;
+}
+
+.wordmark-primary {
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 3px;
     color: var(--aap-white);
     text-transform: uppercase;
+}
+
+.wordmark-secondary {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 4.5px;
+    color: var(--aap-yellow);
+    text-transform: uppercase;
+}
+
+.wordmark-divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(255,255,255,0.2);
+    margin: 0 6px;
+    flex-shrink: 0;
+}
+
+.wordmark-tagline {
+    font-size: 12px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 .top-bar-right {
@@ -298,37 +330,6 @@ body {
 .sidebar-overlay.open {
     display: block;
     opacity: 1;
-}
-
-/* ============================================================
-   Hero Banner (AAP Yellow Promo Bar)
-   ============================================================ */
-
-.hero-banner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    background: var(--aap-yellow);
-    color: #1E1E1E;
-    padding: 14px 24px;
-    flex-shrink: 0;
-    text-align: center;
-    position: relative;
-    z-index: 9;
-}
-
-.hero-banner-text {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.hero-banner-sub {
-    font-size: 13px;
-    font-weight: 400;
-    opacity: 0.75;
 }
 
 /* ============================================================
@@ -1111,13 +1112,23 @@ body {
         height: 52px;
     }
 
-    .top-bar-title {
-        font-size: 15px;
+    .wordmark-primary {
+        font-size: 16px;
+        letter-spacing: 2px;
+    }
+
+    .wordmark-secondary {
+        font-size: 9px;
+        letter-spacing: 3px;
+    }
+
+    .wordmark-divider,
+    .wordmark-tagline {
+        display: none;
     }
 
     .top-bar-logo {
         width: 30px;
-        height: 30px;
     }
 
     .top-bar-left {
@@ -1338,8 +1349,12 @@ body {
    ============================================================ */
 
 @media (max-width: 374px) {
-    .top-bar-title {
-        font-size: 13px;
+    .wordmark-primary {
+        font-size: 14px;
+    }
+
+    .wordmark-secondary {
+        font-size: 8px;
     }
 
     .tab {

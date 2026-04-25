@@ -26,7 +26,7 @@
 
     <!-- Main App (hidden until auth) -->
     <div id="app" class="app hidden">
-        <!-- Top Bar -->
+        <!-- Top Bar — AAP wordmark style -->
         <header class="top-bar">
             <div class="top-bar-left">
                 <button id="hamburger-btn" class="hamburger-btn" onclick="toggleSidebar()" aria-label="Open agent menu">
@@ -35,7 +35,12 @@
                     </svg>
                 </button>
                 <img src="img/aap-logo.svg" alt="AAP" class="top-bar-logo">
-                <span class="top-bar-title">Advance Insights</span>
+                <div class="top-bar-wordmark">
+                    <span class="wordmark-primary">ADVANCE</span>
+                    <span class="wordmark-secondary">INSIGHTS</span>
+                </div>
+                <span class="wordmark-divider"></span>
+                <span class="wordmark-tagline">Rewards &amp; Loyalty Intelligence</span>
                 <span id="active-agent-label" class="active-agent-label"></span>
             </div>
             <div class="top-bar-right">
@@ -56,12 +61,6 @@
 
         <!-- Sidebar overlay (mobile) -->
         <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
-
-        <!-- Yellow Hero Banner (AAP brand) -->
-        <div class="hero-banner">
-            <span class="hero-banner-text">Rewards & Loyalty Intelligence</span>
-            <span class="hero-banner-sub">Ask questions about your customer data in plain English</span>
-        </div>
 
         <!-- Agent Tab Strip (becomes sidebar on mobile) -->
         <nav class="tab-strip" id="tab-strip">
