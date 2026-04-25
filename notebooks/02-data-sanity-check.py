@@ -313,16 +313,16 @@ store_return_df = spark.sql("""
 """).collect()
 
 if store_return_df:
-    overall_return = sum(r["returns"] for r in store_return_df) / sum(r["total_txns"] for r in store_return_df) * 100
+    overall_return = float(sum(r["returns"] for r in store_return_df)) / float(sum(r["total_txns"] for r in store_return_df)) * 100
     top5 = store_return_df[:5]
     print(f"  Network average: {overall_return:.1f}%")
     print(f"  Top 5 highest return rate stores:")
     for r in top5:
-        ratio = r["return_pct"] / overall_return if overall_return else 0
+        ratio = float(r["return_pct"]) / overall_return if overall_return else 0
         print(f"    {r['store_name']:<24} {r['return_pct']}% ({ratio:.1f}x avg) — {r['region']}")
 
     # Check: at least some stores should be 1.3x+ above average
-    max_ratio = max(r["return_pct"] for r in store_return_df) / overall_return if overall_return else 0
+    max_ratio = float(max(r["return_pct"] for r in store_return_df)) / overall_return if overall_return else 0
     store_outlier_ok = max_ratio > 1.3
 else:
     store_outlier_ok = False
