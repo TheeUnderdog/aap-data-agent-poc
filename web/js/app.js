@@ -195,8 +195,9 @@
             area.innerHTML = `
                 <div class="welcome-message" id="welcome-section">
                     <div class="welcome-icon" data-agent-key="${agentKey}"></div>
-                    <h2>${agent.name}</h2>
+                    <h2>${agent.name}${agent.about ? `<button class="info-btn" onclick="toggleInfoPopup(this)" title="About this agent">&#9432;</button>` : ''}</h2>
                     <div class="agent-tagline">${agent.description}</div>
+                    ${agent.about ? `<div class="info-popup">${escapeHtml(agent.about)}</div>` : ''}
                     <p>${agent.welcome}</p>
                     ${samplesHtml ? `<div class="sample-questions">${samplesHtml}</div>` : ''}
                 </div>
@@ -543,6 +544,24 @@
         div.textContent = text;
         return div.innerHTML;
     }
+
+    // ── Info Popup ──────────────────────────────────────────────
+
+    window.toggleInfoPopup = function(btn) {
+        const popup = btn.closest('.welcome-message').querySelector('.info-popup');
+        if (!popup) return;
+        const isOpen = popup.classList.contains('open');
+        // Close any other open popups first
+        document.querySelectorAll('.info-popup.open').forEach(p => p.classList.remove('open'));
+        if (!isOpen) popup.classList.add('open');
+    };
+
+    // Close popup when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.info-btn') && !e.target.closest('.info-popup')) {
+            document.querySelectorAll('.info-popup.open').forEach(p => p.classList.remove('open'));
+        }
+    });
 
     // ── Reasoning Panel ─────────────────────────────────────────
 

@@ -57,6 +57,7 @@ window.APP_CONFIG = {
             textColor: "#1E1E1E",
             welcome: "I coordinate the full team. Ask me anything \u2014 I'll get the right people on it.",
             description: "Executive orchestrator",
+            about: "Coordinates all specialist agents to deliver cross-functional insights across loyalty, marketing, merchandising, store operations, and customer service for the AAP rewards program.",
             shortDesc: "Ask anything",
             sampleQuestions: [
                 "How are our top-tier loyalty members responding to the holiday promo?",
@@ -75,6 +76,7 @@ window.APP_CONFIG = {
             textColor: "#2B6CB0",
             welcome: "Ready to dig into service data. What can I look up?",
             description: "Customer Service & Support",
+            about: "Analyzes CSR agent activity, member service patterns, and audit trails for the AAP rewards program support operation. Provides activity breakdowns, member lookups, and chronological audit records.",
             shortDesc: "Service & support",
             sampleQuestions: [
                 "How many support tickets were opened this month?",
@@ -93,6 +95,7 @@ window.APP_CONFIG = {
             textColor: "#B38600",
             welcome: "Let's check in on the loyalty program. What do you want to know?",
             description: "Loyalty Program Manager",
+            about: "Monitors member health, engagement, tier distribution, points liability, and churn risk for the AAP rewards loyalty program. Delivers tier breakdowns, at-risk member identification, and points balance analysis.",
             shortDesc: "Loyalty & rewards",
             sampleQuestions: [
                 "How many active loyalty members do we have?",
@@ -111,6 +114,7 @@ window.APP_CONFIG = {
             textColor: "#E86C00",
             welcome: "Campaigns, promotions, engagement \u2014 what are we analyzing?",
             description: "Marketing & Promotions",
+            about: "Evaluates coupon campaign performance, promotion ROI, and tier-targeted marketing effectiveness for the AAP rewards program. Provides redemption funnels, campaign comparisons, and coupon liability reports.",
             shortDesc: "Campaigns & promos",
             sampleQuestions: [
                 "Which campaign had the highest response rate this quarter?",
@@ -129,6 +133,7 @@ window.APP_CONFIG = {
             textColor: "#2D8A4E",
             welcome: "Products, categories, inventory trends \u2014 ask away.",
             description: "Merchandising & Categories",
+            about: "Analyzes product performance, brand rankings, category trends, and return rates across the AAP auto parts catalog. Delivers category comparisons, SKU-level detail, and revenue concentration insights.",
             shortDesc: "Products & merch",
             sampleQuestions: [
                 "What are our top 10 selling products this month?",
@@ -147,6 +152,7 @@ window.APP_CONFIG = {
             textColor: "#B6121B",
             welcome: "Store performance, operations data \u2014 what do you need?",
             description: "Store Operations",
+            about: "Tracks retail location performance, regional comparisons, channel mix, and operational metrics across AAP's 500-store network. Provides store rankings, regional benchmarks, and return rate analysis.",
             shortDesc: "Stores & ops",
             sampleQuestions: [
                 "What are our top 5 stores by revenue?",
