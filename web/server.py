@@ -68,6 +68,7 @@ def get_token():
 # ── Flask App ────────────────────────────────────────────────────
 
 app = Flask(__name__, static_folder=WEB_DIR)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # No caching for static files during dev
 CORS(app)
 
 
