@@ -916,3 +916,75 @@ otebooks/02-data-sanity-check.py that maps each FAIL/WARN check result to its ro
 ### Convention Established
 
 Every sanity check added to  2-data-sanity-check.py should have a matching entry in DIAGNOSTIC_MAP with section, lines, root_cause, and fix fields.
+
+---
+
+## Data Generator Gap Analysis & Prioritized Fix Roadmap (2026-04-26)
+
+**Author:** Saul (Data Engineer)  
+**Date:** 2026-04-26T00:55Z  
+**Status:** Analysis Complete — Awaiting Implementation Decision  
+**Trigger:** Dave tested Fabric Data Agent with weekday/weekend × channel × store performance question; agent returned empty columns for "Weekday In-Store Tx" due to underlying data gaps
+
+### Summary
+
+Comprehensive audit of the sample data generator (notebooks/01-create-sample-data.py) identified 13 data quality gaps directly affecting Fabric Data Agent query reliability. Gaps range from critical (root causes of query failures) to cosmetic (edge cases).
+
+### Critical Gaps (3)
+
+1. **C1 — No Day-of-Week Weighting**
+   - ROOT CAUSE of Dave's empty-column bug
+   - `weighted_random_date()` applies monthly seasonal weights but zero day-of-week logic
+   - All days of week get exactly ~14.3% (should vary 10-20%)
+   - Breaks: "How do weekday in-store counts compare to weekend online?" and all weekday/weekend queries
+
+2. **C2 — Channel Completely Independent of Store/DOW/Tier**
+   - Static [0.70, 0.20, 0.10] weights regardless of context
+   - Hub stores show 70% in-store (should be ~30% in-store, 55% online)
+   - Breaks: Channel-mix analysis, store-type comparisons, member tier behavior queries
+
+3. **C3 — 21.8% of Transactions Predate Member Enrollment**
+   - Transaction dates generated independently of member enrollment
+   - Members with 2026-03 enrollment have transactions dating to 2023
+   - Breaks: "Member behavior since joining" and all temporal member queries
+
+### Significant Gaps (6)
+
+- **S1:** Flat uniform hours (7AM-8PM all equal) vs real spikes (8-10AM in-store, 9-11PM online)
+- **S2:** Store volumes perfectly uniform (all ~1,000 txns ± 50) — no identifiable top/bottom performers
+- **S3:** Zero member geographic affinity — members randomly shop nationwide stores
+- **S4:** Hub vs Retail store types have identical behavior despite architectural differences
+- **S5:** Campaign windows exist but zero transaction lift during active campaigns
+- **S6:** Transaction subtotals don't match line item totals (data integrity issue)
+
+### Minor Gaps (4)
+
+- **M1:** Points balance_after not monotonic chronologically
+- **M2:** Coupon redeemed_txn references random (wrong-member, wrong-date) transactions
+- **M3:** Region distribution uneven due to state count variance
+- **M4:** No member status changes over time
+
+### Prioritized Fix Roadmap
+
+| Priority | Gap | Impact | Effort | Estimated Time |
+|----------|-----|--------|--------|-----------------|
+| **1** | C1 — Day-of-week weighting | Fixes Dave's bug, enables weekday/weekend queries | Low | 30 min |
+| **2** | C2 — Channel varies by store/DOW/tier | Channel-mix, store-type, tier analysis queries | Medium | 1.5 hr |
+| **3** | C3 — Clamp txn date ≥ enrollment date | Fixes 21.8% of txns, "since enrollment" queries | Low | 20 min |
+| **4** | S2 — Log-normal store traffic distribution | Top/bottom store rankings, store performance queries | Low | 45 min |
+| **5** | S6 — Derive txn subtotal from items | Data integrity, prevents query discrepancies | Medium | 1 hr |
+| **6** | S1 — Time-of-day patterns by channel | Staffing/peak-hour queries, operational analytics | Low | 45 min |
+| **7** | S3 — Member geographic affinity | Home-store patterns, store loyalty queries | Medium | 1.5 hr |
+
+**Recommended Approach:** Fix #1-#4 first (3 hours total). These address the most common agent failure modes. Then #5-#7 in next iteration.
+
+### Deliverable
+
+Full analysis: `.squad/decisions/inbox/saul-data-gaps-analysis.md` (15 KB, 216 lines)
+
+### Next Steps
+
+1. **Dave:** Review prioritized roadmap; confirm fix priorities
+2. **Saul or assignee:** Implement fixes #1-#4 in notebooks/01-create-sample-data.py
+3. **Basher:** After fixes merged, re-run data generation and retest Fabric Data Agent with weekday/weekend queries to verify empty-column bug is resolved
+4. **Schedule:** Consider fixes #5-#7 for Phase 1.5 or Phase 2 data refinement

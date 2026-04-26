@@ -197,6 +197,29 @@ df.write.format("delta").mode("overwrite").option("overwriteSchema", "true").sav
 
 **Hard Rule:** All Delta write notebooks in this project should use `overwriteSchema` on every `saveAsTable()` call. Data is regenerated from scratch each run; there's no reason to preserve stale schemas.
 
+### Data Generator Gap Analysis (2026-07-23)
+
+**Trigger:** Dave tested agent with weekday/weekend × channel × store query — "Weekday In-Store Tx" column was completely empty.
+
+**Root cause:** `weighted_random_date()` has NO day-of-week weighting. All 7 days get exactly ~14.3%. Channel selection is also completely independent of DOW, store type, tier, and time of day. Combined, "weekday in-store at underperforming stores" yields no meaningful data because (a) weekday/weekend is uniform, (b) all stores have identical volume, (c) all stores have identical channel mix.
+
+**Critical findings (13 gaps total):**
+- C1: No DOW weighting (root cause of Dave's bug)
+- C2: Channel independent of everything (store_type, DOW, tier, region)
+- C3: 21.8% of transactions predate member enrollment
+- S1: Flat uniform hours 7AM-8PM (no peak patterns)
+- S2: Store volume perfectly uniform (no top/bottom performers)
+- S3: Members shop at random stores nationwide (no geographic affinity)
+- S4: Hub vs retail stores behave identically
+- S5: No campaign → transaction lift correlation
+- S6: Transaction subtotals don't match sum of line items
+
+**Full report:** `.squad/decisions/inbox/saul-data-gaps-analysis.md`
+
+**Key pattern for future work:** When the Data Agent writes SQL with dimensional filters (weekday + in-store + underperforming), ALL those dimensions must have real variance in the data. If any dimension is uniform/random, the filter either returns everything or nothing — both produce misleading results.
+
+**Hard rule added:** Before deploying any new Data Agent instruction that references a dimensional filter (day-of-week, channel, store performance tier, region, time-of-day), verify that dimension has non-trivial variance in the generated data.
+
 **Files Modified:**
 - `notebooks/01-create-sample-data.py` — All 10 `saveAsTable()` calls updated
 

@@ -134,3 +134,11 @@ The Fabric semantic model is now live with:
 - **Wording:** Identical across all agents for consistent UX
 - **No downstream impact:** Frontend and Data layer unchanged
 
+
+### Data Generator Gaps Identified by Saul (2026-04-26)
+- **Context:** Dave's Fabric Data Agent test revealed empty columns when querying weekday/weekend × channel × store performance
+- **Root cause:** Sample data generator has 13 significant gaps (3 critical, 6 significant, 4 minor)
+- **Impact on Basher:** When Dave asks to implement data generator fixes, this comprehensive gap analysis is available as reference
+- **Key gaps:** Day-of-week weighting (C1), channel independence (C2), temporal violations (C3), store uniformity (S2), member geography (S3), time-of-day patterns (S1)
+- **Recommended first-pass fixes:** C1, C2, C3, S2 (~3 hours total) — these unlock most agent query types
+- **Full analysis:** .squad/decisions/decisions.md § "Data Generator Gap Analysis & Prioritized Fix Roadmap"
