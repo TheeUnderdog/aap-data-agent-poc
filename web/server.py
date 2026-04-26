@@ -8,7 +8,7 @@ Auth & Identity (user credentials flow end-to-end):
   - Production/Docker: MSAL auth code flow → user logs in via browser →
     acquire_token_silent gets a Fabric token AS THAT USER → Fabric API
     calls run with the user's identity (no service account, no managed identity)
-  - Local dev (no ENTRA_CLIENT_ID): InteractiveBrowserCredential popup
+  - Local dev (no ENTRA_CLIENT_ID): AzureCliCredential or browser popup
 
 The app never has standing Fabric permissions. It always acts on behalf of
 the authenticated user. If the user can't access the data, the app can't either.
@@ -17,8 +17,12 @@ Usage:
     # Local dev (no env vars needed — uses defaults + browser login)
     python web/server.py
 
-    # Docker local (same image as production)
-    docker run -p 8000:8000 -e ENTRA_CLIENT_ID=... -e ENTRA_CLIENT_SECRET=... aap-loyalty-intelligence
+    # Docker (requires Entra app registration for MSAL auth)
+    docker run -p 8000:8000 \\
+      -e ENTRA_CLIENT_ID=<app-id> \\
+      -e ENTRA_CLIENT_SECRET=<secret> \\
+      -e FABRIC_WORKSPACE_ID=<workspace-id> \\
+      aap-loyalty-intelligence
 
     # Production (Container Apps via gunicorn)
     gunicorn --bind 0.0.0.0:8000 server:app
@@ -37,7 +41,11 @@ from flask_cors import CORS
 
 import msal
 import jwt
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, ChainedTokenCredential
+from azure.identity import (
+    AzureCliCredential,
+    InteractiveBrowserCredential,
+    ChainedTokenCredential,
+)
 
 # ── Configuration (env vars with sensible defaults) ──────────────────
 
@@ -71,17 +79,26 @@ _assistant_cache = {}  # agentId → assistantId
 
 
 def _get_dev_credential():
-    """Get credential for local dev (no MSAL). Uses browser popup."""
+    """Get credential for local dev only (bare `python server.py`).
+
+    NOT used in Docker — Docker should always set ENTRA_CLIENT_ID to
+    use the MSAL auth code flow (user logs in via the browser they're
+    already using to access the app).
+
+    Credential chain (first success wins):
+      1. AzureCliCredential — works if `az login` was run on the host.
+      2. InteractiveBrowserCredential — opens a browser popup for login.
+    """
     global _dev_credential
     if _dev_credential is None:
         _dev_credential = ChainedTokenCredential(
-            DefaultAzureCredential(exclude_interactive_browser_credential=True),
+            AzureCliCredential(tenant_id=TENANT_ID),
             InteractiveBrowserCredential(
                 tenant_id=TENANT_ID,
                 redirect_uri="http://localhost:8400",
             ),
         )
-        print("\n🔐 Opening browser for Azure login...")
+        print("\n🔐 Authenticating with Azure...")
         _dev_credential.get_token(FABRIC_SCOPE)
         print("✅ Authenticated successfully!\n")
     return _dev_credential

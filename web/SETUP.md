@@ -30,18 +30,17 @@ pip install -r web/requirements.txt
 python web/server.py
 ```
 
-Opens at http://localhost:5000. In local mode, MSAL auth is disabled — the server uses `InteractiveBrowserCredential` for Fabric API calls directly.
+Opens at http://localhost:5000. In local mode, MSAL auth is disabled — the server uses `AzureCliCredential` (if `az login` was run) or `InteractiveBrowserCredential` for Fabric API calls directly.
 
 ## 2. Docker Build & Test
+
+Docker **requires** an Entra app registration (MSAL auth). Without it, the container has no way to authenticate users — there's no browser inside Docker for interactive login, and `az login` tokens aren't available.
 
 ```bash
 # Build the container image
 docker build -t aap-loyalty-intelligence ./web
 
-# Run locally (no auth — local dev mode)
-docker run -p 8000:8000 aap-loyalty-intelligence
-
-# Run with MSAL auth enabled
+# Run with MSAL auth (required for Docker)
 docker run -p 8000:8000 \
   -e ENTRA_CLIENT_ID=your-client-id \
   -e ENTRA_CLIENT_SECRET=your-secret \
@@ -49,6 +48,8 @@ docker run -p 8000:8000 \
   -e FABRIC_WORKSPACE_ID=82f53636-206f-4825-821b-bdaa8e089893 \
   aap-loyalty-intelligence
 ```
+
+Open http://localhost:8000 → you'll be redirected to Microsoft login → sign in → use the app. The MSAL auth code flow handles everything through the browser you're already using.
 
 ## 3. Create Azure Container App
 
