@@ -199,3 +199,15 @@ The Fabric semantic model is now live with:
 - **Source files:** 5× `verified-answers-*.json` (loyalty, store-ops, merch, marketing, csr)
 - **Placement:** After `## Cross-Agent Referrals`, before `## Example Response Flows` in each file
 - **Format:** Instruction-style prose with markdown tables — NOT Q&A pairs. Each section opens with scope/capabilities list, then structured reference tables.
+
+### SWA Deployment Scripts (2026-07)
+- **Scope:** Created automated deployment scripts for Azure Static Web Apps
+- **Files created:**
+  - `scripts/deploy-web.ps1` — PowerShell script (Windows) with ShouldProcess/-WhatIf support
+  - `scripts/deploy-web.sh` — Bash equivalent (macOS/Linux) with --dry-run flag
+- **Capabilities:** Resource group creation, SWA creation, Entra ID app registration (single tenant), client secret generation, application settings (AAD_CLIENT_ID, AAD_CLIENT_SECRET, FABRIC_WORKSPACE_ID, FABRIC_API_BASE), system-assigned managed identity enablement
+- **Idempotent:** All resource creation checks for existence first; safe to re-run
+- **Source of truth:** `web/SETUP.md` — scripts automate the manual steps documented there
+- **Key constants:** MSIT tenant 72f988bf, Fabric workspace 82f53636, redirect URI pattern `https://{hostname}/.auth/login/aad/callback`
+- **Manual steps remain:** Granting managed identity Fabric workspace Contributor access (portal-only)
+- **Commit:** 5f293d1
