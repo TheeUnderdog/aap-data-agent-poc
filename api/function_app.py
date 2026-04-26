@@ -1,6 +1,11 @@
 """
 Advance Insights — Azure Functions API for Static Web Apps
 
+⚠️  SUPERSEDED: This Azure Functions backend is superseded by the Container Apps
+deployment (web/server.py + gunicorn). The single-container approach handles both
+static files and API proxy. This file is retained for reference and potential
+local SWA emulator testing.
+
 Python v2 programming model. Proxies chat requests to Fabric Data Agent API
 with SSE streaming, user info, and health check endpoints.
 

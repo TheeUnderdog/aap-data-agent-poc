@@ -1,18 +1,12 @@
-FROM nginx:alpine
+FROM python:3.11-slim
 
-# Remove default nginx content
-RUN rm -rf /usr/share/nginx/html/*
+WORKDIR /app
 
-# Copy our static files
-COPY index.html /usr/share/nginx/html/
-COPY css/ /usr/share/nginx/html/css/
-COPY js/ /usr/share/nginx/html/js/
-COPY img/ /usr/share/nginx/html/img/
-COPY config.js /usr/share/nginx/html/
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY . .
 
-EXPOSE 80
+EXPOSE 8000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--worker-class", "gthread", "--threads", "4", "server:app"]

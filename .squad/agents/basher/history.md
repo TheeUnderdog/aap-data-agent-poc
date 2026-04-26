@@ -10,6 +10,30 @@
 
 ## Learnings
 
+### Container Apps Migration (2026-07)
+- **Scope:** Migrated from Azure Static Web Apps to Azure Container Apps (single container: Flask + gunicorn)
+- **Files changed:**
+  - `web/Dockerfile` — Replaced nginx-only with Python 3.11 + gunicorn (gthread worker, 2 workers × 4 threads for SSE)
+  - `web/requirements.txt` — Created: flask, flask-cors, gunicorn, msal, azure-identity, requests, PyJWT
+  - `web/server.py` — Major rewrite: env var config, ChainedTokenCredential (managed identity prod / browser dev), MSAL auth middleware, /auth/login|callback|logout endpoints, Flask sessions. SSE chat proxy UNCHANGED.
+  - `scripts/deploy-web.ps1` — Complete rewrite for Container Apps (env, app, managed identity, secrets)
+  - `scripts/deploy-web.sh` — Bash equivalent rewrite
+  - `scripts/deploy-all.ps1` — Updated SWA references to Container Apps
+  - `.github/workflows/azure-container-apps.yml` — New: Docker build → ghcr.io → Container Apps deploy
+  - `.github/workflows/azure-static-web-apps.yml` — Deleted
+  - `web/staticwebapp.config.json` — Deleted (no longer needed)
+  - `web/SETUP.md` — Full rewrite for Container Apps deployment
+  - `README.md` — Updated architecture, tech stack, deployment instructions
+  - `api/function_app.py` — Added superseded notice (kept for reference)
+- **Key patterns:**
+  - `IS_PRODUCTION = bool(ENTRA_CLIENT_ID)` — cleanly toggles between local dev and prod auth
+  - MSAL ConfidentialClientApplication for server-side auth code flow
+  - Flask session stores user claims after callback (no token in session for security)
+  - `DefaultAzureCredential` for Fabric API in prod (managed identity), `ChainedTokenCredential` with browser fallback in dev
+  - gunicorn gthread worker class essential for SSE streaming (gevent alternative, but gthread simpler for POC)
+- **Deployment targets:** MCAPS tenant (16b3c013), subscription 629e646d, resource group aap-poc-rg, eastus2
+- **Auth authority:** MSIT tenant (72f988bf) for @microsoft.com user login
+
 ### SWA Infrastructure Setup (2026-07)
 - **Scope:** Created full Azure Static Web Apps deployment infrastructure for the Advance Insights app
 - **Files created:**

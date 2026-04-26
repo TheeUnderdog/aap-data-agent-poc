@@ -1,67 +1,54 @@
 <#
 .SYNOPSIS
-    Deploy the Advance Insights web app to Azure Static Web Apps.
+    Deploy the Advance Insights web app to Azure Container Apps.
 
 .DESCRIPTION
-    Automates Azure Static Web App creation, Entra ID app registration, managed identity
-    setup, and application settings configuration for the AAP Data Agent POC.
+    Automates Azure Container App creation with managed identity, environment variables,
+    and secrets for the AAP Data Agent POC.
 
     Idempotent: checks if resources exist before creating them.
 
 .PARAMETER ResourceGroup
-    Azure resource group name.
+    Azure resource group name. Default: aap-poc-rg
 
 .PARAMETER AppName
-    Azure Static Web App name (becomes part of the hostname).
+    Container App name (becomes part of the FQDN). Default: aap-loyalty-intelligence
 
-.PARAMETER GitHubRepoUrl
-    GitHub repository URL (e.g., https://github.com/org/repo).
-
-.PARAMETER Branch
-    Git branch to deploy from. Default: main.
+.PARAMETER EnvName
+    Container App Environment name. Default: aap-app-env
 
 .PARAMETER Location
-    Azure region. Default: eastus2.
+    Azure region. Default: eastus2
 
-.PARAMETER AadClientId
-    (Optional) Existing Entra ID app registration client ID. If omitted, a new one is created.
+.PARAMETER ImageTag
+    Container image tag to deploy. Default: latest
 
-.PARAMETER AadClientSecret
-    (Optional) Existing Entra ID app registration client secret. Required if AadClientId is provided.
+.PARAMETER EntraClientId
+    Entra ID app registration client ID (for MSAL auth).
 
-.PARAMETER SkipAppRegistration
-    Skip Entra ID app registration (use if already configured).
+.PARAMETER EntraClientSecret
+    Entra ID app registration client secret.
+
+.PARAMETER SubscriptionId
+    Azure subscription ID. Default: 629e646d-3923-4838-8f3e-cbee6c72734c
 
 .EXAMPLE
-    .\scripts\deploy-web.ps1 -ResourceGroup "aap-poc-rg" -AppName "advance-insights" `
-        -GitHubRepoUrl "https://github.com/myorg/aap-data-agent-poc"
+    .\scripts\deploy-web.ps1
 
 .EXAMPLE
-    .\scripts\deploy-web.ps1 -ResourceGroup "aap-poc-rg" -AppName "advance-insights" `
-        -GitHubRepoUrl "https://github.com/myorg/aap-data-agent-poc" `
-        -AadClientId "existing-client-id" -AadClientSecret "existing-secret"
+    .\scripts\deploy-web.ps1 -EntraClientId "your-client-id" -EntraClientSecret "your-secret"
 #>
 
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [Parameter(Mandatory)]
-    [string]$ResourceGroup,
-
-    [Parameter(Mandatory)]
-    [string]$AppName,
-
-    [Parameter(Mandatory)]
-    [string]$GitHubRepoUrl,
-
-    [string]$Branch = "main",
-
+    [string]$ResourceGroup = "aap-poc-rg",
+    [string]$AppName = "aap-loyalty-intelligence",
+    [string]$EnvName = "aap-app-env",
     [string]$Location = "eastus2",
-
-    [string]$AadClientId,
-
-    [string]$AadClientSecret,
-
-    [switch]$SkipAppRegistration
+    [string]$ImageTag = "latest",
+    [string]$EntraClientId,
+    [string]$EntraClientSecret,
+    [string]$SubscriptionId = "629e646d-3923-4838-8f3e-cbee6c72734c"
 )
 
 Set-StrictMode -Version Latest
@@ -69,23 +56,23 @@ $ErrorActionPreference = "Stop"
 
 # ── Constants ────────────────────────────────────────────────────────────
 
-$TENANT_ID       = "72f988bf-86f1-41af-91ab-2d7cd011db47"
+$TENANT_ID           = "72f988bf-86f1-41af-91ab-2d7cd011db47"
 $FABRIC_WORKSPACE_ID = "82f53636-206f-4825-821b-bdaa8e089893"
-$FABRIC_API_BASE = "https://msitapi.fabric.microsoft.com/v1"
+$FABRIC_API_BASE     = "https://msitapi.fabric.microsoft.com/v1"
 
-# ── Usage Banner ─────────────────────────────────────────────────────────
+# ── Banner ───────────────────────────────────────────────────────────────
 
 Write-Host ""
 Write-Host "╔═══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║       Advance Insights — SWA Deployment Script               ║" -ForegroundColor Cyan
+Write-Host "║       Advance Insights — Container Apps Deployment           ║" -ForegroundColor Cyan
 Write-Host "║       AAP Data Agent POC                                     ║" -ForegroundColor Cyan
 Write-Host "╚═══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Resource Group : $ResourceGroup"
 Write-Host "  App Name       : $AppName"
-Write-Host "  GitHub Repo    : $GitHubRepoUrl"
-Write-Host "  Branch         : $Branch"
+Write-Host "  Environment    : $EnvName"
 Write-Host "  Location       : $Location"
+Write-Host "  Subscription   : $SubscriptionId"
 Write-Host ""
 
 # ── Prerequisite Checks ─────────────────────────────────────────────────
@@ -93,12 +80,10 @@ Write-Host ""
 function Test-Prerequisites {
     Write-Host "Checking prerequisites..." -ForegroundColor Yellow
 
-    # Azure CLI
     if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
         throw "Azure CLI (az) is not installed. Install from https://aka.ms/installazurecli"
     }
 
-    # Verify logged in
     $account = az account show 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw "Not logged in to Azure CLI. Run 'az login' first."
@@ -106,13 +91,12 @@ function Test-Prerequisites {
     $accountInfo = $account | ConvertFrom-Json
     Write-Host "  ✓ Azure CLI logged in as $($accountInfo.user.name)" -ForegroundColor Green
 
-    # GitHub CLI (optional but recommended)
-    if (Get-Command gh -ErrorAction SilentlyContinue) {
-        Write-Host "  ✓ GitHub CLI (gh) available" -ForegroundColor Green
-    } else {
-        Write-Host "  ⚠ GitHub CLI (gh) not found — SWA will prompt for GitHub auth interactively" -ForegroundColor DarkYellow
+    # Set subscription
+    az account set --subscription $SubscriptionId 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to set subscription $SubscriptionId"
     }
-
+    Write-Host "  ✓ Subscription set to $SubscriptionId" -ForegroundColor Green
     Write-Host ""
 }
 
@@ -135,211 +119,127 @@ function New-ResourceGroupIfNeeded {
     }
 }
 
-# ── Step 2: Create Static Web App ───────────────────────────────────────
+# ── Step 2: Create Container App Environment ────────────────────────────
 
-function New-StaticWebApp {
-    Write-Host "Step 2: Static Web App" -ForegroundColor Yellow
+function New-ContainerAppEnvironment {
+    Write-Host "Step 2: Container App Environment" -ForegroundColor Yellow
 
-    # Check if SWA already exists
-    $existing = az staticwebapp show --name $AppName --resource-group $ResourceGroup 2>&1
+    $existing = az containerapp env show --name $EnvName --resource-group $ResourceGroup 2>&1
     if ($LASTEXITCODE -eq 0) {
-        $swa = $existing | ConvertFrom-Json
-        Write-Host "  ✓ Static Web App '$AppName' already exists" -ForegroundColor Green
-        Write-Host "    Hostname: $($swa.defaultHostname)"
-        return $swa
-    }
-
-    if ($PSCmdlet.ShouldProcess($AppName, "Create Azure Static Web App")) {
-        Write-Host "  Creating Static Web App '$AppName'..."
-        $result = az staticwebapp create `
-            --name $AppName `
-            --resource-group $ResourceGroup `
-            --source $GitHubRepoUrl `
-            --branch $Branch `
-            --app-location "web" `
-            --api-location "api" `
-            --output-location "." `
-            --login-with-github `
-            --output json 2>&1
-
-        if ($LASTEXITCODE -ne 0) { throw "Failed to create Static Web App: $result" }
-
-        $swa = $result | ConvertFrom-Json
-        Write-Host "  ✓ Static Web App created" -ForegroundColor Green
-        Write-Host "    Hostname: $($swa.defaultHostname)"
-        return $swa
-    }
-}
-
-# ── Step 3: Entra ID App Registration ───────────────────────────────────
-
-function New-EntraIdAppRegistration {
-    param([string]$SwaHostname)
-
-    Write-Host "Step 3: Entra ID App Registration" -ForegroundColor Yellow
-
-    if ($SkipAppRegistration) {
-        Write-Host "  ⏭ Skipped (--SkipAppRegistration)" -ForegroundColor DarkYellow
-        return @{ ClientId = $AadClientId; ClientSecret = $AadClientSecret }
-    }
-
-    if ($AadClientId -and $AadClientSecret) {
-        Write-Host "  ✓ Using provided client ID: $AadClientId" -ForegroundColor Green
-        return @{ ClientId = $AadClientId; ClientSecret = $AadClientSecret }
-    }
-
-    $redirectUri = "https://$SwaHostname/.auth/login/aad/callback"
-    $displayName = "Advance Insights"
-
-    # Check if app registration already exists by display name
-    $existingApps = az ad app list --display-name $displayName --query "[].{appId:appId, displayName:displayName}" --output json 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        $apps = $existingApps | ConvertFrom-Json
-        if ($apps.Count -gt 0) {
-            $appId = $apps[0].appId
-            Write-Host "  ✓ App registration '$displayName' already exists (Client ID: $appId)" -ForegroundColor Green
-            Write-Host "  ⚠ You must provide the client secret manually (cannot retrieve existing secrets)" -ForegroundColor DarkYellow
-            Write-Host "    Pass -AadClientId '$appId' -AadClientSecret '<secret>' on next run" -ForegroundColor DarkYellow
-            return @{ ClientId = $appId; ClientSecret = $null }
-        }
-    }
-
-    if ($PSCmdlet.ShouldProcess($displayName, "Create Entra ID app registration")) {
-        Write-Host "  Creating app registration '$displayName'..."
-        Write-Host "    Redirect URI: $redirectUri"
-
-        # Create the app registration (single tenant)
-        $appResult = az ad app create `
-            --display-name $displayName `
-            --sign-in-audience "AzureADMyOrg" `
-            --web-redirect-uris $redirectUri `
-            --output json 2>&1
-
-        if ($LASTEXITCODE -ne 0) { throw "Failed to create app registration: $appResult" }
-
-        $app = $appResult | ConvertFrom-Json
-        $clientId = $app.appId
-        Write-Host "  ✓ App registration created (Client ID: $clientId)" -ForegroundColor Green
-
-        # Create a client secret (valid 2 years)
-        Write-Host "  Creating client secret..."
-        $secretResult = az ad app credential reset `
-            --id $app.id `
-            --display-name "SWA Auth Secret" `
-            --years 2 `
-            --output json 2>&1
-
-        if ($LASTEXITCODE -ne 0) { throw "Failed to create client secret: $secretResult" }
-
-        $secret = ($secretResult | ConvertFrom-Json).password
-        Write-Host "  ✓ Client secret created" -ForegroundColor Green
-
-        # Create service principal for the app
-        $spResult = az ad sp create --id $clientId 2>&1
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✓ Service principal created" -ForegroundColor Green
-        } else {
-            Write-Host "  ⚠ Service principal may already exist (non-fatal)" -ForegroundColor DarkYellow
-        }
-
-        return @{ ClientId = $clientId; ClientSecret = $secret }
-    }
-}
-
-# ── Step 4: Configure SWA Application Settings ──────────────────────────
-
-function Set-SwaAppSettings {
-    param(
-        [string]$ClientId,
-        [string]$ClientSecret
-    )
-
-    Write-Host "Step 4: Application Settings" -ForegroundColor Yellow
-
-    if (-not $ClientId) {
-        Write-Host "  ⚠ No client ID available — skipping settings configuration" -ForegroundColor DarkYellow
-        Write-Host "    Configure manually in Azure Portal → Static Web App → Configuration" -ForegroundColor DarkYellow
+        Write-Host "  ✓ Environment '$EnvName' already exists" -ForegroundColor Green
         return
     }
 
-    $settings = @(
-        "FABRIC_WORKSPACE_ID=$FABRIC_WORKSPACE_ID",
-        "FABRIC_API_BASE=$FABRIC_API_BASE"
-    )
-
-    # Always set the client ID
-    $settings += "AAD_CLIENT_ID=$ClientId"
-
-    # Only set secret if we have one
-    if ($ClientSecret) {
-        $settings += "AAD_CLIENT_SECRET=$ClientSecret"
-    }
-
-    if ($PSCmdlet.ShouldProcess($AppName, "Configure application settings")) {
-        Write-Host "  Setting application configuration..."
-
-        $settingsArgs = $settings -join " "
-        az staticwebapp appsettings set `
-            --name $AppName `
+    if ($PSCmdlet.ShouldProcess($EnvName, "Create Container App Environment")) {
+        Write-Host "  Creating Container App Environment '$EnvName'..."
+        az containerapp env create `
+            --name $EnvName `
             --resource-group $ResourceGroup `
-            --setting-names @settings `
-            --output none 2>&1
-
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  ⚠ az staticwebapp appsettings failed — trying individual settings" -ForegroundColor DarkYellow
-            foreach ($s in $settings) {
-                az staticwebapp appsettings set --name $AppName --resource-group $ResourceGroup --setting-names $s --output none 2>&1
-            }
-        }
-
-        Write-Host "  ✓ Application settings configured:" -ForegroundColor Green
-        Write-Host "    AAD_CLIENT_ID       = $ClientId"
-        Write-Host "    AAD_CLIENT_SECRET   = $(if ($ClientSecret) { '(set)' } else { '(not set — add manually)' })"
-        Write-Host "    FABRIC_WORKSPACE_ID = $FABRIC_WORKSPACE_ID"
-        Write-Host "    FABRIC_API_BASE     = $FABRIC_API_BASE"
+            --location $Location `
+            --output none
+        if ($LASTEXITCODE -ne 0) { throw "Failed to create Container App Environment" }
+        Write-Host "  ✓ Container App Environment created" -ForegroundColor Green
     }
 }
 
-# ── Step 5: Enable Managed Identity ─────────────────────────────────────
+# ── Step 3: Create Container App ────────────────────────────────────────
 
-function Enable-ManagedIdentity {
-    Write-Host "Step 5: Managed Identity" -ForegroundColor Yellow
+function New-ContainerApp {
+    Write-Host "Step 3: Container App" -ForegroundColor Yellow
 
-    if ($PSCmdlet.ShouldProcess($AppName, "Enable system-assigned managed identity")) {
-        # SWA doesn't have a direct CLI command for managed identity; use generic resource update
-        $swaResourceId = az staticwebapp show `
+    $existing = az containerapp show --name $AppName --resource-group $ResourceGroup 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $app = $existing | ConvertFrom-Json
+        Write-Host "  ✓ Container App '$AppName' already exists" -ForegroundColor Green
+        $fqdn = $app.properties.configuration.ingress.fqdn
+        if ($fqdn) { Write-Host "    FQDN: $fqdn" }
+        return
+    }
+
+    if ($PSCmdlet.ShouldProcess($AppName, "Create Container App")) {
+        Write-Host "  Creating Container App '$AppName'..."
+
+        # Build env vars list
+        $envVars = @(
+            "FABRIC_WORKSPACE_ID=$FABRIC_WORKSPACE_ID",
+            "FABRIC_API_BASE=$FABRIC_API_BASE",
+            "ENTRA_TENANT_ID=$TENANT_ID"
+        )
+        if ($EntraClientId) {
+            $envVars += "ENTRA_CLIENT_ID=$EntraClientId"
+        }
+
+        az containerapp create `
             --name $AppName `
             --resource-group $ResourceGroup `
-            --query "id" `
-            --output tsv 2>&1
+            --environment $EnvName `
+            --image "mcr.microsoft.com/azurelinux/base/python:3.11" `
+            --target-port 8000 `
+            --ingress external `
+            --system-assigned `
+            --cpu 0.5 `
+            --memory 1Gi `
+            --min-replicas 1 `
+            --max-replicas 10 `
+            --env-vars @envVars `
+            --output none
 
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "  ⚠ Could not retrieve SWA resource ID" -ForegroundColor DarkYellow
-            Write-Host "    Enable managed identity manually: Portal → Static Web App → Identity → System assigned → On" -ForegroundColor DarkYellow
-            return
-        }
+        if ($LASTEXITCODE -ne 0) { throw "Failed to create Container App" }
 
-        az resource update `
-            --ids $swaResourceId `
-            --set "identity.type=SystemAssigned" `
-            --output none 2>&1
+        $fqdn = az containerapp show --name $AppName --resource-group $ResourceGroup --query "properties.configuration.ingress.fqdn" --output tsv
+        Write-Host "  ✓ Container App created" -ForegroundColor Green
+        if ($fqdn) { Write-Host "    FQDN: $fqdn" }
+    }
+}
 
-        if ($LASTEXITCODE -eq 0) {
-            # Retrieve the principal ID
-            $identity = az staticwebapp show `
+# ── Step 4: Configure Secrets ───────────────────────────────────────────
+
+function Set-ContainerAppSecrets {
+    Write-Host "Step 4: Secrets" -ForegroundColor Yellow
+
+    if ($EntraClientSecret) {
+        if ($PSCmdlet.ShouldProcess($AppName, "Set ENTRA_CLIENT_SECRET")) {
+            az containerapp secret set `
                 --name $AppName `
                 --resource-group $ResourceGroup `
-                --query "identity.principalId" `
-                --output tsv 2>&1
+                --secrets "entra-client-secret=$EntraClientSecret" `
+                --output none 2>&1
 
-            Write-Host "  ✓ System-assigned managed identity enabled" -ForegroundColor Green
-            if ($identity -and $LASTEXITCODE -eq 0) {
-                Write-Host "    Principal ID: $identity"
+            if ($LASTEXITCODE -eq 0) {
+                # Link secret to env var
+                az containerapp update `
+                    --name $AppName `
+                    --resource-group $ResourceGroup `
+                    --set-env-vars "ENTRA_CLIENT_SECRET=secretref:entra-client-secret" `
+                    --output none 2>&1
+
+                Write-Host "  ✓ ENTRA_CLIENT_SECRET configured" -ForegroundColor Green
+            } else {
+                Write-Host "  ⚠ Failed to set secret (non-fatal)" -ForegroundColor DarkYellow
             }
-        } else {
-            Write-Host "  ⚠ Could not enable managed identity via CLI" -ForegroundColor DarkYellow
-            Write-Host "    Enable manually: Portal → Static Web App → Identity → System assigned → On" -ForegroundColor DarkYellow
         }
+    } else {
+        Write-Host "  ⏭ No client secret provided — set it later with:" -ForegroundColor DarkYellow
+        Write-Host "    az containerapp secret set --name $AppName --resource-group $ResourceGroup --secrets entra-client-secret=YOUR_SECRET"
+    }
+}
+
+# ── Step 5: Display Managed Identity Info ───────────────────────────────
+
+function Show-ManagedIdentity {
+    Write-Host "Step 5: Managed Identity" -ForegroundColor Yellow
+
+    $principalId = az containerapp identity show `
+        --name $AppName `
+        --resource-group $ResourceGroup `
+        --query "principalId" `
+        --output tsv 2>&1
+
+    if ($LASTEXITCODE -eq 0 -and $principalId) {
+        Write-Host "  ✓ System-assigned managed identity enabled" -ForegroundColor Green
+        Write-Host "    Principal ID: $principalId"
+    } else {
+        Write-Host "  ⚠ Could not retrieve managed identity" -ForegroundColor DarkYellow
     }
 }
 
@@ -348,40 +248,40 @@ function Enable-ManagedIdentity {
 try {
     Test-Prerequisites
     New-ResourceGroupIfNeeded
+    New-ContainerAppEnvironment
+    New-ContainerApp
+    Set-ContainerAppSecrets
+    Show-ManagedIdentity
 
-    $swa = New-StaticWebApp
-    $hostname = if ($swa) { $swa.defaultHostname } else { "$AppName.azurestaticapps.net" }
+    # ── Summary ──────────────────────────────────────────────────────────
+    $fqdn = az containerapp show --name $AppName --resource-group $ResourceGroup --query "properties.configuration.ingress.fqdn" --output tsv 2>&1
+    if ($LASTEXITCODE -ne 0) { $fqdn = "$AppName.azurecontainerapps.io" }
 
-    $registration = New-EntraIdAppRegistration -SwaHostname $hostname
-    Set-SwaAppSettings -ClientId $registration.ClientId -ClientSecret $registration.ClientSecret
-    Enable-ManagedIdentity
-
-    # ── Summary & Next Steps ─────────────────────────────────────────────
     Write-Host ""
     Write-Host "╔═══════════════════════════════════════════════════════════════╗" -ForegroundColor Green
     Write-Host "║  ✅  Deployment Complete                                      ║" -ForegroundColor Green
     Write-Host "╚═══════════════════════════════════════════════════════════════╝" -ForegroundColor Green
     Write-Host ""
-    Write-Host "  App URL: https://$hostname" -ForegroundColor Cyan
+    Write-Host "  App URL: https://$fqdn" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  ── Manual Steps Required ──" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "  1. Grant the managed identity Fabric workspace access:"
+    Write-Host "  1. Build & push the Docker image (or let GitHub Actions do it):"
+    Write-Host "     docker build -t ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest ./web"
+    Write-Host "     docker push ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest"
+    Write-Host ""
+    Write-Host "  2. Update the Container App image:"
+    Write-Host "     az containerapp update --name $AppName --resource-group $ResourceGroup --image ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest"
+    Write-Host ""
+    Write-Host "  3. Grant the managed identity Fabric workspace access:"
     Write-Host "     • Go to https://msit.powerbi.com → Workspace → Manage access"
-    Write-Host "     • Add the managed identity (by Object/Principal ID) as Contributor"
+    Write-Host "     • Add the managed identity (by Principal ID) as Contributor"
     Write-Host ""
-    Write-Host "  2. Verify the GitHub Actions deployment workflow ran successfully:"
-    Write-Host "     • Check $GitHubRepoUrl/actions"
+    Write-Host "  4. Create Entra ID app registration (if not already done):"
+    Write-Host "     • Set redirect URI to: https://$fqdn/auth/callback"
+    Write-Host "     • Set ENTRA_CLIENT_ID and ENTRA_CLIENT_SECRET env vars"
     Write-Host ""
-    if (-not $registration.ClientSecret) {
-        Write-Host "  3. Add the AAD_CLIENT_SECRET in Azure Portal:"
-        Write-Host "     • Portal → Static Web App → Configuration → Application settings"
-        Write-Host ""
-    }
-    Write-Host "  4. Test the app:"
-    Write-Host "     • Visit https://$hostname"
-    Write-Host "     • Should redirect to Entra ID login"
-    Write-Host "     • After login, the chat interface should load"
+    Write-Host "  5. Test the app: visit https://$fqdn"
     Write-Host ""
 
 } catch {

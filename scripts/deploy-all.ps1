@@ -56,7 +56,7 @@
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string]$ResourceGroup = "aap-poc-rg",
-    [string]$AppName = "advance-insights",
+    [string]$AppName = "aap-loyalty-intelligence",
     
     [Parameter(Mandatory)]
     [string]$GitHubRepoUrl,
@@ -96,7 +96,7 @@ Write-Host "║                                                                 
 Write-Host "║  This script automates Phases 1–3:                              ║" -ForegroundColor Magenta
 Write-Host "║    • Fabric workspace + Lakehouse                               ║" -ForegroundColor Magenta
 Write-Host "║    • Semantic model + views                                     ║" -ForegroundColor Magenta
-Write-Host "║    • Web app (SWA + Functions)                                  ║" -ForegroundColor Magenta
+Write-Host "║    • Web app (Container Apps + Flask)                          ║" -ForegroundColor Magenta
 Write-Host "║                                                                 ║" -ForegroundColor Magenta
 Write-Host "║  Manual Phase 4 steps (portal work) will be printed at end      ║" -ForegroundColor Magenta
 Write-Host "╚═══════════════════════════════════════════════════════════════════╝" -ForegroundColor Magenta
@@ -234,24 +234,22 @@ if (-not $SkipWeb) {
         }
     }
     
-    Write-Step "Deploying Static Web App + Entra ID + Managed Identity" 2
+    Write-Step "Deploying Container App + Managed Identity" 2
     try {
         & "$ScriptDir\deploy-web.ps1" `
             -ResourceGroup $ResourceGroup `
             -AppName $AppName `
-            -GitHubRepoUrl $GitHubRepoUrl `
-            -Branch "main" `
             -Verbose:$false
-        Write-Success "Web app deployment complete"
+        Write-Success "Container App deployment complete"
     } catch {
         Write-Err "Web app deployment failed: $_"
         throw
     }
     
-    Write-Step "Verifying GitHub Actions workflow" 3
-    Write-Info "GitHub Actions will auto-run on next push to main branch"
+    Write-Step "Verifying Container App deployment" 3
+    Write-Info "GitHub Actions will auto-deploy on next push to master branch"
     Write-Info "Monitor progress at: $GitHubRepoUrl/actions"
-    Write-Success "Web deployment phase complete"
+    Write-Success "Container App deployment phase complete"
 } else {
     Write-Info "Web deployment skipped (--SkipWeb)"
 }
@@ -307,7 +305,7 @@ $checklist = @(
         Title = "Grant Managed Identity Workspace Access"
         Time = "5 min"
         Steps = @(
-            "1. Azure Portal → Resource Groups → $ResourceGroup → Static Web App → $AppName",
+            "1. Azure Portal → Resource Groups → $ResourceGroup → Container App → $AppName",
             "2. Go to Identity → System assigned",
             "3. Copy the Object (principal) ID",
             "4. Fabric Portal → Workspace → $WorkspaceName → Manage access",
@@ -366,11 +364,9 @@ foreach ($item in $checklist) {
 
 Write-Stage "DEPLOYMENT SUMMARY"
 
-$swaResult = az staticwebapp show --name $AppName --resource-group $ResourceGroup --query "defaultHostname" --output tsv 2>&1
-if ($LASTEXITCODE -eq 0) {
-    $swaHostname = $swaResult
-} else {
-    $swaHostname = "$AppName.azurestaticapps.net"
+$fqdn = az containerapp show --name $AppName --resource-group $ResourceGroup --query "properties.configuration.ingress.fqdn" --output tsv 2>&1
+if ($LASTEXITCODE -ne 0) {
+    $fqdn = "$AppName.azurecontainerapps.io"
 }
 
 Write-Host ""
@@ -381,13 +377,13 @@ Write-Host "  • Fabric Workspace     : $WorkspaceName"
 Write-Host "  • Lakehouse            : RewardsLoyaltyData"
 Write-Host "  • Semantic Model       : AAP Rewards Loyalty Model"
 Write-Host "  • Contract Views       : 9 semantic.v_* views"
-Write-Host "  • Static Web App       : $swaHostname"
-Write-Host "  • Managed Identity     : SWA system-assigned"
+Write-Host "  • Container App        : $fqdn"
+Write-Host "  • Managed Identity     : Container App system-assigned"
 Write-Host "  • Entra ID App Reg     : Advance Insights"
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor White
 Write-Host "  1. Complete the 5 manual portal steps above (30–45 min total)"
-Write-Host "  2. Verify web app at: https://$swaHostname"
+Write-Host "  2. Verify web app at: https://$fqdn"
 Write-Host "  3. Test chat interface and all 5 agents"
 Write-Host ""
 Write-Host "Documentation:" -ForegroundColor White
@@ -399,6 +395,6 @@ Write-Host ""
 Write-Host "Support:" -ForegroundColor White
 Write-Host "  • For errors, re-run this script — it's idempotent"
 Write-Host "  • Check GitHub Actions: $GitHubRepoUrl/actions"
-Write-Host "  • Check Azure Portal for Static Web App deployment logs"
+Write-Host "  • Check Azure Portal for Container App deployment logs"
 Write-Host ""
 Write-Host "═══════════════════════════════════════════════════════════════════" -ForegroundColor Magenta

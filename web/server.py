@@ -1,14 +1,23 @@
 """
-Advance Insights — Local Auth Proxy
+Advance Insights — Flask API + Static File Server
 
-Serves the web app and proxies Fabric Data Agent API calls using
-Azure Identity (InteractiveBrowserCredential). No app registration needed —
-uses the Azure SDK's built-in developer client.
+Serves the web app and proxies Fabric Data Agent API calls.
+Runs both locally (python web/server.py) and in production (gunicorn).
+
+Auth:
+  - Production: MSAL Entra ID auth (login/callback/logout flow)
+  - Local dev:  InteractiveBrowserCredential (browser popup)
+
+Fabric API:
+  - Production: Managed identity via DefaultAzureCredential
+  - Local dev:  InteractiveBrowserCredential fallback
 
 Usage:
+    # Local dev (no env vars needed — uses defaults + browser login)
     python web/server.py
-    → Opens browser for Azure login
-    → Serves app at http://localhost:5000
+
+    # Production (Container Apps via gunicorn)
+    gunicorn --bind 0.0.0.0:8000 server:app
 """
 
 import json
@@ -16,61 +25,196 @@ import os
 import sys
 import webbrowser
 import threading
+import uuid
+import secrets
 
-from flask import Flask, request, jsonify, send_from_directory, Response
+from flask import Flask, request, jsonify, send_from_directory, Response, redirect, session, url_for
 from flask_cors import CORS
 
-from azure.identity import InteractiveBrowserCredential
-from azure.core.credentials import TokenCredential
+import msal
+import jwt
+from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, ChainedTokenCredential
 
-# ── Configuration ────────────────────────────────────────────────
+# ── Configuration (env vars with sensible defaults) ──────────────────
 
-WORKSPACE_ID = "82f53636-206f-4825-821b-bdaa8e089893"
-FABRIC_SCOPE = "https://api.fabric.microsoft.com/.default"
-# Fabric Data Agent endpoint (msitapi for MSIT tenant; OpenAI-compatible chat API)
-FABRIC_API_BASE = "https://msitapi.fabric.microsoft.com/v1"
-TENANT_ID = "72f988bf-86f1-41af-91ab-2d7cd011db47"
+WORKSPACE_ID = os.environ.get("FABRIC_WORKSPACE_ID", "82f53636-206f-4825-821b-bdaa8e089893")
+FABRIC_SCOPE = os.environ.get("FABRIC_SCOPE", "https://api.fabric.microsoft.com/.default")
+FABRIC_API_BASE = os.environ.get("FABRIC_API_BASE", "https://msitapi.fabric.microsoft.com/v1")
+TENANT_ID = os.environ.get("ENTRA_TENANT_ID", "72f988bf-86f1-41af-91ab-2d7cd011db47")
 
-PORT = 5000
+# MSAL / Entra ID config (only needed in production)
+ENTRA_CLIENT_ID = os.environ.get("ENTRA_CLIENT_ID", "")
+ENTRA_CLIENT_SECRET = os.environ.get("ENTRA_CLIENT_SECRET", "")
+ENTRA_AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
+ENTRA_SCOPES = ["User.Read"]
+
+# Flask session secret (generate random if not set)
+SESSION_SECRET = os.environ.get("SESSION_SECRET", secrets.token_hex(32))
+
+PORT = int(os.environ.get("PORT", "5000"))
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# ── Azure Identity ───────────────────────────────────────────────
+# Detect production mode: MSAL auth enabled when client ID is configured
+IS_PRODUCTION = bool(ENTRA_CLIENT_ID)
 
-credential = None
-cached_token = None
+# ── Fabric API Credential ────────────────────────────────────────────
 
-# Cache assistant IDs per agent (they're singletons — no need to recreate)
+_fabric_credential = None
 _assistant_cache = {}  # agentId → assistantId
 
 
-def get_credential():
-    """Initialize the interactive browser credential (one-time login)."""
-    global credential
-    if credential is None:
-        print("\n🔐 Opening browser for Azure login...")
-        credential = InteractiveBrowserCredential(
-            tenant_id=TENANT_ID,
-            redirect_uri="http://localhost:8400",
+def _get_fabric_credential():
+    """Get credential for Fabric API calls. Managed identity in prod, browser in dev."""
+    global _fabric_credential
+    if _fabric_credential is None:
+        if IS_PRODUCTION:
+            _fabric_credential = DefaultAzureCredential()
+        else:
+            _fabric_credential = ChainedTokenCredential(
+                DefaultAzureCredential(exclude_interactive_browser_credential=True),
+                InteractiveBrowserCredential(
+                    tenant_id=TENANT_ID,
+                    redirect_uri="http://localhost:8400",
+                ),
+            )
+            # Force initial login in dev mode
+            print("\n🔐 Opening browser for Azure login...")
+            _fabric_credential.get_token(FABRIC_SCOPE)
+            print("✅ Authenticated successfully!\n")
+    return _fabric_credential
+
+
+def get_fabric_token():
+    """Get a valid Fabric API access token."""
+    cred = _get_fabric_credential()
+    return cred.get_token(FABRIC_SCOPE).token
+
+
+# ── MSAL Confidential Client (production auth) ──────────────────────
+
+_msal_app = None
+
+
+def _get_msal_app():
+    """Lazy-init MSAL ConfidentialClientApplication."""
+    global _msal_app
+    if _msal_app is None and IS_PRODUCTION:
+        _msal_app = msal.ConfidentialClientApplication(
+            ENTRA_CLIENT_ID,
+            authority=ENTRA_AUTHORITY,
+            client_credential=ENTRA_CLIENT_SECRET,
         )
-        # Force an immediate login so the user authenticates up front
-        credential.get_token(FABRIC_SCOPE)
-        print("✅ Authenticated successfully!\n")
-    return credential
+    return _msal_app
 
 
-def get_token():
-    """Get a valid access token (auto-refreshes if expired)."""
-    cred = get_credential()
-    token = cred.get_token(FABRIC_SCOPE)
-    return token.token
-
-
-# ── Flask App ────────────────────────────────────────────────────
+# ── Flask App ────────────────────────────────────────────────────────
 
 app = Flask(__name__, static_folder=WEB_DIR)
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # No caching for static files during dev
+app.secret_key = SESSION_SECRET
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+app.config["SESSION_COOKIE_SECURE"] = IS_PRODUCTION
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 CORS(app)
 
+
+# ── Auth Middleware ──────────────────────────────────────────────────
+
+@app.before_request
+def auth_middleware():
+    """Protect /api/* routes with MSAL in production."""
+    if not IS_PRODUCTION:
+        return  # Local dev — no auth required
+
+    # Public routes (no auth needed)
+    public_paths = ["/auth/", "/api/health", "/.auth/"]
+    if any(request.path.startswith(p) for p in public_paths):
+        return
+
+    # Static files don't need auth middleware (handled by SPA)
+    if not request.path.startswith("/api/"):
+        # For non-API routes, check if user is logged in; redirect if not
+        if "user" not in session:
+            if request.path == "/" or request.path.endswith(".html"):
+                return redirect("/auth/login")
+        return
+
+    # API routes require auth
+    if "user" not in session:
+        return jsonify({"error": "Unauthorized", "login_url": "/auth/login"}), 401
+
+
+# ── Auth Endpoints ──────────────────────────────────────────────────
+
+@app.route("/auth/login")
+def auth_login():
+    """Initiate MSAL login flow."""
+    if not IS_PRODUCTION:
+        return redirect("/")
+
+    msal_app = _get_msal_app()
+    # Build the redirect URI from the request
+    redirect_uri = request.host_url.rstrip("/") + "/auth/callback"
+
+    flow = msal_app.initiate_auth_code_flow(
+        scopes=ENTRA_SCOPES,
+        redirect_uri=redirect_uri,
+    )
+    session["auth_flow"] = flow
+    return redirect(flow["auth_uri"])
+
+
+@app.route("/auth/callback")
+def auth_callback():
+    """Handle MSAL login callback."""
+    if not IS_PRODUCTION:
+        return redirect("/")
+
+    msal_app = _get_msal_app()
+    flow = session.pop("auth_flow", None)
+    if not flow:
+        return redirect("/auth/login")
+
+    try:
+        result = msal_app.acquire_token_by_auth_code_flow(
+            flow,
+            dict(request.args),
+        )
+    except Exception as e:
+        print(f"❌ Auth callback error: {e}")
+        return redirect("/auth/login")
+
+    if "error" in result:
+        print(f"❌ Auth error: {result.get('error_description', result['error'])}")
+        return redirect("/auth/login")
+
+    # Store user info in session
+    id_token_claims = result.get("id_token_claims", {})
+    session["user"] = {
+        "name": id_token_claims.get("name", "Unknown"),
+        "email": id_token_claims.get("preferred_username", ""),
+        "oid": id_token_claims.get("oid", ""),
+        "tid": id_token_claims.get("tid", ""),
+    }
+
+    return redirect("/")
+
+
+@app.route("/auth/logout")
+def auth_logout():
+    """Log out and clear session."""
+    session.clear()
+    if IS_PRODUCTION:
+        # Redirect to Entra ID logout
+        logout_url = (
+            f"{ENTRA_AUTHORITY}/oauth2/v2.0/logout"
+            f"?post_logout_redirect_uri={request.host_url}"
+        )
+        return redirect(logout_url)
+    return redirect("/")
+
+
+# ── API: Chat Proxy (SSE streaming — UNCHANGED) ─────────────────────
 
 @app.route("/api/chat", methods=["POST"])
 def chat_proxy():
@@ -81,7 +225,6 @@ def chat_proxy():
     so users see live feedback instead of a dead spinner.
     """
     import time
-    import uuid
     import urllib.request
     import urllib.error
 
@@ -109,7 +252,7 @@ def chat_proxy():
     print(f"💬 Message: {user_message[:80]}...")
 
     try:
-        token = get_token()
+        token = get_fabric_token()
     except Exception as e:
         return jsonify({"error": f"Authentication failed: {str(e)}"}), 401
 
@@ -297,29 +440,40 @@ def chat_proxy():
         mimetype="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",  # disable nginx buffering
+            "X-Accel-Buffering": "no",
         },
     )
 
 
+# ── API: User Info ──────────────────────────────────────────────────
+
 @app.route("/api/user", methods=["GET"])
 def get_user():
     """Return the authenticated user's info."""
-    try:
-        cred = get_credential()
-        # The credential doesn't expose user info directly,
-        # but we know they're authenticated if we get here
-        return jsonify({"authenticated": True, "name": "Authenticated User"})
-    except Exception:
+    if IS_PRODUCTION:
+        user = session.get("user")
+        if user:
+            return jsonify({"authenticated": True, **user})
         return jsonify({"authenticated": False}), 401
 
+    # Local dev — always authenticated
+    return jsonify({"authenticated": True, "name": "Local Dev User"})
+
+
+# ── API: Health Check ───────────────────────────────────────────────
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "authenticated": credential is not None})
+    """Health check — confirms the app is running."""
+    return jsonify({
+        "status": "ok",
+        "mode": "production" if IS_PRODUCTION else "local-dev",
+        "workspace": WORKSPACE_ID,
+        "fabricApi": FABRIC_API_BASE,
+    })
 
 
-# ── Static file serving ──────────────────────────────────────────
+# ── Static File Serving ─────────────────────────────────────────────
 
 @app.route("/")
 def index():
@@ -331,24 +485,26 @@ def static_files(path):
     return send_from_directory(WEB_DIR, path)
 
 
-# ── Entry point ──────────────────────────────────────────────────
+# ── Entry Point (local dev only) ────────────────────────────────────
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("  Advance Insights — Local Auth Proxy")
+    print("  Advance Insights — Local Dev Server")
     print("=" * 50)
     print(f"  Workspace: {WORKSPACE_ID}")
     print(f"  Tenant:    {TENANT_ID}")
+    print(f"  Mode:      {'production (MSAL)' if IS_PRODUCTION else 'local-dev (browser login)'}")
     print(f"  Web dir:   {WEB_DIR}")
     print("=" * 50)
 
-    # Authenticate before starting the server
-    try:
-        get_credential()
-    except Exception as e:
-        print(f"\n❌ Authentication failed: {e}")
-        print("Make sure you can log in with your Microsoft account.")
-        sys.exit(1)
+    if not IS_PRODUCTION:
+        # Authenticate before starting the server (dev mode)
+        try:
+            _get_fabric_credential()
+        except Exception as e:
+            print(f"\n❌ Authentication failed: {e}")
+            print("Make sure you can log in with your Microsoft account.")
+            sys.exit(1)
 
     # Open browser after a short delay
     def open_browser():

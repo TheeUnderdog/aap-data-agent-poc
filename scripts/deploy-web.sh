@@ -1,21 +1,20 @@
 #!/usr/bin/env bash
 #
-# deploy-web.sh — Deploy Advance Insights to Azure Static Web Apps
+# deploy-web.sh — Deploy Advance Insights to Azure Container Apps
 # Bash equivalent of deploy-web.ps1 for macOS/Linux users.
 #
 # Usage:
-#   ./scripts/deploy-web.sh \
-#     --resource-group aap-poc-rg \
-#     --app-name advance-insights \
-#     --repo https://github.com/myorg/aap-data-agent-poc
+#   ./scripts/deploy-web.sh
 #
 # Optional flags:
-#   --branch main               (default: main)
-#   --location eastus2          (default: eastus2)
-#   --client-id <id>            (skip app registration creation)
-#   --client-secret <secret>    (required if --client-id provided)
-#   --skip-app-registration     (skip Entra ID app registration entirely)
-#   --dry-run                   (print commands without executing)
+#   --resource-group RG          (default: aap-poc-rg)
+#   --app-name NAME              (default: aap-loyalty-intelligence)
+#   --env-name NAME              (default: aap-app-env)
+#   --location LOCATION          (default: eastus2)
+#   --subscription ID            (default: 629e646d-3923-4838-8f3e-cbee6c72734c)
+#   --client-id ID               (Entra ID app client ID)
+#   --client-secret SECRET       (Entra ID app client secret)
+#   --dry-run                    (print commands without executing)
 #
 
 set -euo pipefail
@@ -28,15 +27,14 @@ FABRIC_API_BASE="https://msitapi.fabric.microsoft.com/v1"
 
 # ── Defaults ─────────────────────────────────────────────────────────────
 
-BRANCH="main"
+RESOURCE_GROUP="aap-poc-rg"
+APP_NAME="aap-loyalty-intelligence"
+ENV_NAME="aap-app-env"
 LOCATION="eastus2"
+SUBSCRIPTION="629e646d-3923-4838-8f3e-cbee6c72734c"
 CLIENT_ID=""
 CLIENT_SECRET=""
-SKIP_APP_REG=false
 DRY_RUN=false
-RESOURCE_GROUP=""
-APP_NAME=""
-REPO_URL=""
 
 # ── Parse Arguments ──────────────────────────────────────────────────────
 
@@ -44,36 +42,29 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --resource-group)  RESOURCE_GROUP="$2"; shift 2 ;;
         --app-name)        APP_NAME="$2"; shift 2 ;;
-        --repo)            REPO_URL="$2"; shift 2 ;;
-        --branch)          BRANCH="$2"; shift 2 ;;
+        --env-name)        ENV_NAME="$2"; shift 2 ;;
         --location)        LOCATION="$2"; shift 2 ;;
+        --subscription)    SUBSCRIPTION="$2"; shift 2 ;;
         --client-id)       CLIENT_ID="$2"; shift 2 ;;
         --client-secret)   CLIENT_SECRET="$2"; shift 2 ;;
-        --skip-app-registration) SKIP_APP_REG=true; shift ;;
         --dry-run)         DRY_RUN=true; shift ;;
         -h|--help)
-            echo "Usage: $0 --resource-group RG --app-name NAME --repo GITHUB_URL [options]"
+            echo "Usage: $0 [options]"
             echo ""
             echo "Options:"
-            echo "  --branch BRANCH            Git branch (default: main)"
-            echo "  --location LOCATION        Azure region (default: eastus2)"
-            echo "  --client-id ID             Existing Entra ID client ID"
-            echo "  --client-secret SECRET     Existing Entra ID client secret"
-            echo "  --skip-app-registration    Skip Entra ID app registration"
-            echo "  --dry-run                  Print commands without executing"
+            echo "  --resource-group RG       Azure resource group (default: aap-poc-rg)"
+            echo "  --app-name NAME           Container App name (default: aap-loyalty-intelligence)"
+            echo "  --env-name NAME           Container App env (default: aap-app-env)"
+            echo "  --location LOCATION       Azure region (default: eastus2)"
+            echo "  --subscription ID         Azure subscription ID"
+            echo "  --client-id ID            Entra ID app client ID"
+            echo "  --client-secret SECRET    Entra ID app client secret"
+            echo "  --dry-run                 Print commands without executing"
             exit 0
             ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
-
-# ── Validation ───────────────────────────────────────────────────────────
-
-if [[ -z "$RESOURCE_GROUP" || -z "$APP_NAME" || -z "$REPO_URL" ]]; then
-    echo "❌ Required: --resource-group, --app-name, --repo"
-    echo "Run $0 --help for usage."
-    exit 1
-fi
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -94,15 +85,15 @@ run_cmd() {
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║       Advance Insights — SWA Deployment Script               ║"
+echo "║       Advance Insights — Container Apps Deployment           ║"
 echo "║       AAP Data Agent POC                                     ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
 echo "  Resource Group : $RESOURCE_GROUP"
 echo "  App Name       : $APP_NAME"
-echo "  GitHub Repo    : $REPO_URL"
-echo "  Branch         : $BRANCH"
+echo "  Environment    : $ENV_NAME"
 echo "  Location       : $LOCATION"
+echo "  Subscription   : $SUBSCRIPTION"
 echo ""
 
 # ── Prerequisites ────────────────────────────────────────────────────────
@@ -118,11 +109,8 @@ else
     fail "Not logged in to Azure CLI. Run 'az login' first."
 fi
 
-if command -v gh >/dev/null 2>&1; then
-    ok "GitHub CLI (gh) available"
-else
-    warn "GitHub CLI (gh) not found — SWA will prompt for GitHub auth interactively"
-fi
+az account set --subscription "$SUBSCRIPTION" 2>/dev/null || fail "Failed to set subscription $SUBSCRIPTION"
+ok "Subscription set to $SUBSCRIPTION"
 echo ""
 
 # ── Step 1: Resource Group ───────────────────────────────────────────────
@@ -137,138 +125,118 @@ else
     ok "Resource group created"
 fi
 
-# ── Step 2: Static Web App ──────────────────────────────────────────────
+# ── Step 2: Container App Environment ────────────────────────────────────
 
-info "Step 2: Static Web App"
+info "Step 2: Container App Environment"
 
-if az staticwebapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
-    SWA_HOSTNAME=$(az staticwebapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "defaultHostname" -o tsv)
-    ok "Static Web App '$APP_NAME' already exists"
-    echo "    Hostname: $SWA_HOSTNAME"
+if az containerapp env show --name "$ENV_NAME" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+    ok "Environment '$ENV_NAME' already exists"
 else
-    echo "  Creating Static Web App '$APP_NAME'..."
-    run_cmd az staticwebapp create \
-        --name "$APP_NAME" \
+    echo "  Creating Container App Environment '$ENV_NAME'..."
+    run_cmd az containerapp env create \
+        --name "$ENV_NAME" \
         --resource-group "$RESOURCE_GROUP" \
-        --source "$REPO_URL" \
-        --branch "$BRANCH" \
-        --app-location "web" \
-        --api-location "api" \
-        --output-location "" \
-        --login-with-github \
+        --location "$LOCATION" \
         --output none
-
-    SWA_HOSTNAME=$(az staticwebapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "defaultHostname" -o tsv 2>/dev/null || echo "$APP_NAME.azurestaticapps.net")
-    ok "Static Web App created"
-    echo "    Hostname: $SWA_HOSTNAME"
+    ok "Environment created"
 fi
 
-# ── Step 3: Entra ID App Registration ───────────────────────────────────
+# ── Step 3: Container App ───────────────────────────────────────────────
 
-info "Step 3: Entra ID App Registration"
+info "Step 3: Container App"
 
-if $SKIP_APP_REG; then
-    warn "Skipped (--skip-app-registration)"
-elif [[ -n "$CLIENT_ID" && -n "$CLIENT_SECRET" ]]; then
-    ok "Using provided client ID: $CLIENT_ID"
+if az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" >/dev/null 2>&1; then
+    FQDN=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "")
+    ok "Container App '$APP_NAME' already exists"
+    [[ -n "$FQDN" ]] && echo "    FQDN: $FQDN"
 else
-    REDIRECT_URI="https://$SWA_HOSTNAME/.auth/login/aad/callback"
-    DISPLAY_NAME="Advance Insights"
+    echo "  Creating Container App '$APP_NAME'..."
 
-    EXISTING=$(az ad app list --display-name "$DISPLAY_NAME" --query "[0].appId" -o tsv 2>/dev/null || echo "")
-    if [[ -n "$EXISTING" ]]; then
-        CLIENT_ID="$EXISTING"
-        ok "App registration '$DISPLAY_NAME' already exists (Client ID: $CLIENT_ID)"
-        warn "Provide client secret manually with --client-secret"
-    else
-        echo "  Creating app registration '$DISPLAY_NAME'..."
-        echo "    Redirect URI: $REDIRECT_URI"
+    ENV_VARS="FABRIC_WORKSPACE_ID=$FABRIC_WORKSPACE_ID FABRIC_API_BASE=$FABRIC_API_BASE ENTRA_TENANT_ID=$TENANT_ID"
+    [[ -n "$CLIENT_ID" ]] && ENV_VARS="$ENV_VARS ENTRA_CLIENT_ID=$CLIENT_ID"
 
-        APP_JSON=$(run_cmd az ad app create \
-            --display-name "$DISPLAY_NAME" \
-            --sign-in-audience "AzureADMyOrg" \
-            --web-redirect-uris "$REDIRECT_URI" \
-            --output json)
-
-        CLIENT_ID=$(echo "$APP_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['appId'])" 2>/dev/null || echo "")
-        APP_OBJECT_ID=$(echo "$APP_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])" 2>/dev/null || echo "")
-        ok "App registration created (Client ID: $CLIENT_ID)"
-
-        echo "  Creating client secret..."
-        SECRET_JSON=$(run_cmd az ad app credential reset \
-            --id "$APP_OBJECT_ID" \
-            --display-name "SWA Auth Secret" \
-            --years 2 \
-            --output json)
-        CLIENT_SECRET=$(echo "$SECRET_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['password'])" 2>/dev/null || echo "")
-        ok "Client secret created"
-
-        run_cmd az ad sp create --id "$CLIENT_ID" --output none 2>/dev/null || true
-        ok "Service principal created"
-    fi
-fi
-
-# ── Step 4: Application Settings ────────────────────────────────────────
-
-info "Step 4: Application Settings"
-
-if [[ -n "$CLIENT_ID" ]]; then
-    SETTINGS=("FABRIC_WORKSPACE_ID=$FABRIC_WORKSPACE_ID" "FABRIC_API_BASE=$FABRIC_API_BASE" "AAD_CLIENT_ID=$CLIENT_ID")
-    [[ -n "$CLIENT_SECRET" ]] && SETTINGS+=("AAD_CLIENT_SECRET=$CLIENT_SECRET")
-
-    echo "  Setting application configuration..."
-    run_cmd az staticwebapp appsettings set \
+    run_cmd az containerapp create \
         --name "$APP_NAME" \
         --resource-group "$RESOURCE_GROUP" \
-        --setting-names "${SETTINGS[@]}" \
+        --environment "$ENV_NAME" \
+        --image "mcr.microsoft.com/azurelinux/base/python:3.11" \
+        --target-port 8000 \
+        --ingress external \
+        --system-assigned \
+        --cpu 0.5 \
+        --memory 1Gi \
+        --min-replicas 1 \
+        --max-replicas 10 \
+        --env-vars $ENV_VARS \
         --output none
 
-    ok "Application settings configured"
-    echo "    AAD_CLIENT_ID       = $CLIENT_ID"
-    echo "    AAD_CLIENT_SECRET   = $(if [[ -n "$CLIENT_SECRET" ]]; then echo '(set)'; else echo '(not set)'; fi)"
-    echo "    FABRIC_WORKSPACE_ID = $FABRIC_WORKSPACE_ID"
-    echo "    FABRIC_API_BASE     = $FABRIC_API_BASE"
+    FQDN=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "$APP_NAME.azurecontainerapps.io")
+    ok "Container App created"
+    echo "    FQDN: $FQDN"
+fi
+
+# ── Step 4: Secrets ──────────────────────────────────────────────────────
+
+info "Step 4: Secrets"
+
+if [[ -n "$CLIENT_SECRET" ]]; then
+    run_cmd az containerapp secret set \
+        --name "$APP_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --secrets "entra-client-secret=$CLIENT_SECRET" \
+        --output none 2>/dev/null
+
+    run_cmd az containerapp update \
+        --name "$APP_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --set-env-vars "ENTRA_CLIENT_SECRET=secretref:entra-client-secret" \
+        --output none 2>/dev/null
+
+    ok "ENTRA_CLIENT_SECRET configured"
 else
-    warn "No client ID available — configure settings manually in Azure Portal"
+    warn "No client secret provided — set it later with:"
+    echo "    az containerapp secret set --name $APP_NAME --resource-group $RESOURCE_GROUP --secrets entra-client-secret=YOUR_SECRET"
 fi
 
 # ── Step 5: Managed Identity ────────────────────────────────────────────
 
 info "Step 5: Managed Identity"
 
-SWA_RESOURCE_ID=$(az staticwebapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "id" -o tsv 2>/dev/null || echo "")
-
-if [[ -n "$SWA_RESOURCE_ID" ]]; then
-    run_cmd az resource update --ids "$SWA_RESOURCE_ID" --set "identity.type=SystemAssigned" --output none 2>/dev/null
-
-    PRINCIPAL_ID=$(az staticwebapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "identity.principalId" -o tsv 2>/dev/null || echo "")
+PRINCIPAL_ID=$(az containerapp identity show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "principalId" -o tsv 2>/dev/null || echo "")
+if [[ -n "$PRINCIPAL_ID" ]]; then
     ok "System-assigned managed identity enabled"
-    [[ -n "$PRINCIPAL_ID" ]] && echo "    Principal ID: $PRINCIPAL_ID"
+    echo "    Principal ID: $PRINCIPAL_ID"
 else
-    warn "Could not enable managed identity — do it manually in Azure Portal"
+    warn "Could not retrieve managed identity"
 fi
 
 # ── Summary ──────────────────────────────────────────────────────────────
+
+FQDN=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "properties.configuration.ingress.fqdn" -o tsv 2>/dev/null || echo "$APP_NAME.azurecontainerapps.io")
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════╗"
 echo "║  ✅  Deployment Complete                                      ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo ""
-echo "  App URL: https://$SWA_HOSTNAME"
+echo "  App URL: https://$FQDN"
 echo ""
 echo "  ── Manual Steps Required ──"
 echo ""
-echo "  1. Grant managed identity Fabric workspace access:"
+echo "  1. Build & push the Docker image (or let GitHub Actions do it):"
+echo "     docker build -t ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest ./web"
+echo "     docker push ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest"
+echo ""
+echo "  2. Update Container App image:"
+echo "     az containerapp update --name $APP_NAME --resource-group $RESOURCE_GROUP --image ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest"
+echo ""
+echo "  3. Grant managed identity Fabric workspace access:"
 echo "     • https://msit.powerbi.com → Workspace → Manage access"
 echo "     • Add the managed identity (by Principal ID) as Contributor"
 echo ""
-echo "  2. Verify GitHub Actions deployment: $REPO_URL/actions"
+echo "  4. Create Entra ID app registration (if not already done):"
+echo "     • Set redirect URI to: https://$FQDN/auth/callback"
+echo "     • Set ENTRA_CLIENT_ID and ENTRA_CLIENT_SECRET env vars"
 echo ""
-if [[ -z "$CLIENT_SECRET" ]]; then
-    echo "  3. Add AAD_CLIENT_SECRET in Azure Portal:"
-    echo "     • Portal → Static Web App → Configuration → Application settings"
-    echo ""
-fi
-echo "  4. Test: visit https://$SWA_HOSTNAME"
+echo "  5. Test: visit https://$FQDN"
 echo ""

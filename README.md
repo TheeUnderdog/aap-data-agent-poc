@@ -11,20 +11,20 @@ Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
                                               ↓
                                       Fabric Data Agent (NL → DAX)
                                               ↓
-                                      Azure Functions API (Python)
+                                      Python API (Container Apps)
                                               ↓
                                       Web App (HTML/JS chat UI)
                                               ↓
-                                      Azure Static Web Apps + Entra ID
+                                      Azure Container Apps + Entra ID
 ```
 
-**Data flow:** PostgreSQL → Fabric Mirroring → Lakehouse → Semantic Model → Data Agent → Functions API → Chat UI
+**Data flow:** PostgreSQL → Fabric Mirroring → Lakehouse → Semantic Model → Data Agent → Flask API → Chat UI
 
 ## What's Inside
 
 ```
 web/               Static frontend — chat UI with 5 agent tabs
-api/               Azure Functions backend — proxies to Fabric Data Agent API
+api/               Azure Functions backend (superseded by Container Apps)
 agents/            5 Fabric Data Agent configs + instruction files
 reports/           Power BI PBIR report definition (LoyaltyOverview)
 scripts/           Semantic model definition, sample data generator
@@ -67,37 +67,39 @@ python web/server.py
 
 ### Deploy to Azure
 
-The app deploys as an **Azure Static Web App** with a managed Functions API backend, secured by Entra ID.
+The app deploys as an **Azure Container App** — a single container running Flask + gunicorn that serves both static files and the API proxy, secured by Entra ID (MSAL).
 
 **Quickest path:**
 
 ```bash
-# 1. Create the Static Web App (connects to this GitHub repo)
-az staticwebapp create \
-  --name advance-insights \
-  --resource-group YOUR_RG \
-  --source https://github.com/TheeUnderdog/aap-data-agent-poc \
-  --branch master \
-  --app-location "web" \
-  --api-location "api" \
-  --output-location "" \
-  --login-with-github
+# 1. Create the Container App infrastructure
+./scripts/deploy-web.ps1
 
-# 2. Configure app settings in Azure Portal:
-#    AAD_CLIENT_ID, AAD_CLIENT_SECRET, FABRIC_WORKSPACE_ID
+# 2. Build and push the Docker image
+docker build -t ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest ./web
+docker push ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest
 
-# 3. Enable managed identity → grant Contributor on Fabric workspace
+# 3. Update the Container App
+az containerapp update \
+  --name aap-loyalty-intelligence \
+  --resource-group aap-poc-rg \
+  --image ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest
+
+# 4. Configure Entra ID app registration:
+#    Set ENTRA_CLIENT_ID and ENTRA_CLIENT_SECRET env vars
+
+# 5. Grant managed identity Contributor on Fabric workspace
 ```
 
 See **[web/SETUP.md](web/SETUP.md)** for the full step-by-step deployment guide including:
-- Entra ID app registration
-- SWA configuration
+- Container App setup
+- Entra ID app registration (MSAL auth)
 - Managed identity setup for Fabric API
 - CI/CD via GitHub Actions
 
 ### Auth
 
-All routes require Entra ID authentication (Microsoft tenant: `72f988bf`). Unauthenticated users are redirected to `/.auth/login/aad`. The Functions backend uses `DefaultAzureCredential` (managed identity in prod, `az login` locally).
+All API routes require Entra ID authentication (MSIT tenant: `72f988bf`). Unauthenticated users are redirected to `/auth/login`. The Flask backend uses `DefaultAzureCredential` (managed identity in prod, browser login locally).
 
 ## Fabric Workspace Setup
 
@@ -115,15 +117,15 @@ All routes require Entra ID authentication (Microsoft tenant: `72f988bf`). Unaut
 | [Architecture](docs/architecture.md) | Full technical architecture (all 4 phases) |
 | [Data Schema](docs/data-schema.md) | Placeholder schema, DDL, contract views, sample queries |
 | [Semantic Model](docs/semantic-model-architecture.md) | Model review, DAX measures, AI readiness |
-| [Web Setup](web/SETUP.md) | Azure Static Web Apps deployment guide |
+| [Web Setup](web/SETUP.md) | Azure Container Apps deployment guide |
 | [Report README](reports/LoyaltyOverview.Report/README.md) | PBIR report + verified answer mapping |
 
 ## Tech Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS (no framework — POC simplicity)
-- **Backend:** Azure Functions (Python v2)
-- **Hosting:** Azure Static Web Apps
-- **Auth:** Azure Entra ID (built-in SWA auth)
+- **Backend:** Flask + gunicorn (Python)
+- **Hosting:** Azure Container Apps
+- **Auth:** Azure Entra ID (MSAL middleware in Flask)
 - **Data Platform:** Microsoft Fabric (Lakehouse, Semantic Model, Data Agent)
 - **Source DB:** Azure PostgreSQL (mirrored via Fabric)
 
