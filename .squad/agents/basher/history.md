@@ -142,3 +142,47 @@ The Fabric semantic model is now live with:
 - **Key gaps:** Day-of-week weighting (C1), channel independence (C2), temporal violations (C3), store uniformity (S2), member geography (S3), time-of-day patterns (S1)
 - **Recommended first-pass fixes:** C1, C2, C3, S2 (~3 hours total) — these unlock most agent query types
 - **Full analysis:** .squad/decisions/decisions.md § "Data Generator Gap Analysis & Prioritized Fix Roadmap"
+
+### Guaranteed Answers for All 5 Agents (2026-07)
+- **Scope:** Created 15 guaranteed answer Q&A pairs (3 per agent) for Fabric Data Agent
+- **Pattern:** Each agent gets: (1) scope/capability meta-question, (2) structural/program info, (3) business rule definition
+- **Files created:** 5× `guaranteed-answers.json` in each agent folder
+- **Files updated:** 5× `config.json` (added `guaranteedAnswers` section), `BUILD_SUMMARY.txt` (documented all 15 Q&A pairs)
+- **Design decisions:**
+  - Guaranteed answers are static reference info only — never data queries
+  - Each answer uses markdown formatting (tables, bold, bullets) matching Fabric's rendering
+  - Answers match each agent's persona tone (operations-direct for Store Ops, audit-precise for Customer Service, etc.)
+  - All answers use auto parts retail language naturally
+- **Q&A coverage by type:**
+  - 5 scope/capability answers ("What can you help me with?")
+  - 5 structural info answers (tier structure, store types, product categories, campaign types, CSR activity types)
+  - 5 business rule definitions (churn criteria, channel tracking, bonus eligibility, redemption rate formula, service departments)
+- **Key file paths:** `agents/{agent-folder}/guaranteed-answers.json`
+- **Config pattern:** `"guaranteedAnswers": { "file": "guaranteed-answers.json", "count": 3 }` added before `crossAgentReferrals` in each config.json
+
+### Verified Answers TMDL Export (2026-07)
+- **Scope:** Generated TMDL-compatible `linguisticMetadata` YAML block containing all 15 verified answers from 5 agent JSON files
+- **File created:** `agents/verified-answers-tmdl.yaml`
+- **Source files:** 5× `verified-answers-{domain}.json` (loyalty, store-ops, merch, marketing, csr)
+- **Format:** YAML with `linguisticMetadata.verifiedAnswers` structure; each entry has `question`, `answer` (YAML literal block scalar `|`), and `isActive: true`
+- **Design decisions:**
+  - Used YAML literal block scalars (`|`) to preserve rich markdown content (tables, bold, bullets, blockquotes)
+  - Differentiated trigger phrases for domain-specific "What can you help me with?" questions to avoid collisions (e.g., "What can the Store Operations agent help me with?")
+  - Loyalty agent keeps the generic "What can you help me with?" trigger since it's the primary entry point
+  - All 15 answers marked `isActive: true` for immediate availability
+  - Integration instructions included as comments at top of file
+- **Integration path:** Paste into semantic model TMDL definition or import via Power BI Q&A Setup → Verified Answers
+- **Key file path:** `agents/verified-answers-tmdl.yaml`
+
+### Verified Answer Content Merged into Agent Instructions (2026-07)
+- **Scope:** Merged business definitions from 5 verified-answer JSON files into each agent's instruction markdown as a new `## Canonical Definitions` section
+- **Rationale:** Verified answers contain rich domain knowledge (tier structures, churn definitions, product categories, etc.) that agents need as internalized facts, not just Q&A pairs. Embedding them directly in instructions ensures the Fabric Data Agent uses these definitions consistently.
+- **Files modified:**
+  - `agents/loyalty-program-manager/loyalty-program-manager-instructions.md` — Added tier structure table (Bronze 60%/Silver 25%/Gold 10%/Platinum 5%), churn risk definitions (Active/Watch/At Risk/Lapsed by days since last purchase)
+  - `agents/store-operations/store-operations-instructions.md` — Added store types table (Hub/Satellite), sales channels table (In-Store/Online/Phone)
+  - `agents/merchandising/merchandising-instructions.md` — Added 10 product categories table with examples, bonus-eligible SKU definition and skip_sku distinction
+  - `agents/marketing-promotions/marketing-promotions-instructions.md` — Added redemption rate formula, coupon lifecycle statuses table, campaign types (4 named campaigns + discount types table)
+  - `agents/customer-service/customer-service-instructions.md` — Added 6 CSR activity types table, 4 service departments table
+- **Source files:** 5× `verified-answers-*.json` (loyalty, store-ops, merch, marketing, csr)
+- **Placement:** After `## Cross-Agent Referrals`, before `## Example Response Flows` in each file
+- **Format:** Instruction-style prose with markdown tables — NOT Q&A pairs. Each section opens with scope/capabilities list, then structured reference tables.

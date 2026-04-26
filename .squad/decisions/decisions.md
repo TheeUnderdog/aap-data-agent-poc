@@ -988,3 +988,84 @@ Full analysis: `.squad/decisions/inbox/saul-data-gaps-analysis.md` (15 KB, 216 l
 2. **Saul or assignee:** Implement fixes #1-#4 in notebooks/01-create-sample-data.py
 3. **Basher:** After fixes merged, re-run data generation and retest Fabric Data Agent with weekday/weekend queries to verify empty-column bug is resolved
 4. **Schedule:** Consider fixes #5-#7 for Phase 1.5 or Phase 2 data refinement
+
+---
+
+## Guaranteed Answers for Fabric Data Agent (2026-07)
+
+**Author:** Basher (Backend Dev)  
+**Date:** 2026-07  
+**Status:** Implemented  
+
+Added 15 guaranteed answer Q&A pairs (3 per agent) across all 5 Fabric Data Agent specialist agents. These are pre-configured responses that bypass AI generation — when a user asks a matching question, the agent returns the exact answer verbatim.
+
+### Rationale
+
+Guaranteed answers serve three purposes:
+1. **Scope discovery** — every agent can instantly explain what it covers
+2. **Structural reference** — static business info (tier structure, categories, channels) doesn't need AI generation
+3. **Business rule definitions** — precise definitions (churn criteria, redemption rate formula) should be consistent every time
+
+### Impact
+
+- **Linus (Frontend):** No changes needed — guaranteed answers return through the same Data Agent API
+- **Livingston (Data):** No schema impact — these are static text, not data queries
+- **Danny:** Aligns with existing agent architecture — one file per agent, referenced in config.json
+
+### Files
+
+- 5× `agents/{agent}/guaranteed-answers.json` (new)
+- 5× `agents/{agent}/config.json` (updated — added `guaranteedAnswers` section)
+- `agents/BUILD_SUMMARY.txt` (updated — documented all 15 Q&A pairs)
+
+---
+
+## Verified Answers TMDL Format (2026-07)
+
+**Author:** Basher (Backend Dev)  
+**Date:** 2026-07  
+**Status:** Implemented  
+
+All 15 verified answers from the 5 domain agents are consolidated into a single TMDL-compatible YAML file (`agents/verified-answers-tmdl.yaml`) for import into the `RewardsLoyaltyData` semantic model's `linguisticMetadata.verifiedAnswers` section.
+
+### Key Choices
+
+1. **Single consolidated file** rather than per-agent fragments — simpler to import and manage in the semantic model definition
+2. **YAML literal block scalars** (`|`) preserve markdown tables, bold, bullets, and blockquotes without escaping
+3. **Differentiated trigger phrases** for the 5 "What can you help me with?" answers — the Loyalty agent keeps the generic phrase; others are prefixed with the agent name (e.g., "What can the Store Operations agent help me with?") to avoid collision in Q&A matching
+4. **All answers `isActive: true`** — ready for immediate use after import
+
+### Team Impact
+
+- **Livingston:** If deploying the semantic model via TMDL scripts, merge this YAML block into the model definition
+- **Linus:** No frontend impact — verified answers are handled by Fabric's Q&A engine
+- **Danny:** This extends the existing guaranteed-answers pattern into the Power BI semantic model layer
+
+---
+
+## Merge Verified Answer Content into Agent Instructions (2026-07)
+
+**Author:** Basher (Backend Dev)  
+**Date:** 2026-07  
+**Status:** Implemented  
+
+Merged the business rule content from verified-answer JSON files into each agent's instruction markdown as a `## Canonical Definitions` section. Content is reformatted as instruction-style prose and tables (not Q&A pairs) so the agent internalizes these as facts it knows, rather than scripted responses.
+
+### Rationale
+
+- **Consistency:** Agents now have authoritative definitions embedded in their instructions, ensuring they use correct tier percentages, churn thresholds, and category lists in all responses — not just when a guaranteed-answer trigger fires.
+- **Complementary to verified answers:** The JSON files still serve as exact-match guaranteed answers in the Fabric Data Agent. The instruction sections ensure the same definitions inform free-form responses too.
+- **Single source of truth:** If definitions change, both the JSON (for exact-match) and the instructions (for generative responses) need updating. This is an acceptable tradeoff for POC scope.
+
+### Alternatives Considered
+
+- **Keep definitions only in JSON:** Agents would only use correct definitions when guaranteed-answer triggers match exactly. Free-form responses might hallucinate different numbers.
+- **Remove JSON, keep only instructions:** Loses the exact-match guaranteed answer capability, which provides faster and more reliable responses for common questions.
+
+### Files Modified
+
+- `agents/loyalty-program-manager/loyalty-program-manager-instructions.md`
+- `agents/store-operations/store-operations-instructions.md`
+- `agents/merchandising/merchandising-instructions.md`
+- `agents/marketing-promotions/marketing-promotions-instructions.md`
+- `agents/customer-service/customer-service-instructions.md`
