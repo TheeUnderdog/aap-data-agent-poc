@@ -1,0 +1,118 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.0.0/schema.json",
+  "themeCollection": {
+    "baseTheme": {
+      "name": "CY24SU06",
+      "reportVersionAtImport": "5.53",
+      "type": 2
+    }
+  },
+  "layoutOptimization": 0,
+  "config": "{\"version\":\"5.53\",\"themeCollection\":{\"baseTheme\":{\"name\":\"CY24SU06\",\"reportVersionAtImport\":\"5.53\",\"type\":2}},\"activeSectionIndex\":0,\"defaultDrillFilterOtherVisuals\":true,\"linguisticSchemaSyncVersion\":2,\"settings\":{\"useStylableVisualContainerHeader\":true,\"exportDataMode\":1}}",
+  "filters": "[]",
+  "resourcePackages": [],
+  "sections": [
+    {
+      "name": "LoyaltyOverviewPage",
+      "displayName": "Loyalty Program Overview",
+      "displayOption": 0,
+      "width": 1280,
+      "height": 720,
+      "filters": "[]",
+      "ordinal": 0,
+      "config": "{\"relationships\":null,\"activeRelationshipCount\":0}",
+      "visualContainers": [
+        {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "width": 1280,
+          "height": 50,
+          "config": "{\"name\":\"pageTitle\",\"layouts\":[{\"id\":0,\"position\":{\"x\":0,\"y\":0,\"z\":0,\"width\":1280,\"height\":50}}],\"singleVisual\":{\"visualType\":\"textbox\",\"objects\":{\"general\":[{\"properties\":{\"paragraphs\":[{\"textRuns\":[{\"value\":\"AAP Rewards — Loyalty Program Overview\",\"textStyle\":{\"fontFamily\":\"Segoe UI Semibold\",\"fontSize\":\"18px\",\"color\":\"#333333\"}}]}]}}]}}}",
+          "filters": "[]",
+          "tabOrder": 0
+        },
+        {
+          "x": 16,
+          "y": 60,
+          "z": 1,
+          "width": 295,
+          "height": 100,
+          "config": "{\"name\":\"cardTotalActiveMembers\",\"layouts\":[{\"id\":0,\"position\":{\"x\":16,\"y\":60,\"z\":1,\"width\":295,\"height\":100}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"CountRows.loyalty_members\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"loyalty_members\",\"Type\":0}],\"Select\":[{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"member_id\"}},\"Function\":5},\"Name\":\"CountRows.loyalty_members\"}],\"Where\":[{\"Condition\":{\"Comparison\":{\"ComparisonKind\":0,\"Left\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"member_status\"}},\"Right\":{\"Literal\":{\"Value\":\"'active'\"}}}}}]},\"objects\":{\"labels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":\"#1F77B4\"}},\"fontSize\":\"28px\"}}],\"categoryLabels\":[{\"properties\":{\"show\":true,\"text\":\"Total Active Members\",\"fontSize\":\"10px\",\"color\":{\"solid\":{\"color\":\"#333333\"}}}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Total Active Members\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 1
+        },
+        {
+          "x": 327,
+          "y": 60,
+          "z": 2,
+          "width": 295,
+          "height": 100,
+          "config": "{\"name\":\"cardPointsOutstanding\",\"layouts\":[{\"id\":0,\"position\":{\"x\":327,\"y\":60,\"z\":2,\"width\":295,\"height\":100}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Sum.loyalty_members.current_points_balance\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"loyalty_members\",\"Type\":0}],\"Select\":[{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"current_points_balance\"}},\"Function\":0},\"Name\":\"Sum.loyalty_members.current_points_balance\"}]},\"objects\":{\"labels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":\"#2E5090\"}},\"fontSize\":\"28px\"}}],\"categoryLabels\":[{\"properties\":{\"show\":true,\"text\":\"Points Outstanding\",\"fontSize\":\"10px\",\"color\":{\"solid\":{\"color\":\"#333333\"}}}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Points Outstanding (Liability)\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 2
+        },
+        {
+          "x": 638,
+          "y": 60,
+          "z": 3,
+          "width": 295,
+          "height": 100,
+          "config": "{\"name\":\"cardAvgLifetimeSpend\",\"layouts\":[{\"id\":0,\"position\":{\"x\":638,\"y\":60,\"z\":3,\"width\":295,\"height\":100}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Measure.Avg Lifetime Spend\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"loyalty_members\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"Avg Lifetime Spend\"},\"Name\":\"Measure.Avg Lifetime Spend\"}]},\"objects\":{\"labels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":\"#1F77B4\"}},\"fontSize\":\"28px\",\"labelDisplayUnits\":0,\"labelPrecision\":2}}],\"categoryLabels\":[{\"properties\":{\"show\":true,\"text\":\"Avg Lifetime Spend\",\"fontSize\":\"10px\",\"color\":{\"solid\":{\"color\":\"#333333\"}}}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Avg Lifetime Spend per Member\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 3
+        },
+        {
+          "x": 949,
+          "y": 60,
+          "z": 4,
+          "width": 295,
+          "height": 100,
+          "config": "{\"name\":\"cardTotalRevenue\",\"layouts\":[{\"id\":0,\"position\":{\"x\":949,\"y\":60,\"z\":4,\"width\":295,\"height\":100}}],\"singleVisual\":{\"visualType\":\"card\",\"projections\":{\"Values\":[{\"queryRef\":\"Measure.Total Revenue\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"t\",\"Entity\":\"transactions\",\"Type\":0}],\"Select\":[{\"Measure\":{\"Expression\":{\"SourceRef\":{\"Source\":\"t\"}},\"Property\":\"Total Revenue\"},\"Name\":\"Measure.Total Revenue\"}]},\"objects\":{\"labels\":[{\"properties\":{\"color\":{\"solid\":{\"color\":\"#1F77B4\"}},\"fontSize\":\"28px\",\"labelDisplayUnits\":1000000}}],\"categoryLabels\":[{\"properties\":{\"show\":true,\"text\":\"Total Revenue\",\"fontSize\":\"10px\",\"color\":{\"solid\":{\"color\":\"#333333\"}}}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Total Revenue\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 4
+        },
+        {
+          "x": 16,
+          "y": 175,
+          "z": 5,
+          "width": 400,
+          "height": 250,
+          "config": "{\"name\":\"barMembersByTier\",\"layouts\":[{\"id\":0,\"position\":{\"x\":16,\"y\":175,\"z\":5,\"width\":400,\"height\":250}}],\"singleVisual\":{\"visualType\":\"barChart\",\"projections\":{\"Category\":[{\"queryRef\":\"loyalty_members.tier\"}],\"Y\":[{\"queryRef\":\"Count.loyalty_members.member_id\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"loyalty_members\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"tier\"},\"Name\":\"loyalty_members.tier\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"member_id\"}},\"Function\":5},\"Name\":\"Count.loyalty_members.member_id\"}]},\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":\"#1F77B4\"}}},\"selector\":{\"data\":[{\"dataViewWildcard\":{\"matchingOption\":0}}]}}],\"legend\":[{\"properties\":{\"show\":false}}],\"categoryAxis\":[{\"properties\":{\"show\":true}}],\"valueAxis\":[{\"properties\":{\"show\":true}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Member Count by Tier\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 5
+        },
+        {
+          "x": 432,
+          "y": 175,
+          "z": 6,
+          "width": 400,
+          "height": 250,
+          "config": "{\"name\":\"donutChannelMix\",\"layouts\":[{\"id\":0,\"position\":{\"x\":432,\"y\":175,\"z\":6,\"width\":400,\"height\":250}}],\"singleVisual\":{\"visualType\":\"donutChart\",\"projections\":{\"Category\":[{\"queryRef\":\"transactions.channel\"}],\"Y\":[{\"queryRef\":\"Count.transactions.transaction_id\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"t\",\"Entity\":\"transactions\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"t\"}},\"Property\":\"channel\"},\"Name\":\"transactions.channel\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"t\"}},\"Property\":\"transaction_id\"}},\"Function\":5},\"Name\":\"Count.transactions.transaction_id\"}]},\"objects\":{\"legend\":[{\"properties\":{\"show\":true,\"position\":\"Right\"}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Transaction Channel Mix\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 6
+        },
+        {
+          "x": 848,
+          "y": 175,
+          "z": 7,
+          "width": 400,
+          "height": 250,
+          "config": "{\"name\":\"lineEnrollmentTrend\",\"layouts\":[{\"id\":0,\"position\":{\"x\":848,\"y\":175,\"z\":7,\"width\":400,\"height\":250}}],\"singleVisual\":{\"visualType\":\"lineChart\",\"projections\":{\"Category\":[{\"queryRef\":\"loyalty_members.enrollment_date.Month\"}],\"Y\":[{\"queryRef\":\"Count.loyalty_members.member_id\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"loyalty_members\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"enrollment_date\"},\"Name\":\"loyalty_members.enrollment_date.Month\"},{\"Aggregation\":{\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"member_id\"}},\"Function\":5},\"Name\":\"Count.loyalty_members.member_id\"}],\"OrderBy\":[{\"Direction\":1,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"enrollment_date\"}}}]},\"objects\":{\"dataPoint\":[{\"properties\":{\"fill\":{\"solid\":{\"color\":\"#1F77B4\"}}}}],\"lineStyles\":[{\"properties\":{\"strokeWidth\":3}}],\"categoryAxis\":[{\"properties\":{\"show\":true}}],\"valueAxis\":[{\"properties\":{\"show\":true}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Monthly Enrollment Trend\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 7
+        },
+        {
+          "x": 16,
+          "y": 440,
+          "z": 8,
+          "width": 1232,
+          "height": 260,
+          "config": "{\"name\":\"tableTopMembers\",\"layouts\":[{\"id\":0,\"position\":{\"x\":16,\"y\":440,\"z\":8,\"width\":1232,\"height\":260}}],\"singleVisual\":{\"visualType\":\"tableEx\",\"projections\":{\"Values\":[{\"queryRef\":\"loyalty_members.first_name\"},{\"queryRef\":\"loyalty_members.last_name\"},{\"queryRef\":\"loyalty_members.tier\"},{\"queryRef\":\"loyalty_members.current_points_balance\"},{\"queryRef\":\"loyalty_members.lifetime_points_earned\"}]},\"prototypeQuery\":{\"Version\":2,\"From\":[{\"Name\":\"m\",\"Entity\":\"loyalty_members\",\"Type\":0}],\"Select\":[{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"first_name\"},\"Name\":\"loyalty_members.first_name\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"last_name\"},\"Name\":\"loyalty_members.last_name\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"tier\"},\"Name\":\"loyalty_members.tier\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"current_points_balance\"},\"Name\":\"loyalty_members.current_points_balance\"},{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"lifetime_points_earned\"},\"Name\":\"loyalty_members.lifetime_points_earned\"}],\"OrderBy\":[{\"Direction\":2,\"Expression\":{\"Column\":{\"Expression\":{\"SourceRef\":{\"Source\":\"m\"}},\"Property\":\"lifetime_points_earned\"}}}]},\"objects\":{\"total\":[{\"properties\":{\"show\":false}}],\"grid\":[{\"properties\":{\"gridVertical\":true,\"gridVerticalColor\":{\"solid\":{\"color\":\"#E0E0E0\"}},\"rowPadding\":4}}],\"columnHeaders\":[{\"properties\":{\"fontColor\":{\"solid\":{\"color\":\"#FFFFFF\"}},\"backColor\":{\"solid\":{\"color\":\"#2E5090\"}}}}],\"values\":[{\"properties\":{\"backColor\":{\"solid\":{\"color\":\"#F5F5F5\"}}},\"selector\":{\"data\":[{\"dataViewWildcard\":{\"matchingOption\":1}}]}}]},\"vcObjects\":{\"title\":[{\"properties\":{\"show\":true,\"text\":\"Top Members by Lifetime Points Earned\"}}]}}}",
+          "filters": "[]",
+          "tabOrder": 8
+        }
+      ]
+    }
+  ]
+}
