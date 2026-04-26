@@ -11,6 +11,34 @@
 
 This proof of concept enables Advanced Auto Parts' marketing team to query their Azure PostgreSQL rewards and loyalty data using natural language through Microsoft Fabric's Data Agent capability. The solution leverages AAP's existing Fabric infrastructure to mirror PostgreSQL data into OneLake, configure a Data Agent for natural language query translation, and expose the agent through a simple web application. The architecture is designed with schema abstraction as a first-class concern, enabling seamless replacement of the placeholder data model with production schemas without impacting the broader system architecture.
 
+## Security Architecture
+
+### User-Delegated Authentication (On-Behalf-Of)
+
+The application implements a **zero-trust, user-delegated** authentication model. The user's Azure Entra ID credentials flow end-to-end from the browser through the Flask proxy to the Fabric Data Agent API. The application itself holds **no standing permissions** to access data.
+
+```
+Browser → MSAL Login → Entra ID (Fabric scopes)
+                              ↓
+                    Auth Code + Refresh Token
+                              ↓
+          Flask Session (encrypted token cache)
+                              ↓
+          acquire_token_silent → Fabric Access Token
+                              ↓
+          Fabric Data Agent API (user's delegated permissions)
+```
+
+**Design principles:**
+
+1. **No service accounts** — The app authenticates users but never authenticates as itself to access data
+2. **Least privilege** — Each user's queries are limited to data they can individually access in Fabric
+3. **Zero standing access** — The app has no Fabric workspace role; removing a user's Fabric access immediately revokes their data access through the app
+4. **Token isolation** — Per-user MSAL token caches are encrypted in Flask session cookies
+5. **Short-lived tokens** — Access tokens expire in ~60 minutes; refresh tokens transparently renew them
+
+This architecture ensures the AI agent can never access data beyond what the authenticated user is authorized to see — the AI has exactly the same permissions as the human operating it.
+
 ---
 
 ## Solution Architecture Overview

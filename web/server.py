@@ -4,17 +4,21 @@ Advance Insights — Flask API + Static File Server
 Serves the web app and proxies Fabric Data Agent API calls.
 Runs both locally (python web/server.py) and in production (gunicorn).
 
-Auth:
-  - Production: MSAL Entra ID auth (login/callback/logout flow)
-  - Local dev:  InteractiveBrowserCredential (browser popup)
+Auth & Identity (user credentials flow end-to-end):
+  - Production/Docker: MSAL auth code flow → user logs in via browser →
+    acquire_token_silent gets a Fabric token AS THAT USER → Fabric API
+    calls run with the user's identity (no service account, no managed identity)
+  - Local dev (no ENTRA_CLIENT_ID): InteractiveBrowserCredential popup
 
-Fabric API:
-  - Production: Managed identity via DefaultAzureCredential
-  - Local dev:  InteractiveBrowserCredential fallback
+The app never has standing Fabric permissions. It always acts on behalf of
+the authenticated user. If the user can't access the data, the app can't either.
 
 Usage:
     # Local dev (no env vars needed — uses defaults + browser login)
     python web/server.py
+
+    # Docker local (same image as production)
+    docker run -p 8000:8000 -e ENTRA_CLIENT_ID=... -e ENTRA_CLIENT_SECRET=... aap-loyalty-intelligence
 
     # Production (Container Apps via gunicorn)
     gunicorn --bind 0.0.0.0:8000 server:app
@@ -42,11 +46,14 @@ FABRIC_SCOPE = os.environ.get("FABRIC_SCOPE", "https://api.fabric.microsoft.com/
 FABRIC_API_BASE = os.environ.get("FABRIC_API_BASE", "https://msitapi.fabric.microsoft.com/v1")
 TENANT_ID = os.environ.get("ENTRA_TENANT_ID", "72f988bf-86f1-41af-91ab-2d7cd011db47")
 
-# MSAL / Entra ID config (only needed in production)
+# MSAL / Entra ID config (only needed when ENTRA_CLIENT_ID is set)
 ENTRA_CLIENT_ID = os.environ.get("ENTRA_CLIENT_ID", "")
 ENTRA_CLIENT_SECRET = os.environ.get("ENTRA_CLIENT_SECRET", "")
 ENTRA_AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-ENTRA_SCOPES = ["User.Read"]
+
+# Fabric delegated scopes — requested during user login so the app can call
+# Fabric APIs ON BEHALF OF the user (not as a service account).
+FABRIC_USER_SCOPES = ["https://api.fabric.microsoft.com/.default"]
 
 # Flask session secret (generate random if not set)
 SESSION_SECRET = os.environ.get("SESSION_SECRET", secrets.token_hex(32))
@@ -59,52 +66,96 @@ IS_PRODUCTION = bool(ENTRA_CLIENT_ID)
 
 # ── Fabric API Credential ────────────────────────────────────────────
 
-_fabric_credential = None
+_dev_credential = None
 _assistant_cache = {}  # agentId → assistantId
 
 
-def _get_fabric_credential():
-    """Get credential for Fabric API calls. Managed identity in prod, browser in dev."""
-    global _fabric_credential
-    if _fabric_credential is None:
-        if IS_PRODUCTION:
-            _fabric_credential = DefaultAzureCredential()
-        else:
-            _fabric_credential = ChainedTokenCredential(
-                DefaultAzureCredential(exclude_interactive_browser_credential=True),
-                InteractiveBrowserCredential(
-                    tenant_id=TENANT_ID,
-                    redirect_uri="http://localhost:8400",
-                ),
-            )
-            # Force initial login in dev mode
-            print("\n🔐 Opening browser for Azure login...")
-            _fabric_credential.get_token(FABRIC_SCOPE)
-            print("✅ Authenticated successfully!\n")
-    return _fabric_credential
+def _get_dev_credential():
+    """Get credential for local dev (no MSAL). Uses browser popup."""
+    global _dev_credential
+    if _dev_credential is None:
+        _dev_credential = ChainedTokenCredential(
+            DefaultAzureCredential(exclude_interactive_browser_credential=True),
+            InteractiveBrowserCredential(
+                tenant_id=TENANT_ID,
+                redirect_uri="http://localhost:8400",
+            ),
+        )
+        print("\n🔐 Opening browser for Azure login...")
+        _dev_credential.get_token(FABRIC_SCOPE)
+        print("✅ Authenticated successfully!\n")
+    return _dev_credential
 
 
 def get_fabric_token():
-    """Get a valid Fabric API access token."""
-    cred = _get_fabric_credential()
-    return cred.get_token(FABRIC_SCOPE).token
+    """Get a Fabric API access token using the current user's identity.
+
+    Production/Docker (MSAL): Uses acquire_token_silent to get a Fabric
+    token on behalf of the logged-in user. The app NEVER has its own
+    Fabric permissions — it always delegates to the user's identity.
+
+    Local dev (no MSAL): Falls back to InteractiveBrowserCredential
+    which opens a browser popup for the developer's own login.
+    """
+    if IS_PRODUCTION:
+        # OBO pattern: get a Fabric token for the logged-in user
+        msal_app, cache = _get_msal_app_with_cache()
+        accounts = msal_app.get_accounts()
+        if not accounts:
+            raise PermissionError("No authenticated user — please log in")
+
+        result = msal_app.acquire_token_silent(
+            scopes=FABRIC_USER_SCOPES,
+            account=accounts[0],
+        )
+
+        if not result or "access_token" not in result:
+            raise PermissionError("Could not acquire Fabric token — please re-login")
+
+        # Persist refreshed cache back to session
+        session["token_cache"] = cache.serialize()
+        return result["access_token"]
+    else:
+        cred = _get_dev_credential()
+        return cred.get_token(FABRIC_SCOPE).token
 
 
-# ── MSAL Confidential Client (production auth) ──────────────────────
+# ── MSAL Confidential Client (user-delegated auth) ──────────────────
 
-_msal_app = None
+_msal_app_base = None
+
+
+def _get_msal_app_with_cache():
+    """Build MSAL app with per-user serialized token cache from session.
+
+    The token cache stores the user's refresh token so acquire_token_silent
+    can get fresh Fabric tokens without re-prompting. Cache is serialized
+    into the Flask session (cookie-based for POC; use Redis for production).
+    """
+    cache = msal.SerializableTokenCache()
+    cached_data = session.get("token_cache")
+    if cached_data:
+        cache.deserialize(cached_data)
+
+    app = msal.ConfidentialClientApplication(
+        ENTRA_CLIENT_ID,
+        authority=ENTRA_AUTHORITY,
+        client_credential=ENTRA_CLIENT_SECRET,
+        token_cache=cache,
+    )
+    return app, cache
 
 
 def _get_msal_app():
-    """Lazy-init MSAL ConfidentialClientApplication."""
-    global _msal_app
-    if _msal_app is None and IS_PRODUCTION:
-        _msal_app = msal.ConfidentialClientApplication(
+    """Get base MSAL app (no per-user cache). Used for login initiation."""
+    global _msal_app_base
+    if _msal_app_base is None and IS_PRODUCTION:
+        _msal_app_base = msal.ConfidentialClientApplication(
             ENTRA_CLIENT_ID,
             authority=ENTRA_AUTHORITY,
             client_credential=ENTRA_CLIENT_SECRET,
         )
-    return _msal_app
+    return _msal_app_base
 
 
 # ── Flask App ────────────────────────────────────────────────────────
@@ -148,16 +199,15 @@ def auth_middleware():
 
 @app.route("/auth/login")
 def auth_login():
-    """Initiate MSAL login flow."""
+    """Initiate MSAL login flow with Fabric delegated scopes."""
     if not IS_PRODUCTION:
         return redirect("/")
 
     msal_app = _get_msal_app()
-    # Build the redirect URI from the request
     redirect_uri = request.host_url.rstrip("/") + "/auth/callback"
 
     flow = msal_app.initiate_auth_code_flow(
-        scopes=ENTRA_SCOPES,
+        scopes=FABRIC_USER_SCOPES,
         redirect_uri=redirect_uri,
     )
     session["auth_flow"] = flow
@@ -166,14 +216,16 @@ def auth_login():
 
 @app.route("/auth/callback")
 def auth_callback():
-    """Handle MSAL login callback."""
+    """Handle MSAL login callback — store token cache for OBO Fabric calls."""
     if not IS_PRODUCTION:
         return redirect("/")
 
-    msal_app = _get_msal_app()
     flow = session.pop("auth_flow", None)
     if not flow:
         return redirect("/auth/login")
+
+    # Use per-user cache so refresh tokens persist across requests
+    msal_app, cache = _get_msal_app_with_cache()
 
     try:
         result = msal_app.acquire_token_by_auth_code_flow(
@@ -188,7 +240,10 @@ def auth_callback():
         print(f"❌ Auth error: {result.get('error_description', result['error'])}")
         return redirect("/auth/login")
 
-    # Store user info in session
+    # Persist the token cache (contains refresh token for Fabric OBO)
+    session["token_cache"] = cache.serialize()
+
+    # Store user info from ID token claims
     id_token_claims = result.get("id_token_claims", {})
     session["user"] = {
         "name": id_token_claims.get("name", "Unknown"),
@@ -468,6 +523,7 @@ def health():
     return jsonify({
         "status": "ok",
         "mode": "production" if IS_PRODUCTION else "local-dev",
+        "auth": "user-delegated (OBO)" if IS_PRODUCTION else "interactive-browser",
         "workspace": WORKSPACE_ID,
         "fabricApi": FABRIC_API_BASE,
     })
@@ -493,14 +549,14 @@ if __name__ == "__main__":
     print("=" * 50)
     print(f"  Workspace: {WORKSPACE_ID}")
     print(f"  Tenant:    {TENANT_ID}")
-    print(f"  Mode:      {'production (MSAL)' if IS_PRODUCTION else 'local-dev (browser login)'}")
+    print(f"  Mode:      {'production (MSAL + OBO)' if IS_PRODUCTION else 'local-dev (browser login)'}")
     print(f"  Web dir:   {WEB_DIR}")
     print("=" * 50)
 
     if not IS_PRODUCTION:
         # Authenticate before starting the server (dev mode)
         try:
-            _get_fabric_credential()
+            _get_dev_credential()
         except Exception as e:
             print(f"\n❌ Authentication failed: {e}")
             print("Make sure you can log in with your Microsoft account.")

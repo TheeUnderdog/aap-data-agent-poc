@@ -13,8 +13,8 @@
 │  ├── /auth/*  → MSAL login/callback/logout       │
 │  └── /api/health → Health check                  │
 │                                                  │
-│  Fabric API calls use managed identity           │
-│  (DefaultAzureCredential)                        │
+│  Fabric API calls use user-delegated tokens       │
+│  (OBO flow)                                      │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -121,16 +121,29 @@ az containerapp update \
   --set-env-vars "ENTRA_CLIENT_SECRET=secretref:entra-client-secret"
 ```
 
-## 5. Set Up Managed Identity for Fabric API
+## 5. Configure Fabric API Permissions (OBO Auth)
 
-The Flask backend calls the Fabric Data Agent API. In production, this uses the Container App's managed identity:
+The Flask backend calls the Fabric Data Agent API **on behalf of the signed-in user** — no managed identity is needed for data access. The user's own credentials flow end-to-end.
 
-1. The `--system-assigned` flag on container creation enables it automatically
-2. Get the **Principal ID:** `az containerapp identity show --name aap-loyalty-intelligence --resource-group aap-poc-rg --query principalId -o tsv`
-3. In [Fabric Portal](https://msit.powerbi.com), go to the workspace → **Manage access**
-4. Add the managed identity (by Principal ID) as a **Contributor**
+### Add Delegated Permissions to the App Registration
 
-> **Note:** For local development, `DefaultAzureCredential` falls back to `InteractiveBrowserCredential`. Run `python web/server.py` and authenticate via browser.
+1. Go to [Azure Portal → App registrations](https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade)
+2. Select the **Advance Insights** app registration
+3. Go to **API permissions** → **Add a permission**
+4. Select **APIs my organization uses** → search for **"Power BI Service"**
+5. Select **Delegated permissions** (not Application permissions)
+6. Select the needed scopes:
+   - `Dataset.Read.All`
+   - `Workspace.Read.All`
+   - `Item.Execute.All` (for Data Agent queries)
+7. Click **Add permissions**
+8. Click **Grant admin consent for MSIT** (requires admin)
+
+### Fabric Workspace Access
+
+Each user who will use the app must have at least **Viewer** (or **Contributor**) access to the Fabric workspace. The app cannot access data the user cannot access — there is no service account fallback.
+
+> **Note:** For local development, `InteractiveBrowserCredential` is used directly — the same user-delegated model. Run `python web/server.py` and authenticate via browser.
 
 ## 6. Deployment (CI/CD)
 
@@ -164,16 +177,40 @@ az containerapp update \
 
 ```
 Browser → /auth/login
-       → MSAL redirects to Entra ID login page
+       → MSAL redirects to Entra ID login page (requesting Fabric scopes)
        → User authenticates with @microsoft.com account
        → Entra ID redirects to /auth/callback
-       → Flask stores user info in session cookie
+       → Flask acquires tokens via auth code flow, caches in session
        → Browser calls /api/chat (relative URL)
        → Flask middleware validates session
-       → Flask uses DefaultAzureCredential (managed identity)
-       → Flask calls Fabric Data Agent API
+       → Flask calls acquire_token_silent (user's delegated Fabric token)
+       → Flask calls Fabric Data Agent API with user's token
        → SSE response streamed back to browser
 ```
+
+## Security
+
+### User-Delegated Authentication (OBO)
+
+This application uses an **On-Behalf-Of (OBO)** pattern — the user's own Azure Entra ID credentials flow end-to-end from the browser to the Fabric Data Agent API. The application itself has **zero standing access** to any data.
+
+**Key principles:**
+
+- **No service accounts** — The app never authenticates as itself to access data. Every Fabric API call uses the signed-in user's delegated token.
+- **Least privilege** — Users can only query data they are individually authorized to access in Fabric. If a user doesn't have Contributor access to the workspace, the query fails.
+- **No managed identity for data** — The Container App's managed identity (if enabled) is only used for infrastructure tasks (pulling container images, reading Key Vault secrets). It is never used to call the Fabric Data Agent API.
+- **Token cache isolation** — Each user's MSAL token cache is stored in their encrypted Flask session cookie. Users cannot access each other's tokens.
+- **Short-lived tokens** — Access tokens expire in ~60 minutes. Refresh tokens are used via `acquire_token_silent` to get fresh access tokens without re-authentication.
+
+### Production Considerations
+
+| Concern | POC Approach | Production Recommendation |
+|---------|-------------|--------------------------|
+| Token cache | Flask cookie session | Redis or distributed cache |
+| Session secret | Random per-restart | Azure Key Vault secret |
+| HTTPS | Container Apps built-in | Same (TLS terminated at ingress) |
+| Token encryption | Flask session signing | Add encryption layer |
+| Audit logging | Console output | Azure Monitor / Log Analytics |
 
 ## Environment Variables
 
