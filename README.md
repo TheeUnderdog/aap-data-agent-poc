@@ -4,6 +4,8 @@ A Microsoft Fabric Data Agent proof-of-concept for **Advance Auto Parts** — en
 
 ## Architecture
 
+![AAP Data Agent Architecture](web/img/architecture.svg)
+
 ```
 Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
                                               ↓
