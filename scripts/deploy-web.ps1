@@ -158,7 +158,7 @@ function New-StaticWebApp {
             --branch $Branch `
             --app-location "web" `
             --api-location "api" `
-            --output-location "" `
+            --output-location "." `
             --login-with-github `
             --output json 2>&1
 
