@@ -10,6 +10,38 @@
 
 ## Learnings
 
+### Container Apps Migration (2026-04-26)
+- **Scope:** Migrated from Azure Static Web Apps to Azure Container Apps (single container: Flask + gunicorn)
+- **Trigger:** SWA Functions Consumption tier limited SSE streaming to ~30 seconds; Container Apps provides unlimited SSE and full auth control
+- **Commit:** 7155a0b (pushed to master)
+- **Files changed:**
+  - `web/Dockerfile` — Multi-stage build (build stage with dependencies → runtime stage with Python 3.11, gunicorn, app code, static assets)
+  - `web/requirements.txt` — Created: flask, flask-cors, gunicorn, msal, azure-identity, requests, PyJWT
+  - `web/server.py` — Rewrote: MSAL ConfidentialClientApplication, auth middleware, /auth/login|callback|logout, environment-based config, ChainedTokenCredential (managed identity prod / browser dev)
+  - `scripts/deploy-web.ps1` — Rewritten for Container Apps (ACR/ghcr.io push, ACA resource creation, managed identity binding)
+  - `scripts/deploy-web.sh` — Bash equivalent
+  - `scripts/deploy-all.ps1` — Updated to invoke Container Apps workflow
+  - `.github/workflows/azure-container-apps.yml` — New GitHub Actions: Docker build → ghcr.io → deploy to ACA
+  - `.github/workflows/azure-static-web-apps.yml` — **Deleted** (no longer used)
+  - `web/staticwebapp.config.json` — **Deleted** (SWA-specific config)
+  - `web/SETUP.md` — Complete rewrite for Container Apps workflow
+  - `README.md` — Updated architecture, tech stack, deployment
+  - `api/function_app.py` — Marked superseded; kept for reference only
+- **Key patterns:** 
+  - `IS_PRODUCTION = bool(ENTRA_CLIENT_ID)` — toggles auth between local dev and prod
+  - MSAL auth code flow (server-side token exchange, no secrets in frontend)
+  - Flask session stores user claims post-auth (token not kept in session for security)
+  - `DefaultAzureCredential` for Fabric API (managed identity auto-discovery)
+  - gunicorn gthread worker (4 workers × 4 threads) — essential for SSE streaming
+  - GitHub Actions pushes to ghcr.io; deployment script pulls from registry
+- **CI/CD:** GitHub Actions → ghcr.io (free container registry) → Container Apps deployment
+- **Improvements:**
+  - ✅ True unlimited SSE streaming (no 30-second Functions limitation)
+  - ✅ Full Entra ID auth control via MSAL
+  - ✅ Flexible container registry options
+  - ✅ Environment-based secrets (managed identity credential chain)
+  - ✅ Production-grade orchestration
+
 ### Container Apps Migration (2026-07)
 - **Scope:** Migrated from Azure Static Web Apps to Azure Container Apps (single container: Flask + gunicorn)
 - **Files changed:**

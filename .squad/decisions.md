@@ -93,22 +93,41 @@
 - **Owner:** Basher (Backend Dev)
 - **Status:** Verified — No Issues Found
 
-### Azure Static Web Apps Infrastructure (2026-07)
-- **Decision:** Set up Azure Static Web Apps as hosting platform for AAP Data Agent POC web app
-- **Rationale:** Simpler deployment than Container Apps, built-in Entra ID auth, auto-scaling, no Service Tree ID needed
-- **Implementation:**
+### Azure Static Web Apps Infrastructure (2026-07) → Azure Container Apps Migration (2026-04-26)
+- **Original Decision:** Set up Azure Static Web Apps as hosting platform for AAP Data Agent POC web app
+- **Rationale (SWA):** Simpler deployment than Container Apps, built-in Entra ID auth, auto-scaling, no Service Tree ID needed
+- **Original Implementation:**
   - `web/staticwebapp.config.json` — SWA routing (API → managed Functions, static → SPA), Entra ID auth (MSIT tenant), security headers, role-based access
   - `api/function_app.py` — Python v2 Azure Functions backend (3 endpoints: `/api/chat` SSE proxy, `/api/user` identity, `/api/health`)
   - `.github/workflows/azure-static-web-apps.yml` — GitHub Actions CI/CD (SPA + managed Functions deployment)
   - `web/SETUP.md` — Complete setup guide (portal creation, Entra ID app registration, managed identity binding, auth flow)
   - Updated `web/config.js` — `useProxy: true` works for both local `web/server.py` and SWA managed Functions
-- **Team Impact:**
-  - **Linus:** Frontend code unchanged — `useProxy: true` + relative URLs work in both local and prod
-  - **Livingston:** No data layer changes — Fabric API via managed identity (needs workspace Contributor)
-  - **Danny:** Aligns with decision #4 (Static Web Apps + managed Functions)
-- **Known limitation:** Functions v2 Consumption doesn't support true SSE streaming. Chat responses accumulated and returned as batch. Acceptable for POC; upgrade to Flex Consumption if real-time streaming needed.
+- **Migration Decision:** Replace SWA with Azure Container Apps (2026-04-26)
+- **Rationale for Migration:**
+  - Functions Consumption tier caps SSE streaming at ~30 seconds → limits real-time chat
+  - Manual managed identity binding on each deploy
+  - Limited control over auth flow and runtime
+  - Container Apps provides full control, flexible registry options, unlimited SSE streaming
+- **New Implementation (Container Apps):**
+  - `web/Dockerfile` — Multi-stage build (Flask + gunicorn application server)
+  - `web/requirements.txt` — Python dependencies (flask, gunicorn, msal, requests)
+  - `web/server.py` — Flask backend with MSAL auth middleware, Entra ID integration, `/api/chat` SSE endpoint
+  - `.github/workflows/azure-container-apps.yml` — GitHub Actions CI/CD (build, push to ghcr.io, deploy to ACA)
+  - `scripts/deploy-web.ps1` — PowerShell idempotent Container Apps deployment
+  - `scripts/deploy-web.sh` — Bash parallel deployment script
+  - Deleted: `web/staticwebapp.config.json`, `.github/workflows/azure-static-web-apps.yml`
+- **Team Impact (Same):**
+  - **Linus:** Frontend code unchanged — `useProxy: true` + relative URLs work with Container Apps backend
+  - **Livingston:** No data layer changes — Fabric API via managed identity (workspace Contributor role)
+  - **Danny:** Aligns with original decision #4 but with enhanced capabilities
+- **Key Improvements:**
+  - ✅ True SSE streaming (unlimited, no 30-second cap)
+  - ✅ Full Entra ID auth control via MSAL middleware
+  - ✅ Container registry flexibility (ghcr.io, ACR, Docker Hub)
+  - ✅ Managed identity environment-based (no secrets in code)
+  - ✅ Production-grade container orchestration
 - **Owner:** Basher (Backend Dev)
-- **Status:** Implemented
+- **Status:** ✅ Implemented (Commit 7155a0b), Ready for Container Apps provisioning
 
 ### Crew Chief Executive Orchestrator Naming (2026-04-24)
 - **Decision:** The executive orchestrator agent in the web UX is named "Crew Chief" (not "The Boss")
