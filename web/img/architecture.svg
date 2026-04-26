@@ -59,15 +59,6 @@
   <rect x="370" y="22" width="1.5" height="56" fill="#5A5A5A"/>
   <!-- subtitle -->
   <text x="395" y="60" font-family="'Segoe UI','Arial',sans-serif" font-size="26" font-weight="500" fill="#D6D6D6" letter-spacing="0.5">Rewards &amp; Loyalty Intelligence  ·  Agent Architecture</text>
-  <!-- right pills -->
-  <g transform="translate(1170,36)" font-size="11" font-weight="700" font-family="'Segoe UI',sans-serif">
-    <rect x="0" y="0" width="90" height="26" rx="13" fill="none" stroke="#FFD400" stroke-width="1.5"/>
-    <text x="45" y="18" text-anchor="middle" fill="#FFD400" letter-spacing="1.2">FABRIC</text>
-    <rect x="100" y="0" width="90" height="26" rx="13" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
-    <text x="145" y="18" text-anchor="middle" fill="#FFFFFF" letter-spacing="1.2">6 AGENTS</text>
-    <rect x="200" y="0" width="90" height="26" rx="13" fill="#FFD400"/>
-    <text x="245" y="18" text-anchor="middle" fill="#1A1A1A" letter-spacing="1.2">POC · 2025</text>
-  </g>
   <!-- yellow stripe -->
   <rect x="0" y="93" width="1500" height="7" fill="#FFD400"/>
 
