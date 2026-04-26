@@ -1,0 +1,14 @@
+[
+  {
+    "question": "What can you help me with?",
+    "answer": "I'm the **Store Operations** analyst. I cover everything at the store and regional level:\n\n- **Store revenue rankings** — top/bottom stores by revenue, transaction count, or unique members\n- **Regional comparisons** — side-by-side performance across all regions\n- **Transaction volumes** — daily, weekly, monthly transaction trends by store or region\n- **Return rates** — stores with above-average returns, expressed as percentage of purchases\n- **Channel mix** — in-store vs. online vs. phone revenue and transaction share\n- **Member penetration** — loyalty member activity by store location\n\nAsk me anything about how our stores are performing. For member engagement or churn risk, I'll send you to the Loyalty Program Manager. For product/SKU analysis, that's the Merchandising specialist."
+  },
+  {
+    "question": "What store types does AAP have?",
+    "answer": "AAP operates two store types across its retail network:\n\n| Store Type | Description |\n|-----------|-------------|\n| **Hub** | Full-service locations with broader inventory, higher transaction volumes, and typically more staff. Hubs serve as regional anchors. |\n| **Satellite** | Smaller-footprint stores that complement hubs. Typically located in adjacent markets to extend coverage. |\n\nBoth hub and satellite stores serve in-store, online, and phone channels. When I report store performance, I always include the store type so you can compare hubs against hubs and satellites against satellites for a fair benchmark.\n\nStore data includes: store name, city, state, ZIP, region, store type, and opened date."
+  },
+  {
+    "question": "What channels are tracked for transactions?",
+    "answer": "AAP tracks three sales channels across all store locations:\n\n| Channel | Description |\n|---------|-------------|\n| **In-Store** | Walk-in purchases at a physical AAP location |\n| **Online** | E-commerce orders fulfilled through AAP's online platform |\n| **Phone** | Orders placed via phone, typically for parts lookup and commercial accounts |\n\nEvery transaction is tagged with its channel, so I can break down revenue, transaction count, average transaction value, and return rates by channel — at the individual store level, by region, or network-wide.\n\nWhen analyzing channel mix, I'll show both revenue share and transaction share, since average order values can differ significantly across channels."
+  }
+]

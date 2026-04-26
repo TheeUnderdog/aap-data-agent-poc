@@ -36,6 +36,11 @@
     "scopeBoundary": "Redirect member engagement or tier questions to Loyalty Program Manager agent. Redirect store-level operations to Store Operations agent. Redirect coupon/promotion strategy to Marketing & Promotions agent.",
     "dataRecency": "Always note the data time range when reporting trends. Do not imply real-time data."
   },
+  "verifiedAnswers": {
+    "file": "verified-answers-merch.json",
+    "count": 3,
+    "note": "Verified answers are configured in the Power BI semantic model via 'Prep data for AI'. These JSON files are the content source — deploy as report visuals with trigger phrases."
+  },
   "crossAgentReferrals": {
     "memberEngagement": "For member tier behavior or loyalty engagement → Loyalty Program Manager agent",
     "storePerformance": "For store-level revenue or regional performance → Store Operations agent",

@@ -1,0 +1,330 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1020" font-family="'Segoe UI','Open Sans',Arial,sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0E2233"/>
+      <stop offset="100%" stop-color="#0A1726"/>
+    </linearGradient>
+    <linearGradient id="orch" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3D5570" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#1F3149" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="proxyBand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#15324E"/>
+      <stop offset="100%" stop-color="#0E2238"/>
+    </linearGradient>
+    <linearGradient id="dataBand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#10283D"/>
+      <stop offset="100%" stop-color="#0B1B2C"/>
+    </linearGradient>
+    <linearGradient id="cPit" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3F8FD9"/><stop offset="100%" stop-color="#214E80"/></linearGradient>
+    <linearGradient id="cGear" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#E8C547"/><stop offset="100%" stop-color="#9C7E0A"/></linearGradient>
+    <linearGradient id="cIgn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#F38A2C"/><stop offset="100%" stop-color="#B85400"/></linearGradient>
+    <linearGradient id="cParts" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4FB073"/><stop offset="100%" stop-color="#1E6A3A"/></linearGradient>
+    <linearGradient id="cDie" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#D9434C"/><stop offset="100%" stop-color="#8B0E16"/></linearGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5FA8E5"/>
+    </marker>
+    <pattern id="circuit" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M0 30 H60 M30 0 V60" stroke="#1A3A55" stroke-width="0.6" opacity="0.35"/>
+      <circle cx="30" cy="30" r="1.2" fill="#2A5C82" opacity="0.4"/>
+    </pattern>
+    <!-- Checkered flag pattern: 2 rows x 4 cols of white/transparent squares -->
+    <symbol id="checkflag" viewBox="0 0 100 64">
+      <!-- yellow underline accent -->
+      <polygon points="-2,52 92,52 86,64 -8,64" fill="#FFD400"/>
+      <!-- parallelogram flag shape with checker -->
+      <g>
+        <!-- row 1: white-blank-white-blank -->
+        <polygon points="14,4 32,4 30,28 12,28" fill="#FFFFFF"/>
+        <polygon points="50,4 68,4 66,28 48,28" fill="#FFFFFF"/>
+        <!-- row 2: blank-white-blank-white -->
+        <polygon points="30,28 48,28 46,52 28,52" fill="#FFFFFF"/>
+        <polygon points="66,28 84,28 82,52 64,52" fill="#FFFFFF"/>
+      </g>
+    </symbol>
+  </defs>
+
+  <!-- ============ AAP "ADVANCE INSIGHTS" HEADER ============ -->
+  <rect x="0" y="0" width="1500" height="100" fill="#1A1A1A"/>
+  <!-- logo -->
+  <g transform="translate(40,18)">
+    <use href="#checkflag" width="100" height="64"/>
+  </g>
+  <!-- ADVANCE INSIGHTS text -->
+  <g transform="translate(160,0)">
+    <text x="0" y="48" font-family="'Segoe UI','Arial',sans-serif" font-size="34" font-weight="800" fill="#FFFFFF" letter-spacing="6">ADVANCE</text>
+    <text x="2" y="74" font-family="'Segoe UI','Arial',sans-serif" font-size="18" font-weight="800" fill="#FFD400" letter-spacing="6">INSIGHTS</text>
+  </g>
+  <!-- vertical divider -->
+  <rect x="370" y="22" width="1.5" height="56" fill="#5A5A5A"/>
+  <!-- subtitle -->
+  <text x="395" y="60" font-family="'Segoe UI','Arial',sans-serif" font-size="26" font-weight="500" fill="#D6D6D6" letter-spacing="0.5">Rewards &amp; Loyalty Intelligence  ·  Agent Architecture</text>
+  <!-- right pills -->
+  <g transform="translate(1170,36)" font-size="11" font-weight="700" font-family="'Segoe UI',sans-serif">
+    <rect x="0" y="0" width="90" height="26" rx="13" fill="none" stroke="#FFD400" stroke-width="1.5"/>
+    <text x="45" y="18" text-anchor="middle" fill="#FFD400" letter-spacing="1.2">FABRIC</text>
+    <rect x="100" y="0" width="90" height="26" rx="13" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
+    <text x="145" y="18" text-anchor="middle" fill="#FFFFFF" letter-spacing="1.2">6 AGENTS</text>
+    <rect x="200" y="0" width="90" height="26" rx="13" fill="#FFD400"/>
+    <text x="245" y="18" text-anchor="middle" fill="#1A1A1A" letter-spacing="1.2">POC · 2025</text>
+  </g>
+  <!-- yellow stripe -->
+  <rect x="0" y="93" width="1500" height="7" fill="#FFD400"/>
+
+  <!-- ============ DARK CANVAS ============ -->
+  <rect x="0" y="100" width="1500" height="920" fill="url(#bg)"/>
+  <rect x="0" y="100" width="1500" height="920" fill="url(#circuit)"/>
+
+  <!-- ============ ORCHESTRATOR ============ -->
+  <g transform="translate(160,120)">
+    <path d="M40,0 H1140 L1180,55 L1140,110 H40 L0,55 Z" fill="url(#orch)" stroke="#5FA8E5" stroke-width="1.5" opacity="0.95"/>
+    <g stroke="#7FC2EE" stroke-width="0.8" fill="#7FC2EE" opacity="0.5">
+      <circle cx="120" cy="35" r="2"/><circle cx="180" cy="70" r="2"/><circle cx="240" cy="40" r="2"/>
+      <circle cx="950" cy="30" r="2"/><circle cx="1010" cy="70" r="2"/><circle cx="1060" cy="45" r="2"/>
+      <line x1="120" y1="35" x2="180" y2="70"/><line x1="180" y1="70" x2="240" y2="40"/>
+      <line x1="950" y1="30" x2="1010" y2="70"/><line x1="1010" y1="70" x2="1060" y2="45"/>
+    </g>
+    <g transform="translate(355,32)" fill="#EAF2FA">
+      <circle cx="23" cy="23" r="21" fill="none" stroke="#EAF2FA" stroke-width="3"/>
+      <circle cx="23" cy="23" r="5"/>
+      <rect x="21.5" y="6" width="3" height="14"/>
+      <rect x="21.5" y="26" width="3" height="14" transform="rotate(120 23 23)"/>
+      <rect x="21.5" y="26" width="3" height="14" transform="rotate(240 23 23)"/>
+    </g>
+    <text x="420" y="52" font-size="32" font-weight="800" fill="#EAF2FA" letter-spacing="0.5">CREW CHIEF — Executive Orchestrator</text>
+    <text x="420" y="82" font-size="14" fill="#A9C8E2">Client-side router · classifies intent · dispatches to specialists in parallel · synthesizes a unified answer</text>
+  </g>
+
+  <!-- arrows down (tightened) -->
+  <g stroke="#5FA8E5" stroke-width="2.4" fill="none" marker-end="url(#arr)">
+    <path d="M195,232 V268"/>
+    <path d="M455,232 V268"/>
+    <path d="M750,232 V268"/>
+    <path d="M1045,232 V268"/>
+    <path d="M1305,232 V268"/>
+  </g>
+
+  <!-- ============ AGENT CARDS (tighter) ============ -->
+  <g font-family="'Segoe UI','Open Sans',sans-serif">
+    <!-- PIT CREW -->
+    <g transform="translate(20,275)">
+      <rect width="270" height="190" rx="12" fill="url(#cPit)" stroke="#5FA8E5" stroke-opacity="0.4"/>
+      <g transform="translate(16,14) scale(1.25)" fill="#fff">
+        <path d="M30 6 a10 10 0 0 0 -9 13 L6 34 l4 4 L25 23 a10 10 0 0 0 13 -9 l-6 6 -5 -5 z"/>
+      </g>
+      <text x="92" y="38" font-size="24" font-weight="800" fill="#fff">Pit Crew</text>
+      <text x="92" y="58" font-size="11" font-weight="700" fill="#D9ECFA" letter-spacing="1">[CUSTOMER SERVICE]</text>
+      <line x1="16" y1="86" x2="254" y2="86" stroke="#fff" stroke-opacity="0.25"/>
+      <text x="16" y="110" font-size="12" fill="#EAF4FC" font-weight="600">CSR activity, ticket volume,</text>
+      <text x="16" y="126" font-size="12" fill="#EAF4FC" font-weight="600">resolution &amp; service patterns</text>
+      <text x="16" y="152" font-size="10.5" fill="#BFD6E8" font-style="italic">"How many support tickets</text>
+      <text x="16" y="166" font-size="10.5" fill="#BFD6E8" font-style="italic">were opened this month?"</text>
+      <rect x="16" y="174" width="135" height="12" rx="2" fill="#fff" fill-opacity="0.18"/>
+      <text x="22" y="183" font-size="9.5" fill="#fff" font-weight="700" letter-spacing="0.5">v_csr_interactions</text>
+    </g>
+    <!-- GEARUP -->
+    <g transform="translate(315,275)">
+      <rect width="270" height="190" rx="12" fill="url(#cGear)" stroke="#5FA8E5" stroke-opacity="0.4"/>
+      <g transform="translate(14,12) scale(1.35)" fill="#fff" fill-rule="evenodd">
+        <path d="M22 4 l-2 4 -4 -1 -2 4 3 3 -3 3 2 4 4 -1 2 4 4 0 2 -4 4 1 2 -4 -3 -3 3 -3 -2 -4 -4 1 -2 -4 z M22 14 a8 8 0 1 1 0 16 a8 8 0 1 1 0 -16 z M22 18 a4 4 0 1 0 0 8 a4 4 0 1 0 0 -8 z"/>
+      </g>
+      <text x="92" y="38" font-size="24" font-weight="800" fill="#fff">GearUp</text>
+      <text x="92" y="58" font-size="11" font-weight="700" fill="#FFF6CF" letter-spacing="1">[LOYALTY PROGRAM]</text>
+      <line x1="16" y1="86" x2="254" y2="86" stroke="#fff" stroke-opacity="0.3"/>
+      <text x="16" y="110" font-size="12" fill="#FFF8DA" font-weight="600">Tiers, points liability, churn,</text>
+      <text x="16" y="126" font-size="12" fill="#FFF8DA" font-weight="600">enrollment &amp; engagement health</text>
+      <text x="16" y="152" font-size="10.5" fill="#FBEBA9" font-style="italic">"What's the breakdown of</text>
+      <text x="16" y="166" font-size="10.5" fill="#FBEBA9" font-style="italic">members by tier?"</text>
+      <rect x="16" y="174" width="145" height="12" rx="2" fill="#fff" fill-opacity="0.22"/>
+      <text x="22" y="183" font-size="9.5" fill="#fff" font-weight="700" letter-spacing="0.5">v_member_summary</text>
+    </g>
+    <!-- IGNITION -->
+    <g transform="translate(610,275)">
+      <rect width="270" height="190" rx="12" fill="url(#cIgn)" stroke="#5FA8E5" stroke-opacity="0.4"/>
+      <g transform="translate(22,12) scale(0.9)" fill="#fff">
+        <rect x="14" y="2" width="10" height="6"/>
+        <rect x="11" y="9" width="16" height="4"/>
+        <rect x="13" y="14" width="12" height="4"/>
+        <rect x="11" y="19" width="16" height="4"/>
+        <polygon points="10,24 28,24 25,38 13,38"/>
+        <rect x="17" y="40" width="4" height="8"/>
+        <polygon points="22,30 30,32 24,36 32,46 20,38 26,34"/>
+      </g>
+      <text x="92" y="38" font-size="24" font-weight="800" fill="#fff">Ignition</text>
+      <text x="92" y="58" font-size="11" font-weight="700" fill="#FFE2CB" letter-spacing="1">[MARKETING]</text>
+      <line x1="16" y1="86" x2="254" y2="86" stroke="#fff" stroke-opacity="0.3"/>
+      <text x="16" y="110" font-size="12" fill="#FFEBD7" font-weight="600">Campaigns, coupon funnels,</text>
+      <text x="16" y="126" font-size="12" fill="#FFEBD7" font-weight="600">promotion ROI &amp; targeting</text>
+      <text x="16" y="152" font-size="10.5" fill="#FFD0A8" font-style="italic">"Which campaign had the</text>
+      <text x="16" y="166" font-size="10.5" fill="#FFD0A8" font-style="italic">highest response this quarter?"</text>
+      <rect x="16" y="174" width="180" height="12" rx="2" fill="#fff" fill-opacity="0.22"/>
+      <text x="22" y="183" font-size="9.5" fill="#fff" font-weight="700" letter-spacing="0.5">v_campaign_effectiveness</text>
+    </g>
+    <!-- PARTSPRO -->
+    <g transform="translate(905,275)">
+      <rect width="270" height="190" rx="12" fill="url(#cParts)" stroke="#5FA8E5" stroke-opacity="0.4"/>
+      <g transform="translate(22,14) scale(0.9)" fill="#fff">
+        <rect x="10" y="4" width="28" height="6"/>
+        <rect x="10" y="12" width="28" height="4"/>
+        <rect x="10" y="18" width="28" height="14"/>
+        <rect x="22" y="32" width="4" height="14"/>
+        <ellipse cx="24" cy="46" rx="6" ry="3"/>
+      </g>
+      <text x="92" y="38" font-size="24" font-weight="800" fill="#fff">PartsPro</text>
+      <text x="92" y="58" font-size="11" font-weight="700" fill="#D8F2DE" letter-spacing="1">[MERCHANDISING]</text>
+      <line x1="16" y1="86" x2="254" y2="86" stroke="#fff" stroke-opacity="0.3"/>
+      <text x="16" y="110" font-size="12" fill="#E2F5E7" font-weight="600">Product performance, brands,</text>
+      <text x="16" y="126" font-size="12" fill="#E2F5E7" font-weight="600">categories &amp; return rates</text>
+      <text x="16" y="152" font-size="10.5" fill="#B5E2C2" font-style="italic">"What are our top 10 selling</text>
+      <text x="16" y="166" font-size="10.5" fill="#B5E2C2" font-style="italic">products this month?"</text>
+      <rect x="16" y="174" width="160" height="12" rx="2" fill="#fff" fill-opacity="0.22"/>
+      <text x="22" y="183" font-size="9.5" fill="#fff" font-weight="700" letter-spacing="0.5">v_product_popularity</text>
+    </g>
+    <!-- DIEHARD -->
+    <g transform="translate(1200,275)">
+      <rect width="270" height="190" rx="12" fill="url(#cDie)" stroke="#5FA8E5" stroke-opacity="0.4"/>
+      <g transform="translate(14,14) scale(0.9)" fill="#fff">
+        <rect x="6" y="4" width="6" height="4"/><rect x="34" y="4" width="6" height="4"/>
+        <rect x="2" y="8" width="42" height="32" rx="2"/>
+        <polygon points="22,12 16,26 22,26 18,38 30,22 24,22 28,12" fill="#B6121B"/>
+      </g>
+      <text x="92" y="38" font-size="24" font-weight="800" fill="#fff">DieHard</text>
+      <text x="92" y="58" font-size="11" font-weight="700" fill="#FFD9DC" letter-spacing="1">[STORE OPERATIONS]</text>
+      <line x1="16" y1="86" x2="254" y2="86" stroke="#fff" stroke-opacity="0.3"/>
+      <text x="16" y="110" font-size="12" fill="#FFE5E7" font-weight="600">Store rankings, regional mix,</text>
+      <text x="16" y="126" font-size="12" fill="#FFE5E7" font-weight="600">channel &amp; operational metrics</text>
+      <text x="16" y="152" font-size="10.5" fill="#FFB7BC" font-style="italic">"What are our top 5 stores</text>
+      <text x="16" y="166" font-size="10.5" fill="#FFB7BC" font-style="italic">by revenue?"</text>
+      <rect x="16" y="174" width="160" height="12" rx="2" fill="#fff" fill-opacity="0.22"/>
+      <text x="22" y="183" font-size="9.5" fill="#fff" font-weight="700" letter-spacing="0.5">v_store_performance</text>
+    </g>
+  </g>
+
+  <!-- arrows agents -> proxy (tightened) -->
+  <g stroke="#5FA8E5" stroke-width="2.4" fill="none" marker-end="url(#arr)">
+    <path d="M155,465 V498"/>
+    <path d="M450,465 V498"/>
+    <path d="M745,465 V498"/>
+    <path d="M1040,465 V498"/>
+    <path d="M1335,465 V498"/>
+  </g>
+
+  <!-- ============ PROXY / STREAMING BAND ============ -->
+  <g transform="translate(20,505)">
+    <rect width="1460" height="135" rx="12" fill="url(#proxyBand)" stroke="#3F7DB0" stroke-opacity="0.6"/>
+    <text x="730" y="40" text-anchor="middle" font-size="22" font-weight="800" fill="#EAF2FA" letter-spacing="1">PYTHON FLASK PROXY · SSE STREAMING · ENTRA ID AUTH</text>
+    <text x="730" y="62" text-anchor="middle" font-size="12.5" fill="#A9C8E2">server.py — handles auth, proxies to Fabric Data Agent OpenAI-compatible API, streams Server-Sent Events to the browser</text>
+    <g transform="translate(60,82)">
+      <rect width="170" height="38" rx="6" fill="#0E2238" stroke="#3F7DB0"/>
+      <text x="85" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#7FC2EE">🔐 Entra ID Sign-In</text>
+    </g>
+    <g transform="translate(250,82)">
+      <rect width="170" height="38" rx="6" fill="#0E2238" stroke="#3F7DB0"/>
+      <text x="85" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#7FC2EE">⚡ SSE Streaming</text>
+    </g>
+    <g transform="translate(440,82)">
+      <rect width="200" height="38" rx="6" fill="#0E2238" stroke="#3F7DB0"/>
+      <text x="100" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#7FC2EE">🧠 Reasoning · Tokens</text>
+    </g>
+    <g transform="translate(660,82)">
+      <rect width="200" height="38" rx="6" fill="#0E2238" stroke="#3F7DB0"/>
+      <text x="100" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#7FC2EE">📊 Markdown · Tables</text>
+    </g>
+    <g transform="translate(880,82)">
+      <rect width="200" height="38" rx="6" fill="#0E2238" stroke="#3F7DB0"/>
+      <text x="100" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#7FC2EE">💡 Suggestions · 🎲 Mystery</text>
+    </g>
+    <g transform="translate(1100,82)">
+      <rect width="300" height="38" rx="6" fill="#0E2238" stroke="#3F7DB0"/>
+      <text x="150" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#7FC2EE">🌐 Vanilla JS SPA · AAP-Branded UI</text>
+    </g>
+  </g>
+
+  <!-- arrow into data (tightened) -->
+  <g stroke="#5FA8E5" stroke-width="2.4" fill="none" marker-end="url(#arr)">
+    <path d="M750,640 V675"/>
+  </g>
+
+  <!-- ============ FABRIC DATA PLATFORM (BIGGER) ============ -->
+  <g transform="translate(20,683)">
+    <rect width="1460" height="320" rx="12" fill="url(#dataBand)" stroke="#3F7DB0" stroke-opacity="0.6"/>
+    <text x="730" y="40" text-anchor="middle" font-size="26" font-weight="800" fill="#EAF2FA" letter-spacing="1.5">MICROSOFT FABRIC — Data Platform</text>
+    <text x="730" y="64" text-anchor="middle" font-size="13" fill="#A9C8E2">All queries flow through semantic views — abstraction layer that makes Snowflake migration painless</text>
+
+    <!-- Semantic Views panel -->
+    <g transform="translate(30,84)">
+      <rect width="450" height="220" rx="10" fill="#13314B" stroke="#3F7DB0" stroke-opacity="0.6"/>
+      <text x="16" y="28" font-size="15" font-weight="800" fill="#EAF2FA" letter-spacing="1.2">SEMANTIC VIEWS · 9</text>
+      <text x="16" y="48" font-size="11" fill="#7FC2EE" font-style="italic">Stable query contract — agents never touch raw tables</text>
+      <g font-size="12" fill="#BFD6E8" font-family="Consolas,monospace">
+        <text x="16" y="78">v_member_summary</text>
+        <text x="16" y="100">v_transaction_history</text>
+        <text x="16" y="122">v_points_activity</text>
+        <text x="16" y="144">v_reward_catalog</text>
+        <text x="16" y="166">v_store_performance</text>
+        <text x="240" y="78">v_campaign_effectiveness</text>
+        <text x="240" y="100">v_product_popularity</text>
+        <text x="240" y="122">v_member_engagement</text>
+        <text x="240" y="144">v_coupon_activity</text>
+      </g>
+      <g transform="translate(16,184)">
+        <rect width="418" height="24" rx="4" fill="#0F2638" stroke="#3F7DB0" stroke-opacity="0.5"/>
+        <text x="209" y="16" text-anchor="middle" font-size="11" fill="#7FC2EE" font-weight="700" letter-spacing="0.5">Swap underlying tables → app, agents, UX unchanged</text>
+      </g>
+    </g>
+
+    <!-- Semantic Model panel -->
+    <g transform="translate(505,84)">
+      <rect width="450" height="220" rx="10" fill="#13314B" stroke="#3F7DB0" stroke-opacity="0.6"/>
+      <text x="16" y="28" font-size="15" font-weight="800" fill="#EAF2FA" letter-spacing="1.2">SEMANTIC MODEL · DirectLake</text>
+      <text x="16" y="48" font-size="11" fill="#7FC2EE" font-style="italic">Star schema · feeds Data Agents AND Power BI</text>
+      <!-- star schema -->
+      <g transform="translate(20,62)" stroke="#5FA8E5" stroke-width="1.3" fill="#1B4368">
+        <rect x="170" y="40" width="90" height="34" rx="5"/>
+        <text x="215" y="61" text-anchor="middle" font-size="12" fill="#EAF2FA" font-weight="800">transactions</text>
+        <rect x="20" y="6" width="84" height="26" rx="5"/><text x="62" y="23" text-anchor="middle" font-size="11" fill="#EAF2FA">members</text>
+        <rect x="20" y="80" width="84" height="26" rx="5"/><text x="62" y="97" text-anchor="middle" font-size="11" fill="#EAF2FA">stores</text>
+        <rect x="326" y="6" width="84" height="26" rx="5"/><text x="368" y="23" text-anchor="middle" font-size="11" fill="#EAF2FA">products</text>
+        <rect x="326" y="80" width="84" height="26" rx="5"/><text x="368" y="97" text-anchor="middle" font-size="11" fill="#EAF2FA">campaigns</text>
+        <line x1="104" y1="19" x2="170" y2="50"/>
+        <line x1="104" y1="93" x2="170" y2="62"/>
+        <line x1="326" y1="19" x2="260" y2="50"/>
+        <line x1="326" y1="93" x2="260" y2="62"/>
+      </g>
+      <g transform="translate(16,184)">
+        <rect width="418" height="24" rx="4" fill="#0F2638" stroke="#3F7DB0" stroke-opacity="0.5"/>
+        <text x="209" y="16" text-anchor="middle" font-size="11" fill="#7FC2EE" font-weight="700" letter-spacing="0.5">34 DAX measures · 8 relationships · 169 linguistic synonyms</text>
+      </g>
+    </g>
+
+    <!-- Lakehouse panel -->
+    <g transform="translate(980,84)">
+      <rect width="450" height="220" rx="10" fill="#13314B" stroke="#3F7DB0" stroke-opacity="0.6"/>
+      <text x="16" y="28" font-size="15" font-weight="800" fill="#EAF2FA" letter-spacing="1.2">LAKEHOUSE · Delta Tables · 10</text>
+      <text x="16" y="48" font-size="11" fill="#7FC2EE" font-style="italic">~2.8M rows synthetic data · production path to Snowflake</text>
+      <g font-size="11" fill="#EAF2FA">
+        <g transform="translate(16,62)"><rect width="130" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="65" y="18" text-anchor="middle" font-weight="700">members 50K</text></g>
+        <g transform="translate(154,62)"><rect width="130" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="65" y="18" text-anchor="middle" font-weight="700">transactions 500K</text></g>
+        <g transform="translate(292,62)"><rect width="142" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="71" y="18" text-anchor="middle" font-weight="700">transaction_items 1.5M</text></g>
+        <g transform="translate(16,98)"><rect width="130" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="65" y="18" text-anchor="middle" font-weight="700">points_ledger 500K</text></g>
+        <g transform="translate(154,98)"><rect width="90" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="45" y="18" text-anchor="middle" font-weight="700">products 5K</text></g>
+        <g transform="translate(252,98)"><rect width="80" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="40" y="18" text-anchor="middle" font-weight="700">stores 500</text></g>
+        <g transform="translate(340,98)"><rect width="94" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="47" y="18" text-anchor="middle" font-weight="700">coupons 200K</text></g>
+        <g transform="translate(16,134)"><rect width="130" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="65" y="18" text-anchor="middle" font-weight="700">campaigns 40+</text></g>
+        <g transform="translate(154,134)"><rect width="170" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="85" y="18" text-anchor="middle" font-weight="700">csr_interactions 100K</text></g>
+        <g transform="translate(332,134)"><rect width="102" height="28" rx="4" fill="#1B4368" stroke="#5FA8E5"/><text x="51" y="18" text-anchor="middle" font-weight="700">product_categories</text></g>
+      </g>
+      <g transform="translate(16,184)">
+        <rect width="418" height="24" rx="4" fill="#0F2638" stroke="#3F7DB0" stroke-opacity="0.5"/>
+        <text x="209" y="16" text-anchor="middle" font-size="11" fill="#7FC2EE" font-weight="700" letter-spacing="0.5">Delta · SQL analytics endpoint · DirectLake mode</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- side flow labels -->
+  <g font-size="10.5" fill="#7FC2EE" font-style="italic">
+    <text x="32" y="263">parallel dispatch</text>
+    <text x="32" y="495">SSE streaming up</text>
+    <text x="32" y="673">SQL via semantic views</text>
+  </g>
+</svg>

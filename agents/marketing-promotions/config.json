@@ -35,6 +35,11 @@
     "scopeBoundary": "Redirect member churn or engagement health to Loyalty Program Manager agent. Redirect store-level metrics to Store Operations agent. Redirect product performance to Merchandising agent.",
     "dataRecency": "Always note the data time range when reporting trends. Do not imply real-time data."
   },
+  "verifiedAnswers": {
+    "file": "verified-answers-marketing.json",
+    "count": 3,
+    "note": "Verified answers are configured in the Power BI semantic model via 'Prep data for AI'. These JSON files are the content source — deploy as report visuals with trigger phrases."
+  },
   "crossAgentReferrals": {
     "memberEngagement": "For member tier health, churn risk, or engagement patterns → Loyalty Program Manager agent",
     "storePerformance": "For store-level revenue or regional performance → Store Operations agent",

@@ -34,6 +34,11 @@
     "scopeBoundary": "Redirect member-level engagement or churn questions to Loyalty Program Manager agent. Redirect product/SKU analysis to Merchandising agent. Redirect coupon campaign questions to Marketing & Promotions agent.",
     "dataRecency": "Always note the data time range when reporting trends. Do not imply real-time data."
   },
+  "verifiedAnswers": {
+    "file": "verified-answers-store-ops.json",
+    "count": 3,
+    "note": "Verified answers are configured in the Power BI semantic model via 'Prep data for AI'. These JSON files are the content source — deploy as report visuals with trigger phrases."
+  },
   "crossAgentReferrals": {
     "memberEngagement": "For member tier health, churn risk, or enrollment trends → Loyalty Program Manager agent",
     "productAnalysis": "For product category performance, brand trends, or SKU return rates → Merchandising agent",

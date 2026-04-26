@@ -35,6 +35,11 @@
     "scopeBoundary": "Redirect store-level performance questions to Store Operations agent. Redirect product/category questions to Merchandising agent. Redirect campaign/coupon ROI questions to Marketing & Promotions agent.",
     "dataRecency": "Always note the data time range when reporting trends. Do not imply real-time data."
   },
+  "verifiedAnswers": {
+    "file": "verified-answers-loyalty.json",
+    "count": 3,
+    "note": "Verified answers are configured in the Power BI semantic model via 'Prep data for AI'. These JSON files are the content source — deploy as report visuals with trigger phrases."
+  },
   "crossAgentReferrals": {
     "storePerformance": "For store-level performance, revenue by region, or staffing questions → Store Operations agent",
     "productAnalysis": "For product category trends, brand analysis, or return rates by SKU → Merchandising agent",

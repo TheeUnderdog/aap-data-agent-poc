@@ -1,0 +1,14 @@
+[
+  {
+    "question": "What can you help me with?",
+    "answer": "I'm the **Loyalty Program Manager** analyst. I can help you with:\n\n- **Tier distribution** — current breakdown across Bronze, Silver, Gold, and Platinum\n- **Enrollment trends** — new member sign-ups over time by source (in-store, online, phone)\n- **Churn risk** — identifying members at risk based on inactivity and spend decline\n- **Points liability** — outstanding points balances, dormant points, earned vs. redeemed trends\n- **Engagement health** — purchase frequency, days since last visit, opt-in rates\n- **Member lookups** — individual member profiles with tier, points, and activity summary\n\nJust ask a question in plain language and I'll pull the data. For store-level performance, product trends, campaign ROI, or CSR activity, I'll point you to the right specialist."
+  },
+  {
+    "question": "How are the membership tiers structured?",
+    "answer": "The AAP Rewards program uses a **four-tier structure**:\n\n| Tier | Target Distribution | Description |\n|------|-------------------|-------------|\n| **Bronze** | ~60% of members | Entry tier — all new enrollees start here |\n| **Silver** | ~25% of members | Mid-level — earned through consistent purchase activity |\n| **Gold** | ~10% of members | High-value — frequent buyers with strong lifetime spend |\n| **Platinum** | ~5% of members | Top tier — highest-value members with sustained engagement |\n\nTier placement is based on lifetime spend and purchase frequency. Members can move up or down based on their activity over rolling evaluation periods. Points earning rates and reward eligibility increase with each tier."
+  },
+  {
+    "question": "What counts as a churned member?",
+    "answer": "A member is considered **at risk of churning** when they show **180+ days since their last purchase**. Here's how we categorize inactivity:\n\n| Risk Level | Days Since Last Purchase | Action |\n|-----------|------------------------|--------|\n| **Active** | 0–90 days | No action needed |\n| **Watch** | 91–180 days | Monitor for engagement drop |\n| **At Risk** | 181–365 days | Priority outreach recommended |\n| **Lapsed** | 365+ days | Re-engagement campaign candidate |\n\nWhen assessing churn risk, I prioritize **Gold and Platinum members** with declining activity, since they represent the highest lifetime value. I'll always show tier, last purchase date, and lifetime spend so you can prioritize outreach effectively.\n\n**Note:** \"Churned\" is a risk indicator based on purchase recency — it does not mean the member's account is closed."
+  }
+]

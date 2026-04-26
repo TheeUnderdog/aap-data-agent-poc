@@ -143,6 +143,19 @@ The Fabric semantic model is now live with:
 - **Recommended first-pass fixes:** C1, C2, C3, S2 (~3 hours total) — these unlock most agent query types
 - **Full analysis:** .squad/decisions/decisions.md § "Data Generator Gap Analysis & Prioritized Fix Roadmap"
 
+### LoyaltyOverview PBIR Report (2026-07)
+- **Scope:** Created single-page Power BI report in PBIR format as the vehicle for attaching verified answers
+- **Files created:**
+  - `reports/LoyaltyOverview.Report/definition.pbir` — Links report to `RewardsLoyaltyData.SemanticModel`
+  - `reports/LoyaltyOverview.Report/report.json` — Full PBIR report layout with 8 visuals on 1280×720 canvas
+  - `reports/LoyaltyOverview.Report/README.md` — Deployment guide, visual-to-verified-answer mapping with trigger phrases
+- **Visuals (8):** 4 KPI cards (active members, points outstanding, avg lifetime spend, total revenue), bar chart (tier distribution), donut chart (channel mix), line chart (enrollment trend), table (top members by spend)
+- **Data sources:** `loyalty_members`, `member_points`, `transactions` tables from semantic model
+- **Color theme:** AAP palette — #2E5090 (Platinum), #1F77B4 (Primary), #333333 (Text)
+- **Verified answer mapping:** README includes a table mapping each visual → suggested trigger phrases sourced from the 5 agent verified-answer JSON files
+- **PBIR format notes:** Uses standard Power BI enhanced report format. Visual configs contain prototypeQuery structures that Fabric may regenerate on import. Column/table references should be verified after first git sync.
+- **Key decision:** Single simple report (not the 5-report spec) — Dave wants a lightweight verified-answer anchor, not a full dashboard suite
+
 ### Guaranteed Answers for All 5 Agents (2026-07)
 - **Scope:** Created 15 guaranteed answer Q&A pairs (3 per agent) for Fabric Data Agent
 - **Pattern:** Each agent gets: (1) scope/capability meta-question, (2) structural/program info, (3) business rule definition
