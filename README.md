@@ -6,6 +6,8 @@ A Microsoft Fabric Data Agent proof-of-concept for **Advance Auto Parts** — en
 
 ![AAP Data Agent Architecture](web/img/architecture.svg)
 
+![Web App — Crew Chief orchestrator with multi-agent response](web/img/web-app-screenshot.png)
+
 ```
 Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
                                               ↓
