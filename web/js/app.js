@@ -250,8 +250,10 @@
                 </div>
             `;
         } else {
+            // Link this message to its reasoning group index
+            const groupIdx = msg.reasoningGroupIndex != null ? msg.reasoningGroupIndex : -1;
             div.innerHTML = `
-                <div class="message-avatar">
+                <div class="message-avatar" data-reasoning-group="${groupIdx}" title="Show reasoning">
                     <div class="avatar-icon"></div>
                 </div>
                 <div class="message-bubble">
@@ -261,6 +263,13 @@
                 </div>
             `;
             injectSvgIcon(div.querySelector('.avatar-icon'), agent);
+
+            // Click avatar → open reasoning panel and scroll to this group
+            const avatar = div.querySelector('.message-avatar');
+            avatar.style.cursor = 'pointer';
+            avatar.addEventListener('click', () => {
+                openReasoningToGroup(groupIdx);
+            });
         }
 
         return div;
@@ -304,6 +313,24 @@
             area.scrollTop = area.scrollHeight;
         });
     }
+
+    // ── Methodology Extraction ────────────────────────────────────
+
+    function extractMethodology(responseText) {
+        // Match **How I got these numbers**, ## How I got these numbers, ### How I got these numbers
+        const regex = /\n?\s*(?:\*\*How I got these numbers\*\*|#{2,3}\s*How I got these numbers)\s*\n?/i;
+        const match = responseText.match(regex);
+        if (!match) {
+            return { cleanContent: responseText, methodology: null };
+        }
+        const idx = match.index;
+        const methodology = responseText.slice(idx + match[0].length).trim();
+        const cleanContent = responseText.slice(0, idx).trimEnd();
+        return { cleanContent, methodology: methodology || null };
+    }
+
+    // Expose for executive.js
+    window.extractMethodology = extractMethodology;
 
     // ── Message Sending ─────────────────────────────────────────
 
@@ -365,8 +392,19 @@
             removeTypingIndicator();
             completeLastReasoningStep();
 
-            const assistantMsg = { role: 'assistant', content: response, timestamp: Date.now() };
+            const { cleanContent, methodology } = extractMethodology(response);
+            const assistantMsg = {
+                role: 'assistant',
+                content: cleanContent,
+                timestamp: Date.now(),
+                reasoningGroupIndex: reasoningGroups.length - 1
+            };
             chatHistories[agentKey].push(assistantMsg);
+
+            if (methodology) {
+                addReasoningStep('methodology', agentKey, methodology);
+                completeLastReasoningStep();
+            }
 
             // If user switched tabs while waiting, mark as unread
             if (activeAgent !== agentKey) {
@@ -598,6 +636,7 @@
             // Question group header
             const header = document.createElement('div');
             header.className = 'reasoning-group-header' + (group.collapsed ? ' collapsed' : '');
+            header.setAttribute('data-group-index', gi);
             header.innerHTML = `
                 <span class="reasoning-group-chevron">${group.collapsed ? '▸' : '▾'}</span>
                 <span class="reasoning-group-agent">${escapeHtml(group.agentLabel)}</span>
@@ -635,8 +674,20 @@
                         durationHtml = `<span class="reasoning-bubble-duration">⏱ ${str}</span>`;
                     }
 
+                    let contentHtml;
+                    if (step.type === 'methodology') {
+                        // Render methodology with light formatting for readability
+                        let formatted = escapeHtml(step.message)
+                            .replace(/\n- /g, '<br>• ')
+                            .replace(/\n\* /g, '<br>• ')
+                            .replace(/\n/g, '<br>');
+                        contentHtml = `<span class="methodology-label">📊 Methodology</span><br>${formatted}`;
+                    } else {
+                        contentHtml = escapeHtml(step.message);
+                    }
+
                     div.innerHTML = `
-                        <div class="reasoning-bubble-text">${escapeHtml(step.message)}${durationHtml}</div>
+                        <div class="reasoning-bubble-text">${contentHtml}${durationHtml}</div>
                     `;
                     body.appendChild(div);
                 }
@@ -672,6 +723,37 @@
 
     function truncate(str, max) {
         return str.length > max ? str.slice(0, max - 1) + '…' : str;
+    }
+
+    function openReasoningToGroup(groupIndex) {
+        if (groupIndex < 0 || groupIndex >= reasoningGroups.length) {
+            // No matching group — just toggle the panel open
+            if (!reasoningPanelOpen) window.toggleReasoning();
+            return;
+        }
+
+        // Uncollapse the target group, collapse others
+        for (let i = 0; i < reasoningGroups.length; i++) {
+            reasoningGroups[i].collapsed = (i !== groupIndex);
+        }
+        renderReasoningPanel();
+
+        // Open the panel if not already open
+        if (!reasoningPanelOpen) {
+            reasoningPanelOpen = true;
+            const panel = document.getElementById('reasoning-panel');
+            const btn = document.getElementById('reasoning-toggle');
+            if (panel) panel.classList.add('open');
+            if (btn) btn.classList.add('active');
+        }
+
+        // Scroll to the target group header
+        requestAnimationFrame(() => {
+            const header = document.querySelector(`.reasoning-group-header[data-group-index="${groupIndex}"]`);
+            if (header) {
+                header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
     }
 
     window.toggleReasoning = function () {

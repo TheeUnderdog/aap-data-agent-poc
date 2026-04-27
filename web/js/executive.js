@@ -82,6 +82,11 @@
 
                 const response = await client.sendMessage(agentKey, question);
 
+                // Extract methodology section before completing reasoning
+                const { cleanContent, methodology } = window.extractMethodology
+                    ? window.extractMethodology(response)
+                    : { cleanContent: response, methodology: null };
+
                 // Complete the reasoning step
                 if (window.completeLastReasoningStep) {
                     window.completeLastReasoningStep();
@@ -90,10 +95,18 @@
                 // Add response reasoning step with preview
                 if (window.addReasoningStep) {
                     window.addReasoningStep('agent-response', agentKey,
-                        `${agentDisplayName(agentKey)} responded (${response.length} chars)`);
+                        `${agentDisplayName(agentKey)} responded (${cleanContent.length} chars)`);
                 }
 
-                return { agentKey, response, error: null };
+                // Add methodology as a separate reasoning step
+                if (methodology && window.addReasoningStep) {
+                    window.addReasoningStep('methodology', agentKey, methodology);
+                    if (window.completeLastReasoningStep) {
+                        window.completeLastReasoningStep();
+                    }
+                }
+
+                return { agentKey, response: cleanContent, error: null };
             } catch (err) {
                 console.warn(`[CrewChief] ${agentDisplayName(agentKey)} failed:`, err.message);
 
