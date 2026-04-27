@@ -11,11 +11,9 @@ Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
                                               ↓
                                       Fabric Data Agent (NL → DAX)
                                               ↓
-                                      Python API (Container Apps)
+                                      Python API (Flask)
                                               ↓
                                       Web App (HTML/JS chat UI)
-                                              ↓
-                                      Azure Container Apps + Entra ID
 ```
 
 **Data flow:** PostgreSQL → Fabric Mirroring → Lakehouse → Semantic Model → Data Agent → Flask API → Chat UI
@@ -23,25 +21,29 @@ Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
 ## What's Inside
 
 ```
-web/               Static frontend — chat UI with 5 agent tabs
-api/               Azure Functions backend (superseded by Container Apps)
+web/               Frontend + Flask backend — chat UI with 6 agent tabs
+  server.py        Flask app (API proxy + static files)
+  docs.html        Interactive documentation page
+api/               Azure Functions backend (legacy/reference only — not active)
 agents/            5 Fabric Data Agent configs + instruction files
 reports/           Power BI PBIR report definition (LoyaltyOverview)
 scripts/           Semantic model definition, sample data generator
 notebooks/         Fabric notebooks for data pipeline
 docs/              Architecture, schema, semantic model docs
 config/            Environment and deployment configs
+tests/cua/         CUA visual test suite — 42 Gherkin scenarios across 6 feature files
 ```
 
-### Data Agents (5 specialized)
+### Data Agents (6 tabs, 5 Fabric agents)
 
-| Agent | Domain | Key Queries |
-|-------|--------|-------------|
-| **Loyalty Program Manager** | Members, tiers, points, churn | "How many Platinum members?", "Churn risk breakdown" |
-| **Store Operations** | Stores, revenue, channels | "Top 5 stores by revenue", "In-store vs online mix" |
-| **Merchandising** | Products, categories, SKUs | "Best-selling category?", "Bonus-eligible products" |
-| **Marketing & Promotions** | Campaigns, coupons, redemption | "Campaign ROI this quarter", "Redemption rate" |
-| **Customer Service** | CSR activities, member support | "Average tickets per day", "Most common issue type" |
+| Tab | Agent | Domain | Key Queries |
+|-----|-------|--------|-------------|
+| **Crew Chief** | *(client-side orchestrator)* | Routes queries to specialized agents | "Who should I ask about churn?" |
+| **GearUp** | Loyalty Program Manager | Members, tiers, points, churn | "How many Platinum members?", "Churn risk breakdown" |
+| **DieHard** | Store Operations | Stores, revenue, channels | "Top 5 stores by revenue", "In-store vs online mix" |
+| **PartsPro** | Merchandising | Products, categories, SKUs | "Best-selling category?", "Bonus-eligible products" |
+| **Ignition** | Marketing & Promotions | Campaigns, coupons, redemption | "Campaign ROI this quarter", "Redemption rate" |
+| **Pit Crew** | Customer Service | CSR activities, member support | "Average tickets per day", "Most common issue type" |
 
 ### Semantic Model
 
@@ -50,8 +52,6 @@ config/            Environment and deployment configs
 - **Direct Lake mode** from Fabric Lakehouse
 
 ## Quick Start
-
-### Local Development
 
 ```bash
 # Install Python deps
@@ -65,42 +65,29 @@ python web/server.py
 # Opens at http://localhost:5000
 ```
 
-### Deploy to Azure
+No Azure deployment required. The Flask server serves both the static frontend and the API proxy. Authentication uses your `az login` credentials automatically.
 
-The app deploys as an **Azure Container App** — a single container running Flask + gunicorn that serves both static files and the API proxy, secured by Entra ID (MSAL).
+### Auth (Local Development)
 
-**Quickest path:**
+The Flask server authenticates to the Fabric Data Agent API using `ChainedTokenCredential` with this fallback chain:
 
-```bash
-# 1. Create the Container App infrastructure
-./scripts/deploy-web.ps1
+1. `ManagedIdentityCredential` — for future Azure Container Apps deployment
+2. `AzureCliCredential` — **primary for local dev** (uses your `az login` session)
+3. `DeviceCodeCredential` — headless/Docker fallback
 
-# 2. Build and push the Docker image
-docker build -t ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest ./web
-docker push ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest
+No MSAL, no login screen, no app registration needed for local development. Just `az login` and go.
 
-# 3. Update the Container App
-az containerapp update \
-  --name aap-loyalty-intelligence \
-  --resource-group aap-poc-rg \
-  --image ghcr.io/YOUR_ORG/aap-loyalty-intelligence:latest
+### Future: Production Deployment
 
-# 4. Configure Entra ID app registration:
-#    Set ENTRA_CLIENT_ID and ENTRA_CLIENT_SECRET env vars
+> **Not yet implemented.** The sections below describe the planned Azure Container Apps deployment.
 
-# 5. Add service principal to Fabric workspace as Contributor
-#    (see SETUP.md § 5)
-```
+The app is designed to deploy as an **Azure Container App** — a single container running Flask + gunicorn that serves both static files and the API proxy, secured by Entra ID (MSAL).
 
-See **[web/SETUP.md](web/SETUP.md)** for the full step-by-step deployment guide including:
-- Container App setup
-- Entra ID app registration (MSAL auth)
-- Fabric workspace access (service principal)
-- CI/CD via GitHub Actions
-
-### Auth
-
-All API routes require Entra ID authentication. Unauthenticated users are redirected to `/auth/login`. Users authenticate via MSAL (auth code flow) for identity. The Flask backend accesses the Fabric Data Agent API using a service principal (`client_credentials` grant). The SP is registered in the FDPO tenant and added to the Fabric workspace as Contributor.
+See **[web/SETUP.md](web/SETUP.md)** for the full deployment guide including:
+- Container App setup (§3)
+- Entra ID app registration / MSAL auth (§4)
+- Fabric workspace access via service principal (§5)
+- CI/CD via GitHub Actions (§6)
 
 ## Fabric Workspace Setup
 
@@ -115,25 +102,27 @@ All API routes require Entra ID authentication. Unauthenticated users are redire
 
 | Doc | What |
 |-----|------|
+| [Interactive Docs](web/docs.html) | Stakeholder-facing documentation page (served by Flask) |
 | [Architecture](docs/architecture.md) | Full technical architecture (all 4 phases) |
-| [Data Schema](docs/data-schema.md) | Placeholder schema, DDL, contract views, sample queries |
+| [Data Schema](docs/data-schema.md) | Placeholder schema, DDL, contract views |
 | [Semantic Model](docs/semantic-model-architecture.md) | Model review, DAX measures, AI readiness |
-| [Web Setup](web/SETUP.md) | Azure Container Apps deployment guide |
+| [Web Setup](web/SETUP.md) | Deployment guide (local + future Container Apps) |
+| [CUA Tests](tests/cua/README.md) | Visual test suite — 42 Gherkin scenarios |
 | [Report README](reports/LoyaltyOverview.Report/README.md) | PBIR report + verified answer mapping |
 
 ## Tech Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS (no framework — POC simplicity)
-- **Backend:** Flask + gunicorn (Python)
-- **Hosting:** Azure Container Apps
-- **Auth:** Azure Entra ID (MSAL login + service principal for Fabric API)
+- **Backend:** Flask (Python) — `web/server.py`
+- **Hosting:** Local Flask dev server (Azure Container Apps planned for production)
+- **Auth:** Azure Entra ID via `ChainedTokenCredential` (`az login` for local dev)
 - **Data Platform:** Microsoft Fabric (Lakehouse, Semantic Model, Data Agent)
 - **Source DB:** Azure PostgreSQL (mirrored via Fabric)
 
 ## Security
 
-Users authenticate via Azure Entra ID (MSAL auth code flow). The Flask backend accesses the Fabric Data Agent API through a service principal with Contributor access to the Fabric workspace. See [Security in SETUP.md](web/SETUP.md#security) for details.
+The Flask server authenticates to the Fabric Data Agent API using `ChainedTokenCredential` (ManagedIdentity → AzureCli → DeviceCode). In local development, your `az login` session provides the token. For production deployment, see [Security in SETUP.md](web/SETUP.md#security).
 
 ## License
 
-Internal Microsoft POC — not for external distribution.
+[MIT License](LICENSE) — Copyright © 2026 Dave Grobleski

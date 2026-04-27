@@ -579,3 +579,27 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - Chose Phase 1–3 (Fabric + web) automated, Phase 4 (Data Agent) manual — API limitations in Fabric; Playwright a future improvement
 - Manual portal steps are well-documented and parallelizable (Git Sync + language models + managed identity + agent import can happen in any order)
 - No new external dependencies introduced (scripts use existing tools: PowerShell, Python, az CLI, REST APIs)
+
+### 2026-07: Public Repo Preparation — Documentation Overhaul
+
+**What I Did:**
+- Rewrote `README.md` to reflect current reality: Flask local dev is primary, Container Apps is future/aspirational
+- Fixed architecture diagram (removed "Container Apps" from flow, updated to "Flask")
+- Fixed agent count: 5 tabs → 6 tabs (Crew Chief was missing from docs)
+- Added agent table with all 6 tabs including Crew Chief orchestrator
+- Moved "Deploy to Azure" under "Future: Production Deployment" heading
+- Updated auth section: ChainedTokenCredential (ManagedIdentity → AzureCli → DeviceCode), no MSAL for local dev
+- Changed license from "Internal Microsoft POC" to MIT License
+- Updated `api/` description from "superseded by Container Apps" to "legacy/reference only"
+- Added CUA test suite mention (42 Gherkin scenarios) and docs.html to README
+- Added status callout to `web/SETUP.md` marking §3–6 as future/not-yet-implemented
+- Created `LICENSE` file (MIT, 2026, Dave Grobleski)
+- Verified `tests/cua/README.md` correctly references Flask server and localhost:5000
+- Verified `docs/environments.md` is accurate as-is
+
+**Key Decisions:**
+- README is the front door for a public repo — must be honest about what works today vs. what's planned
+- MIT license chosen for maximum openness (Dave's direction)
+- Container Apps docs preserved but clearly marked as future — don't delete useful reference material
+
+**Files Modified:** README.md, web/SETUP.md, LICENSE (new), .squad/agents/danny/history.md, .squad/decisions/inbox/danny-public-repo-prep.md

@@ -1,5 +1,7 @@
 # Advance Insights — Setup & Deployment Guide
 
+> **Current status:** Local Flask development only. Sections 3–6 (Container Apps, Entra ID, Fabric workspace access, CI/CD) are documented for future production deployment but are not yet implemented.
+
 ## Architecture
 
 ```
@@ -45,7 +47,7 @@ docker run -p 8000:8000 \
   -e ENTRA_CLIENT_ID=your-client-id \
   -e ENTRA_CLIENT_SECRET=your-secret \
   -e ENTRA_TENANT_ID=16b3c013-d300-468d-ac64-7eda0820b6d3 \
-  -e FABRIC_WORKSPACE_ID=e7f4acfe-90d7-4685-864a-b5f1216fe614 \
+  -e FABRIC_WORKSPACE_ID=82f53636-206f-4825-821b-bdaa8e089893 \
   aap-loyalty-intelligence
 ```
 
@@ -108,7 +110,7 @@ az containerapp update \
   --set-env-vars \
     ENTRA_CLIENT_ID=your-client-id \
     ENTRA_TENANT_ID=16b3c013-d300-468d-ac64-7eda0820b6d3 \
-    FABRIC_WORKSPACE_ID=e7f4acfe-90d7-4685-864a-b5f1216fe614 \
+    FABRIC_WORKSPACE_ID=82f53636-206f-4825-821b-bdaa8e089893 \
     FABRIC_API_BASE=https://api.fabric.microsoft.com/v1
 
 az containerapp secret set \
@@ -128,7 +130,7 @@ The Flask backend accesses the Fabric Data Agent API using a service principal (
 
 ### Add the Service Principal to the Fabric Workspace
 
-1. Go to [Fabric Portal](https://app.fabric.microsoft.com) → open workspace `e7f4acfe-90d7-4685-864a-b5f1216fe614`
+1. Go to [Fabric Portal](https://app.fabric.microsoft.com) → open workspace `82f53636-206f-4825-821b-bdaa8e089893`
 2. Click **Manage access** (gear icon in workspace header)
 3. Click **Add people or groups**
 4. Search for the app registration name: **AAP Loyalty Intelligence** (client ID `176f52b8-fc6e-42d4-9f61-c1bceb21d5b4`)
