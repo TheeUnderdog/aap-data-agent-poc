@@ -10,6 +10,20 @@
 
 ## Learnings
 
+### Auth Simplification — DefaultAzureCredential (2026-07)
+- **Scope:** Removed all MSAL auth code; replaced with stateless `DefaultAzureCredential`
+- **Trigger:** Dave plans to deploy app + Fabric Data Agents in same FDPO tenant. Local dev uses `az login` on corporate laptop. No cross-tenant complexity needed.
+- **Files changed:**
+  - `web/server.py` — Gutted MSAL login/callback/logout routes, session-based token handling, IS_PRODUCTION dual-path logic, auth middleware. Replaced with single `get_fabric_token()` using `DefaultAzureCredential`. App is now stateless for auth (no Flask sessions for tokens). ~670 lines → ~400 lines.
+  - `web/.env` / `web/.env.example` — Removed ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, ENTRA_TENANT_ID, SESSION_SECRET. Added optional AZURE_TENANT_ID.
+  - `web/requirements.txt` — Removed msal, requests, PyJWT. Kept flask, flask-cors, gunicorn, azure-identity, python-dotenv.
+  - `docker-compose.yml` — Added volume mount `${USERPROFILE}/.azure:/root/.azure:ro` so Docker container can use host's `az login` tokens via AzureCliCredential.
+- **Key patterns:**
+  - `DefaultAzureCredential` handles both scenarios: ManagedIdentity in Azure, AzureCliCredential locally
+  - No browser popup, no app registration, no client secrets
+  - Docker mounts `~/.azure` read-only for local dev credential passthrough
+- **Removed:** msal import, _get_msal_app, _try_silent_token_refresh, auth_login, auth_callback, auth_logout, auth_middleware, IS_PRODUCTION flag, session-based token storage
+
 ### Container Apps Migration (2026-04-26)
 - **Scope:** Migrated from Azure Static Web Apps to Azure Container Apps (single container: Flask + gunicorn)
 - **Trigger:** SWA Functions Consumption tier limited SSE streaming to ~30 seconds; Container Apps provides unlimited SSE and full auth control
@@ -316,6 +330,21 @@ The Fabric semantic model is now live with:
   - `web/docs.html` — Rewrote Identity & Security section: removed OBO section + mermaid diagram, removed "When to Use Which" comparison table, renamed "Trusted Subsystem" to "Fabric API Authentication", removed `FABRIC_AUTH_MODE`/`FABRIC_TENANT_ID` from config table, removed tenant annotation from mermaid diagram.
 - **Key patterns:**
   - Single tenant = single authority for both login and Fabric MSAL apps
+
+### Delegated User Auth Rewrite — Cross-Tenant (2026-07)
+- **Scope:** Rewrote server.py auth from client_credentials (SP identity) to delegated user auth (user's own token calls Fabric). Solves the cross-tenant problem: Fabric Data Agent lives in Microsoft corp tenant, old app reg was single-tenant FDPO.
+- **New app registration:** "AAP Loyalty Intelligence" in Contoso tenant (`39f0ed6b`), multi-tenant, Client ID `360a35c3-fdbb-4840-b348-6340faf6937b`, delegated `Item.Execute.All` scope.
+- **Files changed:**
+  - `web/server.py` — Authority → `/common` (multi-tenant); login scopes include `Item.Execute.All`; auth callback stores `fabric_token` + expiry in session; `get_fabric_token()` returns session token with silent refresh; removed `_get_fabric_token_client_credentials()` and `_msal_fabric_app`; unified to single MSAL app; local dev credential chain uses no specific tenant; port default → 8000.
+  - `web/.env.example` — Updated to new Contoso app reg values, `ENTRA_TENANT_ID=common`, multi-tenant delegated auth comments.
+  - `web/.env` — Updated with new real credentials.
+- **Key patterns:**
+  - One MSAL ConfidentialClientApplication (not two) — handles both identity + Fabric token in single auth code flow
+  - `session["fabric_token"]` holds the user's delegated Fabric token; `session["fabric_token_expires_at"]` tracks expiry
+  - Silent refresh via `acquire_token_silent()` using cached MSAL account; returns 401 if refresh fails so frontend redirects to login
+  - Local dev path unchanged conceptually (AzureCliCredential → InteractiveBrowserCredential) but no tenant_id pinned
+  - Multi-tenant: no `tid` claim validation — any Azure AD tenant accepted
+- **Why this works cross-tenant:** The USER (dave@microsoft.com) has Fabric workspace permissions in Microsoft corp tenant. The multi-tenant app just brokers the auth — the token is issued by the user's home tenant and accepted by Fabric because the user has access.
   - Login is identity-only (openid+profile), Fabric is client_credentials-only
   - No mode switching, no OBO, no cross-tenant
 - **Architecture decision:** FDPO tenant `16b3c013-...` is the single home for app reg, Fabric workspace, and users. Cross-tenant was accidental (resources in two tenants), not a real requirement.
@@ -335,3 +364,17 @@ The Fabric semantic model is now live with:
   - `scripts/.env.fabric` -- Renamed `FABRIC_TENANT_ID` to `ENTRA_TENANT_ID`.
 - **Principle:** Describe what the auth IS, never what it ISN'T. Dave's rule: mentioning what you don't do is suspicious.
 - **Remaining old refs:** `.squad/agents/*/history.md` (historical records, left as-is), `api/function_app.py` and `api/local.settings.json` (superseded module), `docs/archive/*` (archived docs), `web/test_assistants.py` and `scripts/provision-lakehouse.py` (utility scripts referencing old workspace).
+
+### Service Principal Workspace Role Assignment (2026-07)
+- **Scope:** Added "AAP Loyalty Intelligence" SP as Contributor to AAP-RewardsLoyalty-POC workspace
+- **Method:** Fabric REST API `POST /v1/workspaces/{workspaceId}/roleAssignments`
+- **Details:**
+  - SP App Registration: "AAP Loyalty Intelligence"
+  - SP Client ID: `176f52b8-fc6e-42d4-9f61-c1bceb21d5b4`
+  - SP Object ID: `0c43a1e9-c1bf-413e-86a3-ab66a62c114d`
+  - Workspace: AAP-RewardsLoyalty-POC (`e7f4acfe-90d7-4685-864a-b5f1216fe614`)
+  - Tenant: FDPO (`16b3c013-d300-468d-ac64-7eda0820b6d3`)
+  - Role: **Contributor** (required for Data Agent API invocation)
+- **Steps:** (1) Resolved SP object ID via `az ad sp show --id <clientId> --query id`, (2) POST to Fabric roleAssignments API with Bearer token from `az account get-access-token --resource https://api.fabric.microsoft.com`, (3) Verified assignment via GET on same endpoint
+- **Key learning:** Fabric roleAssignments API requires the SP's **object ID** (from Entra directory), not the app registration's **client ID**. Use `az ad sp show` to resolve.
+- **Result:** HTTP 201 — Confirmed Contributor role active. Web app backend can now call Fabric Data Agent APIs using this SP's credentials.
