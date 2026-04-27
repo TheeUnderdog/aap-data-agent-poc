@@ -8,70 +8,102 @@
 
 ## Customer Source Schema (as of 2026-04-26)
 
+### Source → Loyalty Database Mapping
+
+Each data source feeds specific entity groups in the loyalty database. The color-coded lines in the architecture diagram converge through a central bus, representing data integration paths (likely external SQL links or ETL pipelines).
+
+| Data Source | Data Elements | → Loyalty DB Entity | Mapping Rationale |
+|---|---|---|---|
+| **Point of Sale** | Transactions (purchases & returns) | **Transactions Details** | POS purchase/return records are the primary transaction source |
+| **Point of Sale** | New member enrollment | **Loyalty Member Details** | In-store enrollment creates member records |
+| **Point of Sale** | Coupon Redemption | **Coupons Details** | POS captures coupon scans at checkout |
+| **Order Mgmt (Sterling)** | Transactions (purchases & returns) | **Transactions Details** | Order fulfillment feeds consolidated transaction history |
+| **Ecomm (B2C/mobile)** | New member enrollment, New DIY account | **Loyalty Member Details** | Online enrollment and DIY accounts create member records |
+| **Ecomm (B2C/mobile)** | Coupon Redemption | **Coupons Details** | Online coupon redemptions at checkout |
+| **Customer First** | Member enrollment, status modifications | **Loyalty Member Details** | CRM manages member lifecycle and status changes |
+| **Customer First** | Coupon Adjustment | **Coupons Details** | Service agents adjust coupons for customers |
+| **Customer First** | CSR (agent) | **Agent Details** | Customer service representative records |
+| **Customer First** | All agent/member/coupon activity | **Audit and Fraud Details** | CRM interactions create audit trail |
+| **CrowdTwist** | Points Earned, Tier Status | **Member Points Details** | Loyalty engine is source of truth for points and tiers |
+| **CrowdTwist** | Bonus Activities | **SKU Details** | Bonus activity SKU configurations |
+| **CrowdTwist** | Points/tier change history | **Audit and Fraud Details** | Loyalty activity tracked for fraud detection |
+| **GK Coupon Mgmt** | Coupon issuance, definitions, usage | **Coupons Details** | Coupon platform manages rules, issuance, and status |
+| **GK Coupon Mgmt** | SKU-level coupon rules | **SKU Details** | Product-level coupon skip/include rules |
+
+### Architecture Diagram
+
 ```mermaid
 flowchart LR
-    subgraph DS["🔵 Data Sources"]
-        POS["**Point of Sale**\n- Transactions (purchases & returns)\n- Coupon Redemption\n- New member enrollment"]
-        ECOMM["**Ecomm (B2C & mobile app)**\n- New member enrollment\n- New DIY account\n- Coupon Redemption"]
-        OMS["**Order Management System\n(Sterling)**\n- Transactions (purchases & returns)"]
-        CF["**Customer First**\n- Member enrollment\n- Member status modifications\n- Coupon Adjustment\n- CSR (agent)"]
-        CT["**CrowdTwist**\n- Points Earned\n- Tier Status\n- Bonus Activities\n- Campaigns"]
-        GK["**GK Coupon Management**\n- Coupon issuance\n- Coupon definitions\n- Coupon usage"]
-    end
+    %% ── Data Sources ──
+    POS(["🏪 Point of Sale"])
+    OMS(["📦 Order Mgmt\n(Sterling)"])
+    ECOMM(["🌐 Ecomm\n(B2C / Mobile)"])
+    CF(["📞 Customer First"])
+    CT(["⭐ CrowdTwist"])
+    GK(["🎟️ GK Coupon Mgmt"])
 
-    subgraph LDB["🔵 Loyalty Database"]
-        TXN["**Transactions Details**\n*(3 years data)*\n- Purchases\n- Returns"]
-        LMD["**Loyalty Member Details**\n- Member Info\n- Opt Ins\n- Member Status\n- Member Tier Info"]
-        MPD["**Member Points Details**\n- Total points\n- Redeemable points\n- Tier status\n- Tier rules"]
-        CPD["**Coupons Details**\n- Coupon rule\n- Coupon Issuance\n- Coupon Status\n- Coupon Reference"]
-        AFD["**Audit and Fraud Details**\n- Agent activity\n- Member enroll history\n- Coupon history"]
-        AGD["**Agent Details**\n- CSR agent info"]
-        SKU["**SKU Details**\n- Skip SKUs\n- Bonus Activities SKUs"]
-    end
+    %% ── Loyalty Database ──
+    TXN["Transactions Details\n(3 yr history)"]
+    LMD["Loyalty Member\nDetails"]
+    MPD["Member Points\nDetails"]
+    CPD["Coupons Details"]
+    AFD["Audit & Fraud\nDetails"]
+    AGD["Agent Details"]
+    SKU["SKU Details"]
 
-    subgraph P2["📋 Phase 2"]
-        CAM["**Campaign Metrics**\n- Engagement by channel\n- CTR, Opt-outs,\n  unsubscribe"]
-        SUR["**Survey Data**\n- Unstructured responses\n- Consumer sentiment"]
-        ONC["**Online Conversion**\n- Funnel metrics\n- Browse and abandon\n  history"]
-    end
+    %% ── Phase 2 (future) ──
+    P2_CAM["Campaign Metrics"]
+    P2_SUR["Survey Data"]
+    P2_ONC["Online Conversion"]
 
-    %% Point of Sale connections
+    %% ── Point of Sale (blue) ──
     POS --> TXN
     POS --> LMD
+    POS --> CPD
 
-    %% Ecomm connections
+    %% ── Order Management (orange) ──
+    OMS --> TXN
+
+    %% ── Ecomm (green) ──
     ECOMM --> LMD
     ECOMM --> CPD
 
-    %% Order Management connections
-    OMS --> TXN
-    OMS --> MPD
-
-    %% Customer First connections
+    %% ── Customer First (red) ──
     CF --> LMD
     CF --> CPD
-    CF --> AFD
     CF --> AGD
+    CF --> AFD
 
-    %% CrowdTwist connections
+    %% ── CrowdTwist (purple) ──
     CT --> MPD
-    CT --> AFD
     CT --> SKU
+    CT --> AFD
 
-    %% GK Coupon Management connections
+    %% ── GK Coupon (teal) ──
     GK --> CPD
-    GK --> AGD
     GK --> SKU
 
-    %% Styles
-    classDef source fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
-    classDef db fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
-    classDef phase2 fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#bf360c
+    %% ── Link colors per source ──
+    linkStyle 0,1,2 stroke:#1565c0,stroke-width:2px
+    linkStyle 3 stroke:#e65100,stroke-width:2px
+    linkStyle 4,5 stroke:#2e7d32,stroke-width:2px
+    linkStyle 6,7,8,9 stroke:#c62828,stroke-width:2px
+    linkStyle 10,11,12 stroke:#6a1b9a,stroke-width:2px
+    linkStyle 13,14 stroke:#00838f,stroke-width:2px
 
-    class POS,ECOMM,OMS,CF,CT,GK source
+    %% ── Node styles ──
+    classDef src fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#0d47a1
+    classDef db fill:#e8eaf6,stroke:#283593,stroke-width:2px,color:#1a237e
+    classDef future fill:#fff3e0,stroke:#e65100,stroke-width:1px,color:#bf360c,stroke-dasharray: 5 5
+
+    class POS,OMS,ECOMM,CF,CT,GK src
     class TXN,LMD,MPD,CPD,AFD,AGD,SKU db
-    class CAM,SUR,ONC phase2
+    class P2_CAM,P2_SUR,P2_ONC future
 ```
+
+**Legend:** 🔵 POS &nbsp; 🟠 OMS &nbsp; 🟢 Ecomm &nbsp; 🔴 Customer First &nbsp; 🟣 CrowdTwist &nbsp; 🔷 GK Coupon
+
+**Phase 2** (dashed) sources are not yet integrated: Campaign Metrics, Survey Data, Online Conversion.
 
 ---
 
