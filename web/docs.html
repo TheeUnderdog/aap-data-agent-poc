@@ -903,7 +903,13 @@
 </ul>
 
 <h4>Executive Routing (Crew Chief)</h4>
-<p>The Crew Chief agent runs client-side in JavaScript. It classifies incoming questions by matching keywords against agent domains, selects the top matching agents (including ties), dispatches the question to all of them in parallel via <code>Promise.all()</code>, and synthesizes the responses with per-agent attribution.</p>
+<p>The Crew Chief agent runs client-side in JavaScript. It classifies incoming questions, selects the relevant specialist agents (1–5), dispatches to them in parallel via <code>Promise.all()</code>, and synthesizes the responses with per-agent attribution.</p>
+<p>The router supports two modes, configurable at deploy time:</p>
+<ul>
+    <li><strong>LLM routing</strong> — Semantic classification via Azure AI Foundry GPT-4o-mini. Higher accuracy, especially for cross-domain questions.</li>
+    <li><strong>Keyword routing</strong> — Zero-latency keyword matching against per-agent term lists. Faster but less nuanced.</li>
+</ul>
+<p>Toggle between modes via the <code>routingMode</code> configuration flag for A/B testing without code changes.</p>
 
 <h2 id="deployment">Deployment Status</h2>
 

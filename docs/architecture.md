@@ -578,6 +578,15 @@ graph TD
    - Executes against Lakehouse
    - Returns results + generated SQL
 
+4. **Crew Chief — Multi-Agent Router (Client-side + Backend):**
+   - Analyzes incoming questions and dispatches to 1–5 specialist Fabric Data Agents
+   - Fans out selected agents in parallel via `Promise.all()` and synthesizes a unified response
+   - **Routing mode is configurable** via `config.js → routingMode`:
+     - `"llm"` — Semantic routing via Azure AI Foundry GPT-4o-mini. A system prompt with full agent scope descriptions classifies the question. Returns a JSON array of agent keys. Best accuracy; adds ~200ms latency.
+     - `"keyword"` — Zero-latency keyword matching against per-agent keyword lists defined in `config.js → executiveRouting`. Faster but less accurate for nuanced or cross-domain questions.
+   - **A/B testing:** Toggle `routingMode` between `"llm"` and `"keyword"` at deploy time to compare routing accuracy and response quality across user cohorts. No code changes required — configuration only.
+   - Fallback behavior: If LLM routing endpoint is unreachable, the system falls back to keyword routing automatically.
+
 ### Authentication Flow (Azure Entra ID, MSAL)
 
 **User Authentication (Frontend):**
