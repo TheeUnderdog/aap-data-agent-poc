@@ -53,11 +53,21 @@ tests/cua/         CUA visual test suite — 42 Gherkin scenarios across 6 featu
 - **30+ DAX measures** across membership, revenue, points, store performance, and product domains
 - **Direct Lake mode** from Fabric Lakehouse
 
-**Linguistic synonyms** are configured on the model so natural language queries resolve correctly — e.g. "customers" → `loyalty_members`, "sales" → `transactions`, "parts" → `sku_reference`. Includes table-level, column-level ("loyalty tier" → `tier`), and value-level ("VIP" → Platinum) synonyms. See `scripts/configure-linguistic-schema.py` for the full synonym map.
+**Linguistic synonyms** are configured on the model so natural language queries resolve correctly (e.g. "customers" → `loyalty_members`, "sales" → `transactions`, "VIP" → Platinum):
 
-**AI instructions** are embedded in the model's Copilot settings — business context, tier definitions, points system rules, and calculation guardrails (e.g. "Revenue should ALWAYS filter to transaction_type = 'purchase'"). These guide the Data Agent's DAX generation so it gets domain-specific queries right.
+- **10 table synonym groups** — "customers", "sales", "parts", "campaigns", etc. map to the right tables
+- **18 column synonym mappings** — "loyalty tier" → `tier`, "revenue" → `total`, "join date" → `enrollment_date`
+- **7 value synonym groups** — "VIP"/"elite" → Platinum, "churned"/"lapsed" → inactive, "used"/"applied" → redeemed
 
-**Per-agent instruction files** live in `agents/*/` — each of the 5 Fabric Data Agents has its own persona, data access scope, response format rules, and example queries tailored to its domain (loyalty, marketing, merchandising, store ops, customer service).
+See `scripts/configure-linguistic-schema.py` for the full synonym map.
+
+**AI instructions** are embedded in the model's Copilot settings — business context, tier definitions (Bronze → Platinum with spend thresholds and points multipliers), points system rules, and calculation guardrails (e.g. "Revenue should ALWAYS filter to transaction_type = 'purchase'"). These guide the Data Agent's DAX generation so it gets domain-specific queries right.
+
+**Per-agent instruction files** live in `agents/*/` — each of the 5 Fabric Data Agents has:
+- **Persona & tone** — tailored for its audience (VP of Loyalty, Marketing Director, etc.)
+- **Data access scope** — which tables the agent queries and how
+- **Response format rules** — headline metrics first, markdown tables, actionable insights
+- **Verified answer examples** — pre-validated Q&A pairs in `verified-answers-*.json`
 
 ## Quick Start
 
