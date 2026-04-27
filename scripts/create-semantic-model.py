@@ -357,19 +357,20 @@ def read_env_file(path: Path) -> dict:
     return env
 
 
-def get_credential(auth_method: str):
+def get_credential(auth_method: str, tenant_id: str = ""):
     try:
         from azure.identity import DeviceCodeCredential, InteractiveBrowserCredential
     except ImportError:
         print("❌ azure-identity not found. Install: pip install azure-identity")
         sys.exit(1)
 
+    kwargs = {"tenant_id": tenant_id} if tenant_id else {}
     if auth_method == "device-code":
         print("🔑 Device code auth — check terminal for instructions...")
-        return DeviceCodeCredential()
+        return DeviceCodeCredential(**kwargs)
     else:
         print("🔑 Browser auth — a login window will open...")
-        return InteractiveBrowserCredential()
+        return InteractiveBrowserCredential(**kwargs)
 
 
 def build_tmdl_definition(sql_endpoint: str, database_name: str) -> dict:
@@ -658,7 +659,8 @@ def main():
         return
 
     # Authenticate
-    credential = get_credential(args.auth)
+    tenant_id = env.get("ENTRA_TENANT_ID", "")
+    credential = get_credential(args.auth, tenant_id=tenant_id)
     token = credential.get_token(FABRIC_SCOPE).token
     headers = {
         "Authorization": f"Bearer {token}",

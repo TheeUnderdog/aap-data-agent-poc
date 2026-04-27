@@ -1,6 +1,6 @@
 # AAP Data Agent POC — Deployment Gaps Analysis
 
-**Owner:** Danny (Lead/Architect)  
+**Owner:** AAP POC Team  
 **Date:** 2026-07  
 **Status:** Complete  
 
@@ -91,7 +91,7 @@ The AAP Data Agent POC has **strong automation for the web layer** (Azure Static
   4. Verify language model is enabled in workspace settings
 - **Time estimate:** 20–30 minutes (5 agents × ~5 min each, including link + test)
 - **Frequency:** Once per workspace (or when agent configs change)
-- **Tools:** Squad automation candidate (Basher can build a Playwright script to automate portal clicks)
+- **Tools:** Automation candidate (a Playwright script could automate portal clicks)
 
 #### Gap #4: **Managed Identity Workspace Access** — Manual + CLI Mixed
 - **What it is:** Grant the SWA managed identity Contributor role in the Fabric workspace
@@ -292,18 +292,18 @@ The AAP Data Agent POC has **strong automation for the web layer** (Azure Static
 
 | Task | Owner | Est. Time | Notes |
 |------|-------|-----------|-------|
-| Add **Data Agent importer script** (Playwright) | Basher | 2–3 hrs | Automate Gap #3 portal clicks; would save 20 min per deployment |
-| **Document manual steps** clearly (checklist) | Danny | 1 hr | Create `docs/manual-deployment-checklist.md` |
-| **Create master `deploy-all.ps1` script** | Danny | 1–2 hrs | Orchestrator that runs all automated steps + prints manual checklist |
+| Add **Data Agent importer script** (Playwright) | Backend | 2–3 hrs | Automate Gap #3 portal clicks; would save 20 min per deployment |
+| **Document manual steps** clearly (checklist) | Team | 1 hr | Create `docs/manual-deployment-checklist.md` |
+| **Create master `deploy-all.ps1` script** | Team | 1–2 hrs | Orchestrator that runs all automated steps + prints manual checklist |
 
 ### **Phase 2 (Nice-to-Have)**
 
 | Task | Owner | Est. Time | Notes |
 |------|-------|-----------|-------|
-| **Fabric Git Sync API** (monitor) | Danny | Ongoing | Microsoft may ship this API; watch Fabric release notes |
-| **Data Agent deployment API** (monitor) | Basher | Ongoing | Currently portal-only; would unblock Gap #3 automation |
-| **Bicep templates** for Azure resources | Livingston | 4–6 hrs | IaC for reproducible multi-environment deployments |
-| **Automated RBAC assignment** | Basher | 2–3 hrs | Once Fabric RBAC API available |
+| **Fabric Git Sync API** (monitor) | Team | Ongoing | Microsoft may ship this API; watch Fabric release notes |
+| **Data Agent deployment API** (monitor) | Backend | Ongoing | Currently portal-only; would unblock Gap #3 automation |
+| **Bicep templates** for Azure resources | Data Eng | 4–6 hrs | IaC for reproducible multi-environment deployments |
+| **Automated RBAC assignment** | Backend | 2–3 hrs | Once Fabric RBAC API available |
 
 ### **Production (P2)**
 
@@ -355,7 +355,7 @@ The AAP Data Agent POC has **strong automation for the web layer** (Azure Static
 - **Fabric Provisioning:** `scripts/setup-workspace.ps1`
 - **Semantic Views:** `scripts/create-semantic-views.sql`
 - **Web Setup Guide:** `web/SETUP.md`
-- **Team Decisions:** `.squad/decisions.md`
+
 
 ---
 

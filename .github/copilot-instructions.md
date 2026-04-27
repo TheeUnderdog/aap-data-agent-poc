@@ -37,23 +37,9 @@ docs/
   architecture.md        — Full technical architecture (all 4 phases)
   implementation-plan.md — Step-by-step implementation tasks
   data-schema.md         — Placeholder schema, DDL, contract views, sample queries
-.squad/                  — AI team state (Squad orchestration)
 .github/
-  agents/squad.agent.md  — Squad coordinator prompt
-  workflows/             — Squad automation workflows
+  workflows/             — CI/CD workflows
 ```
-
-## Squad Team
-
-This project uses [Squad](https://github.com/bradygaster/squad) for AI-assisted development. The team (cast from Ocean's Eleven):
-
-| Name | Role | Domain |
-|------|------|--------|
-| Danny | Lead / Architect | Architecture, decisions, code review |
-| Livingston | Data Engineer | Fabric workspace, mirroring, data modeling |
-| Basher | Backend Dev | Data Agent config, API, auth |
-| Linus | Frontend Dev | React web app, chat UI |
-| Rusty | Tester / QA | Tests, validation, edge cases |
 
 ## Conventions
 

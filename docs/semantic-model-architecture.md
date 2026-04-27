@@ -1,6 +1,6 @@
 # AAP Rewards Loyalty — Semantic Model Architecture
 
-**Author:** Danny (Lead/Architect)  
+**Author:** AAP POC Team  
 **Date:** July 2025  
 **Status:** Architecture Review — Actionable Recommendations  
 **Requested by:** Dave Grobleski

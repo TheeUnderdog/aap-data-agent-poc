@@ -90,7 +90,7 @@ Deploys the 7 contract views to the Lakehouse SQL endpoint.
 **Prerequisites:**
 - Run `setup-workspace.ps1` first (or provide `-SqlEndpoint` manually)
 - Run the data generation notebook so underlying tables exist
-- The `create-semantic-views.sql` file must exist (provided by Livingston)
+- The `create-semantic-views.sql` file must exist
 
 **Examples:**
 
@@ -127,7 +127,7 @@ Deploys the 7 contract views to the Lakehouse SQL endpoint.
 
 4. **Import the data generation notebook**
    - Open the workspace in Fabric portal
-   - Import the notebook from `fabric/notebooks/` (provided by Livingston)
+   - Import the notebook from `fabric/notebooks/`
    - Attach the notebook to the Lakehouse
    - Run all cells to generate placeholder data
 

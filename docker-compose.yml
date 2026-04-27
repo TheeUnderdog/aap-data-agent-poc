@@ -11,7 +11,4 @@ services:
       - ./web/.env
     environment:
       - PORT=8000
-    volumes:
-      # Mount az cli tokens so DefaultAzureCredential can use AzureCliCredential inside Docker
-      - ${USERPROFILE}/.azure:/root/.azure:ro
     restart: unless-stopped

@@ -9,7 +9,7 @@ window.APP_CONFIG = {
     useProxy: true,
 
     // Fabric workspace GUID (from portal URL)
-    workspaceId: "e7f4acfe-90d7-4685-864a-b5f1216fe614",
+    workspaceId: "82f53636-206f-4825-821b-bdaa8e089893",
 
     // MSAL / Entra ID configuration
     msalConfig: {
@@ -42,12 +42,12 @@ window.APP_CONFIG = {
     // └──────────────┴─────────────────────────────┴──────────────────────────────────────┘
     //
     // API endpoint per agent (OpenAI-compatible):
-    //   POST https://api.fabric.microsoft.com/v1/workspaces/e7f4acfe-90d7-4685-864a-b5f1216fe614/dataagents/{GUID}/aiassistant/openai
+    //   POST https://api.fabric.microsoft.com/v1/workspaces/82f53636-206f-4825-821b-bdaa8e089893/dataagents/{GUID}/aiassistant/openai
     //   Body: { "messages": [{ "role": "user", "content": "..." }] }
     //   Auth: Bearer token (scope: https://api.fabric.microsoft.com/.default)
     //
     // Portal URLs:
-    //   https://app.fabric.microsoft.com/groups/e7f4acfe-90d7-4685-864a-b5f1216fe614/aiskills/{GUID}
+    //   https://app.fabric.microsoft.com/groups/82f53636-206f-4825-821b-bdaa8e089893/aiskills/{GUID}
     agents: {
         "crew-chief": {
             id: null, // Client-side orchestrator — no Fabric agent

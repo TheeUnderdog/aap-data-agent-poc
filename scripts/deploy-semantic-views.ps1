@@ -142,7 +142,7 @@ if (-not $DatabaseName) {
 
 if (-not (Test-Path $SqlFile)) {
     Write-Err "SQL file not found: $SqlFile"
-    Write-Err "Ensure the semantic views SQL file exists. Livingston should provide this."
+    Write-Err "Ensure the semantic views SQL file exists."
     exit 1
 }
 

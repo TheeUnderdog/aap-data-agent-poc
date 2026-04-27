@@ -173,7 +173,7 @@ Once all 3 manual tasks complete:
 - **Agent configs:** `agents/` folder (5 personas × 3 files = 15 files)
 - **Sample queries:** `config/sample-queries.json` (25 NL→SQL pairs)
 - **Notebook:** `notebooks/01-create-sample-data.py`
-- **Deployment status:** `.squad/decisions/inbox/livingston-deployment-completion.md`
+
 
 ---
 

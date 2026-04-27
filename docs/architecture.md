@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** April 2026  
 **Project:** Advanced Auto Parts Data Agent Proof of Concept  
-**Architect:** Danny (Lead/Architect)
+**Architect:** AAP POC Team
 
 ---
 
@@ -299,7 +299,7 @@ When the **real schema** arrives from AAP:
 
 ### Proposed Placeholder Schema
 
-**Reference:** See `docs/data-schema.md` (maintained by Livingston, Data Modeler)
+**Reference:** See `docs/data-schema.md`
 
 **Placeholder Tables (Mirrored Schema):**
 - `customers` — Customer demographics, loyalty tier, contact info
@@ -792,7 +792,7 @@ This section consolidates the schema abstraction approach into a single referenc
 
 #### The Problem
 
-AAP has not yet provided the production schema for rewards/loyalty data. The POC must proceed with a **placeholder schema** (designed by Livingston based on AAP's business domain) but be architected such that when the real schema arrives, **the swap is isolated and low-risk**.
+AAP has not yet provided the production schema for rewards/loyalty data. The POC must proceed with a **placeholder schema** (designed based on AAP's business domain) but be architected such that when the real schema arrives, **the swap is isolated and low-risk**.
 
 #### The Solution: Contract Views
 
@@ -889,7 +889,7 @@ FROM mirrored.prod_loyalty_customers;
 4. **Null Handling:** Document which columns can be NULL; handle in view if source changes
 
 **Documentation Location:**
-- Contract specification: `docs/schema-contract.md` (to be created by Livingston)
+- Contract specification: `docs/schema-contract.md`
 - View SQL files: `database/views/*.sql` (source-controlled)
 - Change log: Track view updates in git commit messages
 
@@ -1141,4 +1141,4 @@ FROM mirrored.prod_loyalty_customers;
 
 **Document End**
 
-*This document is maintained by Danny (Lead/Architect). For questions or updates, contact the project team via .squad/agents/danny/.*
+*This document is maintained by the AAP POC team. For questions or updates, contact the project team.*

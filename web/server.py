@@ -4,21 +4,18 @@ Advance Insights — Flask API + Static File Server
 Serves the web app and proxies Fabric Data Agent API calls.
 Runs both locally (python web/server.py) and in production (gunicorn).
 
-Auth: DefaultAzureCredential (stateless, no login flow)
-  - Local dev: AzureCliCredential fires (run `az login` first)
-  - Azure Container App: ManagedIdentityCredential fires automatically
-  Both scenarios are same-tenant (FDPO). No MSAL, no browser redirect,
-  no app registration needed.
+Auth: ChainedTokenCredential (server-side, no user login flow)
+  1. ManagedIdentityCredential — Azure Container Apps (automatic)
+  2. AzureCliCredential — local dev after `az login`
+  3. DeviceCodeCredential — Docker / headless (prints code to stdout)
 
 Usage:
     # Local dev (az login first)
     az login
     python web/server.py
 
-    # Docker on dev laptop (mounts az cli tokens)
+    # Docker / headless (follow device code prompt in terminal)
     docker-compose up
-
-    # Production (Container Apps via gunicorn + managed identity)
     gunicorn --bind 0.0.0.0:8000 server:app
 """
 
@@ -44,40 +41,39 @@ except ImportError:
 
 import uuid
 
+from azure.identity import ChainedTokenCredential, ManagedIdentityCredential, AzureCliCredential, DeviceCodeCredential
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
-from azure.identity import DefaultAzureCredential
 
 # -- Configuration (env vars with sensible defaults) -------------------
 
-WORKSPACE_ID = os.environ.get("FABRIC_WORKSPACE_ID", "e7f4acfe-90d7-4685-864a-b5f1216fe614")
-FABRIC_SCOPE = os.environ.get("FABRIC_SCOPE", "https://api.fabric.microsoft.com/.default")
+WORKSPACE_ID = os.environ.get("FABRIC_WORKSPACE_ID", "82f53636-206f-4825-821b-bdaa8e089893")
 FABRIC_API_BASE = os.environ.get("FABRIC_API_BASE", "https://api.fabric.microsoft.com/v1")
-PORT = int(os.environ.get("PORT", "8000"))
+PORT = int(os.environ.get("PORT", "5000"))
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# -- Fabric API Credential (stateless) --------------------------------
+FABRIC_SCOPE = "https://api.fabric.microsoft.com/.default"
+
+# -- Credential Chain (lazy init) --------------------------------------
 
 _credential = None
 _assistant_cache = {}  # agentId -> assistantId
 
 
 def _get_credential():
-    """Lazy-init DefaultAzureCredential.
-
-    Credential chain (first success wins):
-      1. EnvironmentCredential (AZURE_CLIENT_ID/SECRET/TENANT_ID env vars)
-      2. ManagedIdentityCredential (Azure Container Apps)
-      3. AzureCliCredential (local dev — `az login`)
-    """
+    """Lazy-init ChainedTokenCredential: ManagedIdentity → AzureCli → DeviceCode."""
     global _credential
     if _credential is None:
-        _credential = DefaultAzureCredential()
+        _credential = ChainedTokenCredential(
+            ManagedIdentityCredential(),
+            AzureCliCredential(),
+            DeviceCodeCredential(),
+        )
     return _credential
 
 
 def get_fabric_token():
-    """Get a Fabric API access token. Stateless — no sessions needed."""
+    """Get a Fabric API access token via the credential chain."""
     cred = _get_credential()
     return cred.get_token(FABRIC_SCOPE).token
 
@@ -128,8 +124,6 @@ def chat_proxy():
 
     try:
         token = get_fabric_token()
-    except PermissionError as e:
-        return jsonify({"error": str(e), "login_url": "/auth/login"}), 401
     except Exception as e:
         return jsonify({"error": f"Authentication failed: {str(e)}"}), 401
 
@@ -326,10 +320,10 @@ def chat_proxy():
 
 @app.route("/api/auth/status", methods=["GET"])
 def auth_status():
-    """Auth status — always authenticated (credential is server-side)."""
+    """Auth status — always authenticated (credential chain is server-side)."""
     return jsonify({
         "authenticated": True,
-        "auth_mode": "DefaultAzureCredential",
+        "auth_mode": "credential_chain",
         "user": {"name": "Advance Insights User"},
     })
 
@@ -338,7 +332,7 @@ def auth_status():
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
-    """Return user info — server-side auth, always authenticated."""
+    """Return user info — always authenticated."""
     return jsonify({"authenticated": True, "name": "Advance Insights User"})
 
 
@@ -349,7 +343,7 @@ def health():
     """Health check — confirms the app is running."""
     return jsonify({
         "status": "ok",
-        "auth": "DefaultAzureCredential",
+        "auth": "credential_chain",
         "workspace": WORKSPACE_ID,
         "fabricApi": FABRIC_API_BASE,
     })
@@ -374,18 +368,18 @@ if __name__ == "__main__":
     print("  Advance Insights — Local Dev Server")
     print("=" * 50)
     print(f"  Workspace: {WORKSPACE_ID}")
-    print(f"  Auth:      DefaultAzureCredential")
+    print(f"  Auth:      Credential chain (ManagedIdentity \u2192 AzureCli \u2192 DeviceCode)")
     print(f"  Web dir:   {WEB_DIR}")
     print("=" * 50)
 
-    # Verify credentials before starting (fail fast)
     try:
         print("\n[AUTH] Verifying Azure credentials...")
+        print("[AUTH] If prompted, follow the device code instructions below.")
         get_fabric_token()
         print("[OK] Authenticated successfully!\n")
     except Exception as e:
         print(f"\n[ERROR] Authentication failed: {e}")
-        print("Run `az login` first, then retry.")
+        print("Run `az login` first, or follow device code instructions above.")
         sys.exit(1)
 
     # Open browser after a short delay

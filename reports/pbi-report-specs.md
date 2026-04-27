@@ -624,8 +624,8 @@ These items are out of scope for POC but valuable for production:
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | 2026-07 | Danny (Lead) | Initial comprehensive specification for 5 reports |
+| 1.0 | 2026-07 | AAP POC Team | Initial comprehensive specification for 5 reports |
 
 ---
 
-**Questions or clarifications?** Contact Danny (Lead) or the Business Intelligence Team.
+**Questions or clarifications?** Contact the AAP POC team or the Business Intelligence Team.
