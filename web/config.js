@@ -80,12 +80,12 @@ window.APP_CONFIG = {
             about: "Analyzes CSR agent activity, member service patterns, and support operations for the AAP rewards program. Provides activity breakdowns, member lookups, and service records.",
             shortDesc: "Service & support",
             sampleQuestions: [
-                "How many support tickets were opened this month?",
-                "What are the top 5 complaint categories?",
-                "Show me average resolution time by support channel",
-                "Which stores have the most escalated service issues?",
-                "What's the customer satisfaction score trend over 6 months?",
-                "List unresolved tickets older than 7 days"
+                "How many CSR activities were logged this month?",
+                "What are the most common CSR activity types this quarter?",
+                "Which CSR department handles the most member interactions?",
+                "Which CSRs have the highest activity volume this quarter?",
+                "Show me the trend of tier overrides over the past 6 months",
+                "Which members have had the most status changes this year?"
             ],
             mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative customer service question a support manager might ask. Think about: CSR agent performance patterns, service escalation trends, complaint correlations with product categories or stores, resolution time outliers, or member tier vs. support experience."
         },
@@ -120,12 +120,12 @@ window.APP_CONFIG = {
             about: "Evaluates coupon campaign performance, promotion ROI, and tier-targeted marketing effectiveness for the AAP rewards program. Provides redemption funnels, campaign comparisons, and coupon liability reports.",
             shortDesc: "Campaigns & promos",
             sampleQuestions: [
-                "Which campaign had the highest response rate this quarter?",
-                "Show me email open rates by campaign type",
+                "Which campaign had the highest redemption rate this quarter?",
+                "What's the redemption rate by campaign name?",
                 "How many customers redeemed the latest coupon offer?",
-                "Compare engagement across our active promotions",
+                "Compare redemption rates across our active campaigns",
                 "What's the ROI on our top 5 campaigns?",
-                "Which customer segments respond best to email vs. SMS?"
+                "Which tier responds best to targeted coupon offers?"
             ],
             mysteryPrompt: "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative marketing question a campaign manager might ask. Think about: coupon redemption funnels, campaign A/B comparisons, tier-targeted promo lift, seasonal campaign timing, discount type effectiveness (% off vs. fixed $), or dormant member reactivation."
         },
@@ -163,7 +163,7 @@ window.APP_CONFIG = {
                 "What are our top 5 stores by revenue?",
                 "Show me store performance by region",
                 "Which stores had the biggest sales increase this quarter?",
-                "Compare weekend vs. weekday sales across districts",
+                "Compare weekend vs. weekday sales across regions",
                 "What's the average transaction value by store?",
                 "Which locations have the highest return rates?"
             ],
