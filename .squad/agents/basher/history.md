@@ -267,3 +267,71 @@ The Fabric semantic model is now live with:
 - **Key constants:** MSIT tenant 72f988bf, Fabric workspace 82f53636, redirect URI pattern `https://{hostname}/.auth/login/aad/callback`
 - **Manual steps remain:** Granting managed identity Fabric workspace Contributor access (portal-only)
 - **Commit:** 5f293d1
+
+### Client Credentials Auth Refactor (2026-04-26)
+- **Scope:** Switched Fabric API auth from user-delegated (OBO/acquire_token_silent) to client_credentials (acquire_token_for_client) in web/server.py
+- **Trigger:** Cross-tenant policy blocks user-delegated auth — app reg is in MSIT tenant (16b3c013), users are in Microsoft corporate tenant. client_credentials avoids this entirely.
+- **Files changed:**
+  - `web/server.py` — Rewrote auth flow: two MSAL apps (login app for user identity, Fabric app for SP auth), `get_fabric_token()` uses `acquire_token_for_client`, login scopes narrowed to `openid+profile`, removed per-user token cache, added `FABRIC_TENANT_ID` env var
+  - `web/.env.example` — Added `FABRIC_TENANT_ID`, documented dual-purpose app registration and client_credentials flow
+- **Key patterns:**
+  - Two MSAL ConfidentialClientApplication instances: `_msal_login_app` (ENTRA_AUTHORITY) and `_msal_fabric_app` (FABRIC_AUTHORITY)
+  - `FABRIC_TENANT_ID` defaults to `ENTRA_TENANT_ID` — only needed when tenants differ
+  - User login still works (openid+profile scopes) — just doesn't acquire Fabric tokens
+  - MSAL auto-caches client_credentials tokens — no SerializableTokenCache needed
+  - Local dev path completely unchanged (InteractiveBrowserCredential)
+- **SP setup requirement:** The service principal must be added to the Fabric workspace (Contributor role) by a workspace admin — that's infrastructure, not code
+
+### Identity & Security Documentation (docs.html)
+- **Scope:** Added full "Identity & Security" section to web/docs.html with Mermaid.js sequence diagrams
+- **Mermaid.js integration pattern:** Load via CDN (mermaid@11), initialize with startOnLoad: true, theme: 'neutral', use <div class="mermaid"> blocks for diagrams. CSS styling uses existing CSS variables (--bg-surface, --border-light).
+- **Auth modes documented:** Trusted Subsystem (client_credentials) vs User Delegation (OBO). Controlled by FABRIC_AUTH_MODE env var.
+- **Key distinction:** User login (always auth-code grant to ENTRA_TENANT_ID) is independent from Fabric API access (client_credentials to FABRIC_TENANT_ID, or OBO exchange). Tenants can differ for cross-tenant scenarios.
+- **Three sequence diagrams:** User Login Flow (shared), Trusted Subsystem (SP -> Fabric), User Delegation (OBO -> Fabric)
+- **Files changed:** web/docs.html (~117 lines added: CSS rule, TOC entry, mermaid scripts, full section with diagrams + tables)
+
+### Auth Hardening + Docker Compose + OBO Support (2026-04-26)
+- **Scope:** Full auth implementation pass -- FABRIC_AUTH_MODE, OBO code path, dotenv loading, docker-compose, /api/auth/status endpoint, emoji cleanup
+- **Files changed:**
+  - `web/server.py` -- Added python-dotenv loading at startup, FABRIC_AUTH_MODE env var (client_credentials|user_delegated), OBO code path via acquire_token_on_behalf_of, /api/auth/status endpoint, replaced all emoji characters with plain text labels ([AUTH], [OK], [ERROR], [INFO], [WARN])
+  - `web/requirements.txt` -- Added python-dotenv==1.1.0
+  - `web/.env.example` -- Added FABRIC_AUTH_MODE documentation with both modes explained
+  - `web/docker-compose.yml` -- New file: loads .env, maps port 8000:8000, restart policy
+- **Key patterns:**
+  - `FABRIC_AUTH_MODE` defaults to `client_credentials` -- safe for cross-tenant (MSIT app reg + corporate users)
+  - OBO path caches user access token in Flask session (`_user_access_token`) for later exchange
+  - Login scopes expand to include Fabric delegated scope when `user_delegated` mode is active
+  - `/api/auth/status` is public (no auth required) -- frontend calls on load to decide login UX
+  - python-dotenv loads .env at import time if available, no-op if not installed
+  - Docker image works without dotenv at runtime (env vars passed via docker-compose env_file)
+- **Verified:** Docker build succeeds, docker-compose up starts cleanly, /api/health and /api/auth/status return correct JSON
+- **User preference:** No emojis in print statements or comments -- use plain text labels like [AUTH], [ERROR], [OK], [INFO]
+- **Redirect URI:** Uses `request.host_url + "/auth/callback"` -- works for both localhost:5000 (dev) and localhost:8000 (Docker) automatically
+
+### Auth Simplification — Single-Tenant client_credentials Only (2026-04-26)
+- **Scope:** Removed all cross-tenant and OBO auth complexity. Everything is now single-tenant (FDPO: `16b3c013-d300-468d-ac64-7eda0820b6d3`).
+- **Files changed:**
+  - `web/server.py` — Removed `FABRIC_TENANT_ID`, `FABRIC_AUTH_MODE`, `FABRIC_AUTHORITY`, `FABRIC_USER_SCOPES`, `_user_access_token` session caching, `_get_fabric_token_obo()` function. Both MSAL apps now use same `ENTRA_AUTHORITY`. Updated module docstring, startup banner, and `get_fabric_token()` to remove mode branching. Updated default tenant to FDPO and workspace to `e7f4acfe-90d7-4685-864a-b5f1216fe614`.
+  - `web/.env.example` — Removed `FABRIC_TENANT_ID` and `FABRIC_AUTH_MODE` vars and all cross-tenant comments. Updated defaults to FDPO tenant and workspace.
+  - `web/docs.html` — Rewrote Identity & Security section: removed OBO section + mermaid diagram, removed "When to Use Which" comparison table, renamed "Trusted Subsystem" to "Fabric API Authentication", removed `FABRIC_AUTH_MODE`/`FABRIC_TENANT_ID` from config table, removed tenant annotation from mermaid diagram.
+- **Key patterns:**
+  - Single tenant = single authority for both login and Fabric MSAL apps
+  - Login is identity-only (openid+profile), Fabric is client_credentials-only
+  - No mode switching, no OBO, no cross-tenant
+- **Architecture decision:** FDPO tenant `16b3c013-...` is the single home for app reg, Fabric workspace, and users. Cross-tenant was accidental (resources in two tenants), not a real requirement.
+- **User preference:** Dave wants auth kept simple — one tenant, one flow. RLS/RBAC are production concerns.
+
+### Docs Auth Scrub -- Remove Old Auth References (2026-04-28)
+- **Scope:** Removed all references to OBO, user-delegated, cross-tenant, trusted subsystem, `FABRIC_TENANT_ID`, `FABRIC_AUTH_MODE`, and old MSIT tenant ID (`72f988bf`) from docs and config.
+- **Files changed (10):**
+  - `README.md` -- Rewrote Auth, Security sections, and setup bullets. Replaced OBO language with SP client_credentials model.
+  - `web/SETUP.md` -- Major rewrite: architecture box, Docker example, env var examples, section 5 (now "Configure Fabric Workspace Access"), section 7 auth flow, Security section. All tenant/workspace IDs updated to FDPO.
+  - `web/server.py` -- Removed "no cross-tenant" comment (line 21), renamed `fabric_auth_mode` to `auth` in health endpoint, updated FABRIC_API_BASE default to `api.fabric.microsoft.com`.
+  - `docs/architecture.md` -- Rewrote security section from "User-Delegated Authentication (On-Behalf-Of)" to "Authentication" with SP model.
+  - `scripts/run-notebook.py` -- Changed `FABRIC_TENANT_ID` to `ENTRA_TENANT_ID`.
+  - `.github/copilot-instructions.md` -- Removed negative phrasing ("no multi-tenant").
+  - `web/.env` -- Updated workspace ID and API base to FDPO values.
+  - `web/.env.example` -- Updated API base to `api.fabric.microsoft.com`.
+  - `scripts/.env.fabric` -- Renamed `FABRIC_TENANT_ID` to `ENTRA_TENANT_ID`.
+- **Principle:** Describe what the auth IS, never what it ISN'T. Dave's rule: mentioning what you don't do is suspicious.
+- **Remaining old refs:** `.squad/agents/*/history.md` (historical records, left as-is), `api/function_app.py` and `api/local.settings.json` (superseded module), `docs/archive/*` (archived docs), `web/test_assistants.py` and `scripts/provision-lakehouse.py` (utility scripts referencing old workspace).

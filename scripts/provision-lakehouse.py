@@ -8,7 +8,7 @@ corporate tenants.
 
 Usage:
     python scripts/provision-lakehouse.py
-    python scripts/provision-lakehouse.py --workspace-id 82f53636-206f-4825-821b-bdaa8e089893
+    python scripts/provision-lakehouse.py --workspace-id e7f4acfe-90d7-4685-864a-b5f1216fe614
     python scripts/provision-lakehouse.py --workspace-name "AAP-RewardsLoyalty-POC"
     python scripts/provision-lakehouse.py --auth device-code
 """

@@ -11,6 +11,33 @@
 
 ## Learnings
 
+### 2026-04-26: Docker Deployment Architecture — Local + Azure
+
+**What I Did:**
+- **Analyzed auth flow** from existing `web/server.py` and identified local Docker auth challenge: How does MSAL work inside a container? (Answer: It doesn't need to — AzureCliCredential fallback is sufficient.)
+- **Designed dual-mode deployment** strategy:
+  - **Local:** Docker container mounts host's `~/.azure/` credentials; `AzureCliCredential` reads them. Fallback: browser popup via `InteractiveBrowserCredential`.
+  - **Azure:** Container Apps stores Entra ID credentials as secrets; MSAL auth code flow runs in browser; Flask acquires Fabric token on behalf of user.
+- **Specified docker-compose.yml** with web + optional mock-agent service for development
+- **Designed agent access pattern:** Same image works with mock agent (local) or real Fabric Data Agent (Azure) via environment toggle
+- **Documented environment variable strategy:** Local dev relies on `az login`; Azure stores secrets in Container Apps; no secrets in code or .env files
+- **Key insight:** Container Apps doesn't need service principal for Fabric access — the app proxies the user's delegated token (OBO flow). This eliminates a security boundary and simplifies the auth model.
+
+**Produced:**
+- `.squad/decisions/inbox/danny-docker-deployment.md` — 500-line comprehensive deployment architecture covering:
+  - Local Docker authentication (credential chain)
+  - Azure Container Apps setup with managed identity
+  - Fabric Data Agent access from both environments
+  - Environment variable management
+  - CI/CD image build & push to ghcr.io
+  - Testing checklist and production readiness recommendations
+
+**Lessons:**
+- AzureCliCredential inside Docker is viable if host is logged in — no need for complex workarounds like passing service principal JSON
+- Token caching in Flask sessions is OK for POC but won't scale; flag for Phase B (use Redis)
+- Mock agent service inside docker-compose unblocks feature dev without Fabric access; real agent testing uses environment toggle
+- The OBO (on-behalf-of) pattern means the app is zero-trust for Fabric: no standing permissions, only user-delegated access
+
 ### 2026-07: Documentation Consolidation & Cleanup
 
 **What I Did:**

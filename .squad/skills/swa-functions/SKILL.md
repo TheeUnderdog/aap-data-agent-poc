@@ -41,4 +41,4 @@ project/
 1. **SSE streaming:** Functions v2 Consumption doesn't support generator-based streaming. Accumulate events and return as batch. Use Flex Consumption for true streaming.
 2. **Cold starts:** Assistant caches and in-memory state are lost on cold start. Use external cache (Redis) if persistence matters.
 3. **local.settings.json:** Must be gitignored. Contains `FUNCTIONS_WORKER_RUNTIME: "python"`.
-4. **MSIT tenant:** Use `msitapi.fabric.microsoft.com` not `api.fabric.microsoft.com`.
+4. **Fabric API:** Use `api.fabric.microsoft.com` for the FDPO tenant.

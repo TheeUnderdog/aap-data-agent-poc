@@ -86,7 +86,10 @@ function Split-SqlStatements {
 
     foreach ($block in $blocks) {
         $trimmed = $block.Trim()
-        if (-not $trimmed -or $trimmed -match '^\s*--') { continue }
+        if (-not $trimmed) { continue }
+        # Skip blocks that are ONLY comments (no actual SQL)
+        $nonCommentLines = ($trimmed -split "`n") | Where-Object { $_ -notmatch '^\s*--' -and $_.Trim() -ne '' }
+        if (-not $nonCommentLines) { continue }
 
         # Extract view name from CREATE VIEW statement
         $name = "unknown"
@@ -165,7 +168,7 @@ Write-Status "Authenticated successfully."
 
 Write-Info "Reading SQL file..."
 $sqlContent = Get-Content -Path $SqlFile -Raw -Encoding UTF8
-$statements = Split-SqlStatements -SqlText $sqlContent
+$statements = @(Split-SqlStatements -SqlText $sqlContent)
 
 if ($statements.Count -eq 0) {
     Write-Warn "No SQL statements found in $SqlFile."

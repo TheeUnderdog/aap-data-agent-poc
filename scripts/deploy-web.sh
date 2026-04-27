@@ -21,9 +21,9 @@ set -euo pipefail
 
 # ── Constants ────────────────────────────────────────────────────────────
 
-TENANT_ID="72f988bf-86f1-41af-91ab-2d7cd011db47"
-FABRIC_WORKSPACE_ID="82f53636-206f-4825-821b-bdaa8e089893"
-FABRIC_API_BASE="https://msitapi.fabric.microsoft.com/v1"
+TENANT_ID="16b3c013-d300-468d-ac64-7eda0820b6d3"
+FABRIC_WORKSPACE_ID="e7f4acfe-90d7-4685-864a-b5f1216fe614"
+FABRIC_API_BASE="https://api.fabric.microsoft.com/v1"
 
 # ── Defaults ─────────────────────────────────────────────────────────────
 

@@ -24,10 +24,10 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 # ── Configuration ────────────────────────────────────────────────────────
 
 WORKSPACE_ID = os.environ.get(
-    "FABRIC_WORKSPACE_ID", "82f53636-206f-4825-821b-bdaa8e089893"
+    "FABRIC_WORKSPACE_ID", "e7f4acfe-90d7-4685-864a-b5f1216fe614"
 )
 FABRIC_API_BASE = os.environ.get(
-    "FABRIC_API_BASE", "https://msitapi.fabric.microsoft.com/v1"
+    "FABRIC_API_BASE", "https://api.fabric.microsoft.com/v1"
 )
 FABRIC_SCOPE = "https://api.fabric.microsoft.com/.default"
 

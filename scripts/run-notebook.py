@@ -70,12 +70,16 @@ def get_credential(auth_method: str):
         print("❌ azure-identity not found. Install: pip install azure-identity")
         sys.exit(1)
 
+    # Read tenant from .env.fabric or environment
+    env = read_env_file()
+    tenant_id = os.environ.get("ENTRA_TENANT_ID") or env.get("ENTRA_TENANT_ID")
+
     if auth_method == "device-code":
         print("🔑 Device code auth — check terminal for instructions...")
-        return DeviceCodeCredential()
+        return DeviceCodeCredential(tenant_id=tenant_id) if tenant_id else DeviceCodeCredential()
     else:
         print("🔑 Browser auth — a login window will open...")
-        return InteractiveBrowserCredential()
+        return InteractiveBrowserCredential(tenant_id=tenant_id) if tenant_id else InteractiveBrowserCredential()
 
 
 def get_token(credential) -> str:

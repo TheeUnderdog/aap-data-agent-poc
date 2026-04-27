@@ -88,19 +88,19 @@ az containerapp update \
 # 4. Configure Entra ID app registration:
 #    Set ENTRA_CLIENT_ID and ENTRA_CLIENT_SECRET env vars
 
-# 5. Add Fabric API delegated permissions to app registration
-#    (see SETUP.md § 5 — no managed identity needed for data access)
+# 5. Add service principal to Fabric workspace as Contributor
+#    (see SETUP.md § 5)
 ```
 
 See **[web/SETUP.md](web/SETUP.md)** for the full step-by-step deployment guide including:
 - Container App setup
 - Entra ID app registration (MSAL auth)
-- Fabric API delegated permissions (OBO auth)
+- Fabric workspace access (service principal)
 - CI/CD via GitHub Actions
 
 ### Auth
 
-All API routes require Entra ID authentication (MSIT tenant: `72f988bf`). Unauthenticated users are redirected to `/auth/login`. The user's credentials flow end-to-end — the Flask backend acquires Fabric API tokens on behalf of the signed-in user (OBO pattern). No service accounts or managed identity are used for data access.
+All API routes require Entra ID authentication. Unauthenticated users are redirected to `/auth/login`. Users authenticate via MSAL (auth code flow) for identity. The Flask backend accesses the Fabric Data Agent API using a service principal (`client_credentials` grant). The SP is registered in the FDPO tenant and added to the Fabric workspace as Contributor.
 
 ## Fabric Workspace Setup
 
@@ -126,13 +126,13 @@ All API routes require Entra ID authentication (MSIT tenant: `72f988bf`). Unauth
 - **Frontend:** Vanilla HTML/CSS/JS (no framework — POC simplicity)
 - **Backend:** Flask + gunicorn (Python)
 - **Hosting:** Azure Container Apps
-- **Auth:** Azure Entra ID (MSAL OBO — user credentials flow to Fabric)
+- **Auth:** Azure Entra ID (MSAL login + service principal for Fabric API)
 - **Data Platform:** Microsoft Fabric (Lakehouse, Semantic Model, Data Agent)
 - **Source DB:** Azure PostgreSQL (mirrored via Fabric)
 
 ## Security
 
-The application uses **user-delegated authentication** — the signed-in user's Entra ID credentials flow end-to-end from the browser to the Fabric Data Agent API via the On-Behalf-Of (OBO) pattern. The application itself has **zero standing access** to any data. No service accounts, no managed identity for data access. Users can only query data they are individually authorized to access in Fabric. See [Security in SETUP.md](web/SETUP.md#security) for details.
+Users authenticate via Azure Entra ID (MSAL auth code flow). The Flask backend accesses the Fabric Data Agent API through a service principal with Contributor access to the Fabric workspace. See [Security in SETUP.md](web/SETUP.md#security) for details.
 
 ## License
 

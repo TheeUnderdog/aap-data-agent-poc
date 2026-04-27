@@ -1,28 +1,33 @@
 """
-Advance Insights — Flask API + Static File Server
+Advance Insights -- Flask API + Static File Server
 
 Serves the web app and proxies Fabric Data Agent API calls.
 Runs both locally (python web/server.py) and in production (gunicorn).
 
-Auth & Identity (user credentials flow end-to-end):
-  - Production/Docker: MSAL auth code flow → user logs in via browser →
-    acquire_token_silent gets a Fabric token AS THAT USER → Fabric API
-    calls run with the user's identity (no service account, no managed identity)
-  - Local dev (no ENTRA_CLIENT_ID): AzureCliCredential or browser popup
+Auth model (two separate concerns):
+  1. User identity (who is using the app):
+     - Production/Docker: MSAL auth code flow with openid+profile scopes.
+       User logs in so we know who they are. Session stores identity claims.
+     - Local dev: No login required.
 
-The app never has standing Fabric permissions. It always acts on behalf of
-the authenticated user. If the user can't access the data, the app can't either.
+  2. Fabric API access (how the app talks to Fabric):
+     - Production/Docker: client_credentials grant. The service principal
+       (ENTRA_CLIENT_ID + ENTRA_CLIENT_SECRET) authenticates directly to
+       Fabric in the same tenant. The SP must have Fabric workspace
+       permissions (added by a workspace admin).
+     - Local dev (no ENTRA_CLIENT_ID): AzureCliCredential or browser popup.
+
+  Everything (app registration, Fabric workspace, users) lives in the
+  FDPO tenant (`16b3c013-d300-468d-ac64-7eda0820b6d3`).
 
 Usage:
-    # Local dev (no env vars needed — uses defaults + browser login)
+    # Local dev (no env vars needed -- uses defaults + browser login)
     python web/server.py
 
-    # Docker (requires Entra app registration for MSAL auth)
-    docker run -p 8000:8000 \\
-      -e ENTRA_CLIENT_ID=<app-id> \\
-      -e ENTRA_CLIENT_SECRET=<secret> \\
-      -e FABRIC_WORKSPACE_ID=<workspace-id> \\
-      aap-loyalty-intelligence
+    # Docker (requires Entra app registration)
+    docker-compose up          # reads .env automatically
+    # -- or --
+    docker run -p 8000:8000 --env-file .env aap-loyalty-intelligence
 
     # Production (Container Apps via gunicorn)
     gunicorn --bind 0.0.0.0:8000 server:app
@@ -31,8 +36,23 @@ Usage:
 import json
 import os
 import sys
+import io
 import webbrowser
 import threading
+
+# Fix encoding on Windows consoles that use cp1252
+if sys.stdout.encoding and sys.stdout.encoding.lower().startswith("cp"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+
+# Load .env file if python-dotenv is available (local dev convenience)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("[INFO] Loaded .env file via python-dotenv")
+except ImportError:
+    pass  # dotenv not installed -- env vars must be set externally
+
 import uuid
 import secrets
 
@@ -47,21 +67,23 @@ from azure.identity import (
     ChainedTokenCredential,
 )
 
-# ── Configuration (env vars with sensible defaults) ──────────────────
+# -- Configuration (env vars with sensible defaults) -------------------
 
-WORKSPACE_ID = os.environ.get("FABRIC_WORKSPACE_ID", "82f53636-206f-4825-821b-bdaa8e089893")
+WORKSPACE_ID = os.environ.get("FABRIC_WORKSPACE_ID", "e7f4acfe-90d7-4685-864a-b5f1216fe614")
 FABRIC_SCOPE = os.environ.get("FABRIC_SCOPE", "https://api.fabric.microsoft.com/.default")
-FABRIC_API_BASE = os.environ.get("FABRIC_API_BASE", "https://msitapi.fabric.microsoft.com/v1")
-TENANT_ID = os.environ.get("ENTRA_TENANT_ID", "72f988bf-86f1-41af-91ab-2d7cd011db47")
+FABRIC_API_BASE = os.environ.get("FABRIC_API_BASE", "https://api.fabric.microsoft.com/v1")
+TENANT_ID = os.environ.get("ENTRA_TENANT_ID", "16b3c013-d300-468d-ac64-7eda0820b6d3")
 
 # MSAL / Entra ID config (only needed when ENTRA_CLIENT_ID is set)
 ENTRA_CLIENT_ID = os.environ.get("ENTRA_CLIENT_ID", "")
 ENTRA_CLIENT_SECRET = os.environ.get("ENTRA_CLIENT_SECRET", "")
 ENTRA_AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 
-# Fabric delegated scopes — requested during user login so the app can call
-# Fabric APIs ON BEHALF OF the user (not as a service account).
-FABRIC_USER_SCOPES = ["https://api.fabric.microsoft.com/.default"]
+# Scopes for Fabric API (client_credentials flow)
+FABRIC_CLIENT_SCOPES = ["https://api.fabric.microsoft.com/.default"]
+
+# Scopes for user login -- openid+profile for identity only
+USER_LOGIN_SCOPES = ["openid", "profile"]
 
 # Flask session secret (generate random if not set)
 SESSION_SECRET = os.environ.get("SESSION_SECRET", secrets.token_hex(32))
@@ -72,22 +94,22 @@ WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 # Detect production mode: MSAL auth enabled when client ID is configured
 IS_PRODUCTION = bool(ENTRA_CLIENT_ID)
 
-# ── Fabric API Credential ────────────────────────────────────────────
+# -- Fabric API Credential --------------------------------------------
 
 _dev_credential = None
-_assistant_cache = {}  # agentId → assistantId
+_assistant_cache = {}  # agentId -> assistantId
 
 
 def _get_dev_credential():
     """Get credential for local dev only (bare `python server.py`).
 
-    NOT used in Docker — Docker should always set ENTRA_CLIENT_ID to
+    NOT used in Docker -- Docker should always set ENTRA_CLIENT_ID to
     use the MSAL auth code flow (user logs in via the browser they're
     already using to access the app).
 
     Credential chain (first success wins):
-      1. AzureCliCredential — works if `az login` was run on the host.
-      2. InteractiveBrowserCredential — opens a browser popup for login.
+      1. AzureCliCredential -- works if `az login` was run on the host.
+      2. InteractiveBrowserCredential -- opens a browser popup for login.
     """
     global _dev_credential
     if _dev_credential is None:
@@ -98,84 +120,73 @@ def _get_dev_credential():
                 redirect_uri="http://localhost:8400",
             ),
         )
-        print("\n🔐 Authenticating with Azure...")
+        print("\n[AUTH] Authenticating with Azure...")
         _dev_credential.get_token(FABRIC_SCOPE)
-        print("✅ Authenticated successfully!\n")
+        print("[OK] Authenticated successfully!\n")
     return _dev_credential
 
 
 def get_fabric_token():
-    """Get a Fabric API access token using the current user's identity.
+    """Get a Fabric API access token.
 
-    Production/Docker (MSAL): Uses acquire_token_silent to get a Fabric
-    token on behalf of the logged-in user. The app NEVER has its own
-    Fabric permissions — it always delegates to the user's identity.
-
-    Local dev (no MSAL): Falls back to InteractiveBrowserCredential
-    which opens a browser popup for the developer's own login.
+    Production/Docker: client_credentials grant via the service principal.
+    Local dev (no MSAL): Falls back to InteractiveBrowserCredential.
     """
     if IS_PRODUCTION:
-        # OBO pattern: get a Fabric token for the logged-in user
-        msal_app, cache = _get_msal_app_with_cache()
-        accounts = msal_app.get_accounts()
-        if not accounts:
-            raise PermissionError("No authenticated user — please log in")
-
-        result = msal_app.acquire_token_silent(
-            scopes=FABRIC_USER_SCOPES,
-            account=accounts[0],
-        )
-
-        if not result or "access_token" not in result:
-            raise PermissionError("Could not acquire Fabric token — please re-login")
-
-        # Persist refreshed cache back to session
-        session["token_cache"] = cache.serialize()
-        return result["access_token"]
+        return _get_fabric_token_client_credentials()
     else:
         cred = _get_dev_credential()
         return cred.get_token(FABRIC_SCOPE).token
 
 
-# ── MSAL Confidential Client (user-delegated auth) ──────────────────
-
-_msal_app_base = None
-
-
-def _get_msal_app_with_cache():
-    """Build MSAL app with per-user serialized token cache from session.
-
-    The token cache stores the user's refresh token so acquire_token_silent
-    can get fresh Fabric tokens without re-prompting. Cache is serialized
-    into the Flask session (cookie-based for POC; use Redis for production).
-    """
-    cache = msal.SerializableTokenCache()
-    cached_data = session.get("token_cache")
-    if cached_data:
-        cache.deserialize(cached_data)
-
-    app = msal.ConfidentialClientApplication(
-        ENTRA_CLIENT_ID,
-        authority=ENTRA_AUTHORITY,
-        client_credential=ENTRA_CLIENT_SECRET,
-        token_cache=cache,
+def _get_fabric_token_client_credentials():
+    """Acquire Fabric token via client_credentials (service principal)."""
+    fabric_app = _get_fabric_msal_app()
+    result = fabric_app.acquire_token_for_client(
+        scopes=FABRIC_CLIENT_SCOPES,
     )
-    return app, cache
+
+    if not result or "access_token" not in result:
+        error = result.get("error_description", "Unknown error") if result else "No result"
+        raise PermissionError(f"Could not acquire Fabric token via client_credentials: {error}")
+
+    return result["access_token"]
 
 
-def _get_msal_app():
-    """Get base MSAL app (no per-user cache). Used for login initiation."""
-    global _msal_app_base
-    if _msal_app_base is None and IS_PRODUCTION:
-        _msal_app_base = msal.ConfidentialClientApplication(
+# -- MSAL Confidential Clients ----------------------------------------
+# Login app: auth code flow for user identity (openid+profile).
+# Fabric app: client_credentials for Fabric API access.
+# Both use the same tenant and client ID; separated for clarity.
+
+_msal_login_app = None
+_msal_fabric_app = None
+
+
+def _get_login_msal_app():
+    """MSAL app for user login (auth code flow)."""
+    global _msal_login_app
+    if _msal_login_app is None and IS_PRODUCTION:
+        _msal_login_app = msal.ConfidentialClientApplication(
             ENTRA_CLIENT_ID,
             authority=ENTRA_AUTHORITY,
             client_credential=ENTRA_CLIENT_SECRET,
         )
-    return _msal_app_base
+    return _msal_login_app
 
 
-# ── Flask App ────────────────────────────────────────────────────────
+def _get_fabric_msal_app():
+    """MSAL app for Fabric API (client_credentials). Tokens cached by MSAL."""
+    global _msal_fabric_app
+    if _msal_fabric_app is None and IS_PRODUCTION:
+        _msal_fabric_app = msal.ConfidentialClientApplication(
+            ENTRA_CLIENT_ID,
+            authority=ENTRA_AUTHORITY,
+            client_credential=ENTRA_CLIENT_SECRET,
+        )
+    return _msal_fabric_app
+
+
+# -- Flask App ---------------------------------------------------------
 
 app = Flask(__name__, static_folder=WEB_DIR)
 app.secret_key = SESSION_SECRET
@@ -186,16 +197,16 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 CORS(app)
 
 
-# ── Auth Middleware ──────────────────────────────────────────────────
+# -- Auth Middleware ---------------------------------------------------
 
 @app.before_request
 def auth_middleware():
     """Protect /api/* routes with MSAL in production."""
     if not IS_PRODUCTION:
-        return  # Local dev — no auth required
+        return  # Local dev -- no auth required
 
     # Public routes (no auth needed)
-    public_paths = ["/auth/", "/api/health", "/.auth/"]
+    public_paths = ["/auth/", "/api/health", "/api/auth/status", "/.auth/"]
     if any(request.path.startswith(p) for p in public_paths):
         return
 
@@ -212,19 +223,19 @@ def auth_middleware():
         return jsonify({"error": "Unauthorized", "login_url": "/auth/login"}), 401
 
 
-# ── Auth Endpoints ──────────────────────────────────────────────────
+# -- Auth Endpoints ---------------------------------------------------
 
 @app.route("/auth/login")
 def auth_login():
-    """Initiate MSAL login flow with Fabric delegated scopes."""
+    """Initiate MSAL login flow for user identity (openid+profile only)."""
     if not IS_PRODUCTION:
         return redirect("/")
 
-    msal_app = _get_msal_app()
+    msal_app = _get_login_msal_app()
     redirect_uri = request.host_url.rstrip("/") + "/auth/callback"
 
     flow = msal_app.initiate_auth_code_flow(
-        scopes=FABRIC_USER_SCOPES,
+        scopes=USER_LOGIN_SCOPES,
         redirect_uri=redirect_uri,
     )
     session["auth_flow"] = flow
@@ -233,7 +244,7 @@ def auth_login():
 
 @app.route("/auth/callback")
 def auth_callback():
-    """Handle MSAL login callback — store token cache for OBO Fabric calls."""
+    """Handle MSAL login callback -- extract user identity from ID token."""
     if not IS_PRODUCTION:
         return redirect("/")
 
@@ -241,8 +252,7 @@ def auth_callback():
     if not flow:
         return redirect("/auth/login")
 
-    # Use per-user cache so refresh tokens persist across requests
-    msal_app, cache = _get_msal_app_with_cache()
+    msal_app = _get_login_msal_app()
 
     try:
         result = msal_app.acquire_token_by_auth_code_flow(
@@ -250,17 +260,14 @@ def auth_callback():
             dict(request.args),
         )
     except Exception as e:
-        print(f"❌ Auth callback error: {e}")
+        print(f"[ERROR] Auth callback error: {e}")
         return redirect("/auth/login")
 
     if "error" in result:
-        print(f"❌ Auth error: {result.get('error_description', result['error'])}")
+        print(f"[ERROR] Auth error: {result.get('error_description', result['error'])}")
         return redirect("/auth/login")
 
-    # Persist the token cache (contains refresh token for Fabric OBO)
-    session["token_cache"] = cache.serialize()
-
-    # Store user info from ID token claims
+    # Store user info from ID token claims (identity only)
     id_token_claims = result.get("id_token_claims", {})
     session["user"] = {
         "name": id_token_claims.get("name", "Unknown"),
@@ -286,7 +293,7 @@ def auth_logout():
     return redirect("/")
 
 
-# ── API: Chat Proxy (SSE streaming — UNCHANGED) ─────────────────────
+# -- API: Chat Proxy (SSE streaming) -----------------------------------
 
 @app.route("/api/chat", methods=["POST"])
 def chat_proxy():
@@ -320,8 +327,8 @@ def chat_proxy():
     )
     api_version = "api-version=2024-05-01-preview"
 
-    print(f"🔗 Agent: {agent_id}")
-    print(f"💬 Message: {user_message[:80]}...")
+    print(f"[INFO] Agent: {agent_id}")
+    print(f"[INFO] Message: {user_message[:80]}...")
 
     try:
         token = get_fabric_token()
@@ -351,7 +358,7 @@ def chat_proxy():
         return f"data: {json.dumps(data)}\n\n"
 
     def generate():
-        """SSE generator — streams status updates then the final response."""
+        """SSE generator -- streams status updates then the final response."""
         t0 = time.time()
 
         try:
@@ -360,12 +367,12 @@ def chat_proxy():
 
             if agent_id in _assistant_cache:
                 asst_id = _assistant_cache[agent_id]
-                print(f"♻️  Reusing cached assistant: {asst_id}")
+                print(f"[OK] Reusing cached assistant: {asst_id}")
             else:
                 asst = fabric_api("POST", "assistants", {"model": "not used"})
                 asst_id = asst["id"]
                 _assistant_cache[agent_id] = asst_id
-                print(f"🆕 Created assistant: {asst_id}")
+                print(f"[OK] Created assistant: {asst_id}")
 
             # 2. Create thread + add message
             yield sse_event({"status": "sending", "message": "Sending your question…"})
@@ -383,7 +390,7 @@ def chat_proxy():
                 "assistant_id": asst_id,
             })
             run_id = run["id"]
-            print(f"⏳ Run {run_id} started (status: {run['status']})")
+            print(f"[INFO] Run {run_id} started (status: {run['status']})")
 
             yield sse_event({"status": "processing", "message": "Agent is thinking…"})
 
@@ -406,7 +413,7 @@ def chat_proxy():
 
             # Extract token usage from completed run
             usage = run.get("usage") or {}
-            print(f"✅ Run completed in {round(time.time() - t0)}s (status: {run['status']}) usage={usage}")
+            print(f"[OK] Run completed in {round(time.time() - t0)}s (status: {run['status']}) usage={usage}")
 
             if run["status"] != "completed":
                 yield sse_event({
@@ -419,7 +426,7 @@ def chat_proxy():
 
             try:
                 steps = fabric_api("GET", f"threads/{thread_id}/runs/{run_id}/steps")
-                print(f"📋 Raw run steps response: {json.dumps(steps, indent=2)[:2000]}")
+                print(f"[INFO] Raw run steps response: {json.dumps(steps, indent=2)[:2000]}")
                 step_list = steps.get("data", [])
                 if step_list:
                     reasoning_steps = []
@@ -463,15 +470,15 @@ def chat_proxy():
                             step_info["message_id"] = mc.get("message_id")
                         reasoning_steps.append(step_info)
                     yield sse_event({"reasoning": reasoning_steps})
-                    print(f"📋 Sent {len(reasoning_steps)} run steps to client")
+                    print(f"[INFO] Sent {len(reasoning_steps)} run steps to client")
             except Exception as e:
-                print(f"⚠️  Could not fetch run steps: {e}")
-                # Non-fatal — continue to deliver the response
+                print(f"[WARN] Could not fetch run steps: {e}")
+                # Non-fatal -- continue to deliver the response
 
             # 6. Retrieve response
 
             msgs = fabric_api("GET", f"threads/{thread_id}/messages")
-            print(f"📨 Raw messages response: {json.dumps(msgs, indent=2)[:2000]}")
+            print(f"[INFO] Raw messages response: {json.dumps(msgs, indent=2)[:2000]}")
 
             reply = ""
             for m in msgs.get("data", []):
@@ -501,10 +508,10 @@ def chat_proxy():
 
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8") if e.fp else ""
-            print(f"❌ Fabric API error {e.code}: {error_body[:500]}")
+            print(f"[ERROR] Fabric API error {e.code}: {error_body[:500]}")
             yield sse_event({"error": f"Fabric API returned {e.code}", "details": error_body})
         except Exception as e:
-            print(f"❌ Proxy error: {e}")
+            print(f"[ERROR] Proxy error: {e}")
             yield sse_event({"error": str(e)})
 
     return Response(
@@ -517,7 +524,32 @@ def chat_proxy():
     )
 
 
-# ── API: User Info ──────────────────────────────────────────────────
+# -- API: Auth Status -------------------------------------------------
+
+@app.route("/api/auth/status", methods=["GET"])
+def auth_status():
+    """Check authentication state without triggering a redirect.
+
+    Returns auth configuration and current user session state.
+    Frontend can call this on load to decide whether to show a login button.
+    """
+    base = {
+        "auth_enabled": IS_PRODUCTION,
+        "login_url": "/auth/login",
+        "logout_url": "/auth/logout",
+    }
+
+    if not IS_PRODUCTION:
+        return jsonify({**base, "authenticated": True, "user": {"name": "Local Dev User"}})
+
+    user = session.get("user")
+    if user:
+        return jsonify({**base, "authenticated": True, "user": user})
+
+    return jsonify({**base, "authenticated": False, "user": None})
+
+
+# -- API: User Info ---------------------------------------------------
 
 @app.route("/api/user", methods=["GET"])
 def get_user():
@@ -528,25 +560,25 @@ def get_user():
             return jsonify({"authenticated": True, **user})
         return jsonify({"authenticated": False}), 401
 
-    # Local dev — always authenticated
+    # Local dev -- always authenticated
     return jsonify({"authenticated": True, "name": "Local Dev User"})
 
 
-# ── API: Health Check ───────────────────────────────────────────────
+# -- API: Health Check -------------------------------------------------
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    """Health check — confirms the app is running."""
+    """Health check -- confirms the app is running."""
     return jsonify({
         "status": "ok",
         "mode": "production" if IS_PRODUCTION else "local-dev",
-        "auth": "user-delegated (OBO)" if IS_PRODUCTION else "interactive-browser",
+        "auth": "client_credentials" if IS_PRODUCTION else "interactive-browser",
         "workspace": WORKSPACE_ID,
         "fabricApi": FABRIC_API_BASE,
     })
 
 
-# ── Static File Serving ─────────────────────────────────────────────
+# -- Static File Serving -----------------------------------------------
 
 @app.route("/")
 def index():
@@ -558,15 +590,15 @@ def static_files(path):
     return send_from_directory(WEB_DIR, path)
 
 
-# ── Entry Point (local dev only) ────────────────────────────────────
+# -- Entry Point (local dev only) --------------------------------------
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("  Advance Insights — Local Dev Server")
+    print("  Advance Insights -- Local Dev Server")
     print("=" * 50)
     print(f"  Workspace: {WORKSPACE_ID}")
     print(f"  Tenant:    {TENANT_ID}")
-    print(f"  Mode:      {'production (MSAL + OBO)' if IS_PRODUCTION else 'local-dev (browser login)'}")
+    print(f"  Mode:      {'production (client_credentials)' if IS_PRODUCTION else 'local-dev (browser login)'}")
     print(f"  Web dir:   {WEB_DIR}")
     print("=" * 50)
 
@@ -575,7 +607,7 @@ if __name__ == "__main__":
         try:
             _get_dev_credential()
         except Exception as e:
-            print(f"\n❌ Authentication failed: {e}")
+            print(f"\n[ERROR] Authentication failed: {e}")
             print("Make sure you can log in with your Microsoft account.")
             sys.exit(1)
 
@@ -587,7 +619,7 @@ if __name__ == "__main__":
 
     threading.Thread(target=open_browser, daemon=True).start()
 
-    print(f"\n🚀 Server running at http://localhost:{PORT}")
+    print(f"\n[OK] Server running at http://localhost:{PORT}")
     print("   Press Ctrl+C to stop\n")
 
     app.run(host="0.0.0.0", port=PORT, debug=False)

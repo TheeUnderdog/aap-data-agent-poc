@@ -60,4 +60,4 @@ This project uses [Squad](https://github.com/bradygaster/squad) for AI-assisted 
 - **Schema changes are isolated:** If modifying data access, update the view layer in `docs/data-schema.md` first, then update consuming code. Never hardcode table names outside the view definitions.
 - **Fabric Data Agent instructions** reference the contract views and sample queries from `docs/data-schema.md` §7.
 - **Auth is Entra ID everywhere:** Fabric workspace, API backend, and frontend all use Azure Entra ID. Service principal for API-to-Fabric; MSAL for user-to-API.
-- **POC scope:** Keep it simple. No RLS, no multi-tenant, no complex RBAC. Those are production concerns.
+- **POC scope:** Keep it simple. RLS and RBAC are production concerns.

@@ -3,7 +3,7 @@ from server import get_token, WORKSPACE_ID
 
 token = get_token()
 agent_id = 'e8fc166b-360e-4b0a-922b-05ca8bba3ff4'
-base = f'https://msitapi.fabric.microsoft.com/v1/workspaces/{WORKSPACE_ID}/dataagents/{agent_id}/aiassistant/openai'
+base = f'https://api.fabric.microsoft.com/v1/workspaces/{WORKSPACE_ID}/dataagents/{agent_id}/aiassistant/openai'
 api_v = 'api-version=2024-05-01-preview'
 
 def api(method, path, body=None):
