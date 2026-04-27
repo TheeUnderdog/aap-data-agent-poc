@@ -875,6 +875,11 @@
     <li><strong>Linguistic schema</strong> — 50 table synonyms, 66 column synonyms, 53 value synonyms so the Data Agent understands domain terminology ("PLT" = "Platinum", "txn" = "transaction")</li>
 </ul>
 
+<h3 id="prep-data-for-ai">Prep Data for AI</h3>
+<p>A raw semantic model with technical column names forces the Data Agent to guess at meaning. The model is configured with a <strong>linguistic schema</strong> — 178 synonyms across tables, columns, and values — plus <strong>AI instructions</strong> that encode business rules, tier definitions, calculation guardrails, and domain vocabulary. Together these teach the Data Agent the language of the AAP loyalty program so it generates accurate DAX from natural language.</p>
+
+<p>Full details: <code>docs/semantic-model-architecture.md</code> Part 2 — Prep for AI.</p>
+
 <h2 id="agent-config">Agent Configuration</h2>
 
 <p>Each of the five Fabric Data Agents has three configuration files in the <code>agents/</code> directory:</p>
