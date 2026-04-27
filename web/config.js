@@ -55,7 +55,7 @@ window.APP_CONFIG = {
             icon: "img/crew-chief.svg",
             accent: "#1E1E1E",
             textColor: "#1E1E1E",
-            welcome: "I coordinate the full team. Ask me anything \u2014 I'll get the right people on it.",
+            welcome: "I coordinate the full team. Ask me anything \u2014 I'll get the right agent on it.",
             description: "Executive orchestrator",
             about: "Coordinates all specialist agents to deliver cross-functional insights across loyalty, marketing, merchandising, store operations, and customer service for the AAP rewards program.",
             shortDesc: "Ask anything",
