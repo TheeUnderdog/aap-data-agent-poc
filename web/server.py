@@ -78,6 +78,31 @@ def get_fabric_token():
     return cred.get_token(FABRIC_SCOPE).token
 
 
+COGNITIVE_SCOPE = "https://cognitiveservices.azure.com/.default"
+ROUTING_TENANT = os.environ.get("AZURE_OPENAI_TENANT_ID")  # Cross-tenant auth for LLM routing
+
+
+def get_cognitive_token():
+    """Get an Azure Cognitive Services access token.
+    Uses az cli subprocess with explicit tenant when AZURE_OPENAI_TENANT_ID is set
+    (needed when the OpenAI resource is in a different tenant than the default).
+    Falls back to the credential chain otherwise.
+    """
+    if ROUTING_TENANT:
+        import subprocess, shutil
+        az_path = shutil.which("az") or "az"
+        cmd = [az_path, "account", "get-access-token",
+               "--resource", "https://cognitiveservices.azure.com",
+               "--tenant", ROUTING_TENANT,
+               "--query", "accessToken", "-o", "tsv"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, shell=True)
+        if result.returncode == 0:
+            return result.stdout.strip()
+        raise RuntimeError(f"az cli token failed: {result.stderr.strip()}")
+    cred = _get_credential()
+    return cred.get_token(COGNITIVE_SCOPE).token
+
+
 # -- Flask App ---------------------------------------------------------
 
 app = Flask(__name__, static_folder=WEB_DIR)
@@ -137,7 +162,7 @@ def route_question():
     if ROUTING_API_KEY:
         headers["api-key"] = ROUTING_API_KEY
     else:
-        token = get_fabric_token()
+        token = get_cognitive_token()
         headers["Authorization"] = f"Bearer {token}"
 
     req = urllib.request.Request(ROUTING_ENDPOINT, data=payload, headers=headers, method="POST")

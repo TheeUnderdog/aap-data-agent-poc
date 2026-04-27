@@ -176,7 +176,7 @@ window.APP_CONFIG = {
 
     // Routing mode: "keyword" (default, zero-latency) or "llm" (semantic via Foundry GPT-4o-mini)
     // Toggle this for A/B testing routing accuracy
-    routingMode: "keyword",
+    routingMode: "llm",
 
     // Azure AI Foundry endpoint for LLM routing (only used when routingMode is "llm")
     llmRouting: {
