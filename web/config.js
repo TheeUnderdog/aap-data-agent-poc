@@ -174,7 +174,20 @@ window.APP_CONFIG = {
     // Agent display order (Crew Chief first)
     agentOrder: ["crew-chief", "pit-crew", "gearup", "ignition", "partspro", "diehard"],
 
-    // Executive agent keyword routing
+    // Routing mode: "keyword" (default, zero-latency) or "llm" (semantic via Foundry GPT-4o-mini)
+    // Toggle this for A/B testing routing accuracy
+    routingMode: "keyword",
+
+    // Azure AI Foundry endpoint for LLM routing (only used when routingMode is "llm")
+    llmRouting: {
+        // Deploy GPT-4o-mini as a serverless endpoint in Foundry, paste URL here
+        endpoint: null,  // e.g. "https://<resource>.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-02-15-preview"
+        // When true, the server proxy handles auth. When false, needs apiKey below.
+        useProxy: true,
+        apiKey: null     // Only if useProxy is false (not recommended — use managed identity)
+    },
+
+    // Executive agent keyword routing (used when routingMode is "keyword")
     executiveRouting: {
         "pit-crew":  ["service", "support", "complaint", "call", "agent", "csr", "ticket", "escalat", "audit"],
         "gearup":    ["loyalty", "reward", "tier", "gear", "points", "member", "enroll", "redeem"],

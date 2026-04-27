@@ -13,7 +13,7 @@
      * Classify a user question into one or more specialist agent keys
      * based on keyword matching from the routing config.
      */
-    function classifyQuestion(question) {
+    function classifyQuestionKeyword(question) {
         const lower = question.toLowerCase();
         const scores = {};
 
@@ -46,6 +46,42 @@
     }
 
     /**
+     * Classify via LLM (GPT-4o-mini through Foundry endpoint).
+     * Falls back to keyword routing on any error.
+     */
+    async function classifyQuestionLLM(question) {
+        try {
+            const res = await fetch('/api/route', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            });
+            if (!res.ok) {
+                console.warn('[CrewChief] LLM routing failed, falling back to keywords');
+                return classifyQuestionKeyword(question);
+            }
+            const data = await res.json();
+            if (data.agents && data.agents.length > 0) {
+                return data.agents;
+            }
+            return classifyQuestionKeyword(question);
+        } catch (err) {
+            console.warn('[CrewChief] LLM routing error, falling back to keywords:', err.message);
+            return classifyQuestionKeyword(question);
+        }
+    }
+
+    /**
+     * Route using the configured mode (keyword or llm).
+     */
+    async function classifyQuestion(question) {
+        if (config.routingMode === 'llm') {
+            return classifyQuestionLLM(question);
+        }
+        return classifyQuestionKeyword(question);
+    }
+
+    /**
      * Get a friendly name for attribution in the response
      */
     function agentDisplayName(agentKey) {
@@ -60,7 +96,7 @@
      */
     async function askCrewChief(question) {
         const client = window.AgentClient;
-        const targets = classifyQuestion(question);
+        const targets = await classifyQuestion(question);
 
         const targetNames = targets.map(agentDisplayName).join(', ');
         console.log(`[CrewChief] Routing to: ${targetNames}`);

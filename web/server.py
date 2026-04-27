@@ -84,6 +84,77 @@ app = Flask(__name__, static_folder=WEB_DIR)
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 CORS(app)
 
+
+# -- API: LLM Routing (GPT-4o-mini via Foundry) ---------------------------
+
+ROUTING_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")  # Foundry deployment URL
+ROUTING_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY")    # Only if not using managed identity
+
+ROUTING_SYSTEM_PROMPT = """You route user questions to specialist agents for an auto parts loyalty program.
+
+Available agents:
+- pit-crew: Customer service, support tickets, complaints, CSR activity, escalations
+- gearup: Loyalty program, rewards, tiers, points, members, enrollment, redemptions
+- ignition: Marketing campaigns, promotions, coupons, email engagement, offers
+- partspro: Products, categories, inventory, merchandising, SKUs, brands, pricing
+- diehard: Store operations, locations, regional performance, sales, revenue
+
+Return a JSON array of 1-3 agent keys that should handle the question.
+Pick the most relevant agents. If the question spans multiple domains, include up to 3.
+Return ONLY the JSON array, no explanation. Example: ["gearup", "diehard"]"""
+
+
+@app.route("/api/route", methods=["POST"])
+def route_question():
+    """
+    Classify a question using GPT-4o-mini via Azure AI Foundry.
+    Returns {"agents": ["agent-key", ...], "mode": "llm"}.
+    Falls back gracefully if endpoint isn't configured.
+    """
+    import urllib.request
+    import urllib.error
+
+    if not ROUTING_ENDPOINT:
+        return jsonify({"error": "LLM routing endpoint not configured", "agents": []}), 503
+
+    data = request.get_json()
+    question = data.get("question", "")
+    if not question:
+        return jsonify({"error": "No question provided", "agents": []}), 400
+
+    # Build the chat completion request
+    payload = json.dumps({
+        "messages": [
+            {"role": "system", "content": ROUTING_SYSTEM_PROMPT},
+            {"role": "user", "content": question}
+        ],
+        "temperature": 0,
+        "max_tokens": 50
+    }).encode("utf-8")
+
+    # Auth: prefer managed identity, fall back to API key
+    headers = {"Content-Type": "application/json"}
+    if ROUTING_API_KEY:
+        headers["api-key"] = ROUTING_API_KEY
+    else:
+        token = get_fabric_token()
+        headers["Authorization"] = f"Bearer {token}"
+
+    req = urllib.request.Request(ROUTING_ENDPOINT, data=payload, headers=headers, method="POST")
+
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            content = result["choices"][0]["message"]["content"].strip()
+            agents = json.loads(content)
+            # Validate agent keys
+            valid = ["pit-crew", "gearup", "ignition", "partspro", "diehard"]
+            agents = [a for a in agents if a in valid]
+            return jsonify({"agents": agents, "mode": "llm"})
+    except Exception as e:
+        print(f"[WARN] LLM routing failed: {e}")
+        return jsonify({"error": str(e), "agents": []}), 502
+
 
 # -- API: Chat Proxy (SSE streaming) -----------------------------------
 
