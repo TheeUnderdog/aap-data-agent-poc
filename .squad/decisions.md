@@ -86,6 +86,119 @@
 - **Owner:** Dave Grobleski
 - **Status:** Documented for Team Memory
 
+### FABRIC_AUTH_MODE Implementation (2026-04-26)
+- **Decision:** Added `FABRIC_AUTH_MODE` environment variable to control Fabric API authentication
+- **Options:** `client_credentials` (default, cross-tenant) or `user_delegated` (same-tenant OBO)
+- **Rationale:** Cross-tenant deployments need client_credentials; same-tenant customers can use user delegation
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### Fabric Provisioning Script Design (2026-04-25)
+- **Decision:** Use Fabric REST API with Azure CLI token auth, idempotent semantics, `.env.fabric` config file
+- **Implementation:** Two PowerShell scripts (setup-workspace.ps1, deploy-semantic-views.ps1), SqlClient fallback for SQL operations
+- **Rationale:** Automation eliminates portal work, idempotency allows safe re-execution, config bridge enables multi-stage provisioning
+- **Owner:** Basher (Backend Developer)
+- **Status:** Implemented
+
+### Container Apps Migration — Implementation Details (2026-04-26)
+- **Decision:** Migrated from Azure Static Web Apps to Azure Container Apps
+- **Key Choices:** Single-container deployment (Flask + gunicorn), MSAL middleware auth, gunicorn gthread worker for SSE, GitHub Container Registry (ghcr.io)
+- **Rationale:** True SSE streaming (no 30-second cap), full auth control, container registry flexibility
+- **Impact:** Same image runs locally (docker-compose) and in Azure; frontend code unchanged
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### Auth Simplification — DefaultAzureCredential (2026-07)
+- **Decision:** Replace MSAL with stateless `DefaultAzureCredential` for all environments
+- **Context:** App and agents will run in same FDPO tenant; local dev uses `az login`
+- **Changes:** Removed MSAL, Flask sessions, auth routes; single `get_fabric_token()` using credential chain
+- **Impact:** No app registration needed; Docker mounts `~/.azure` for local creds; Container Apps uses managed identity
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### Delegated User Auth (Cross-Tenant) (2026-07)
+- **Decision:** Replace client_credentials with delegated user auth — forward user's own token to Fabric
+- **Context:** New multi-tenant app reg in Contoso tenant accepts users from any Azure AD tenant
+- **Flow:** User logs in via MSAL → gets Fabric token → stored in Flask session → forwarded to Fabric API
+- **Impact:** Fabric checks user's workspace permissions (not SP); Linus frontend unchanged; deployed with multi-tenant app reg
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### MSAL Delegated Browser Auth — Restore (2026-07)
+- **Decision:** Replace `DefaultAzureCredential` with MSAL authorization code flow (delegated browser auth)
+- **Rationale:** Dave wants browser redirect with Microsoft credentials; delegated token carries user identity to Fabric
+- **Architecture:** /auth/login → MSAL initiate_auth_code_flow → Microsoft login → /auth/callback → session → /api/chat
+- **Impact:** Local dev still works via AzureCliCredential fallback; MSAL dependencies restored
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### ChainedTokenCredential Simplification (2026-07)
+- **Decision:** Replace MSAL with simple ChainedTokenCredential (ManagedIdentityCredential → AzureCliCredential → DeviceCodeCredential)
+- **Rationale:** Dave wants simplest possible auth — just use Azure credentials server-side
+- **Consequences:** No app registration, no browser redirect, no Flask sessions; everyone shows as "Advance Insights User"
+- **Docker support:** DeviceCodeCredential replaces `~/.azure` mount approach
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### Simplify Auth to Single-Tenant client_credentials (2025-07-17)
+- **Decision:** Remove cross-tenant complexity — single-tenant FDPO client_credentials only
+- **Context:** All resources live in FDPO tenant; removed `FABRIC_TENANT_ID`, `FABRIC_AUTH_MODE`, OBO flow
+- **Auth model:** User login = identity only (openid+profile); Fabric = client_credentials only
+- **Impact:** `.env.example` is simpler; no multi-tenant logic
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### SWA Deployment Scripts (2026-07)
+- **Decision:** Created `scripts/deploy-web.ps1` (PowerShell) and `scripts/deploy-web.sh` (Bash) for Azure Static Web App automation
+- **Rationale:** Manual portal deployment is error-prone; team needs repeatable deployment for dev/staging/prod
+- **Features:** Dual-platform, idempotent, WhatIf/dry-run support, Entra ID automation
+- **Owner:** Basher (Backend Dev)
+- **Status:** Implemented
+
+### Single PBIR Report for Verified Answers (2026-07)
+- **Decision:** Created single-page `LoyaltyOverview` PBIR report with 8 visuals (not 5 full reports)
+- **Rationale:** Dave requested "just one simple dashboard"; verified answers need report visuals as anchors; PBIR format enables git sync
+- **Files:** `reports/LoyaltyOverview.Report/definition.pbir`, `report.json`, `README.md`
+- **Owner:** Basher
+- **Status:** Implemented
+
+### Scrub Old Auth Model References from Documentation (2026-04-28)
+- **Decision:** Remove all references to OBO, user-delegated, cross-tenant, trusted subsystem, old MSIT tenant IDs
+- **Rationale:** Document what IS, not what ISN'T; stale references create confusion
+- **Files Changed:** 10 files across docs, code, config
+- **Owner:** Basher (Backend Dev)
+- **Requested by:** Dave Grobleski
+- **Status:** Implemented
+
+### Migrate to Azure Container Apps from Static Web Apps (2026-07)
+- **Decision:** Full migration from SWA to ACA for Flask-only local dev + public repo readiness
+- **Rationale:** SWA is deprecated for POC, ACA offers better control, single Docker image, unlimited SSE streaming
+- **Implementation:** MSAL middleware in Flask, gunicorn, Container Apps with managed identity, ghcr.io registry
+- **Owner:** Danny (Lead/Architect)
+- **Status:** Proposed, Basher implementing
+
+### Docker Deployment Architecture (2026-04-26)
+- **Decision:** Same Docker image runs identically in local development and Azure production with automatic auth fallback
+- **Local Dev:** docker-compose mounts `~/.azure` for AzureCliCredential; option for mock agent
+- **Azure Production:** MSAL auth code flow, managed identity for Fabric, Container Apps orchestration
+- **Files:** `web/Dockerfile`, `docker-compose.yml`, `scripts/deploy-web.ps1`, `.github/workflows/azure-container-apps.yml`
+- **Owner:** Danny (Lead/Architect)
+- **Status:** ✅ Implemented
+
+### Deployment Automation & Gaps Analysis (2026-07)
+- **Decision:** Create `docs/deployment-gaps.md` (gap analysis) and `scripts/deploy-all.ps1` (master orchestrator script)
+- **Rationale:** 70% of deployment automatable via REST APIs; 30% requires portal clicks; master script chains all subscripts
+- **Impact:** Deployment time reduced from ~4 hours to ~1 hour total (3 min automated + 45–60 min manual)
+- **Owner:** Danny (Lead/Architect)
+- **Status:** Approved for Implementation
+
+### Public Repository Preparation (2026-07)
+- **Decision:** Prepare repo for public visibility by updating docs to reflect Flask-only local dev reality
+- **Changes:** README.md rewrite (Flask not Container Apps, 6 agents not 5, ChainedTokenCredential auth), web/SETUP.md status callouts, MIT License
+- **Rationale:** Public repos must accurately represent what works today; aspirational docs erode trust
+- **Owner:** Danny (Lead/Architect)
+- **Status:** Implemented
+
 ### Agent Configuration Verification (2026-04-26)
 - **Decision:** All 5 AI agent configurations audited and verified
 - **Rationale:** Ensure CSR naming convention and semantic view references are consistent across agent configs before Fabric Data Agent deployment

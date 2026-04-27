@@ -289,3 +289,27 @@ Batteries (1.25), Engine Oil (0.5), Brakes (0.95), Filters (0.6), Wipers (0.7), 
 
 **Status:** ✅ Complete — awaiting notebook re-run + sanity check validation
 
+### Semantic Model + Linguistic Schema Deployment (2026-04-27)
+**Task:** Deploy the semantic model and linguistic schema to the FDPO workspace.
+
+**Step 1 — Semantic Model (`create-semantic-model.py`):**
+- Dry-run verified: 10 tables, 10 relationships, 40 DAX measures, 15 TMDL parts
+- First `--force` run hit 404 "EntityNotFound" on the POST — transient Fabric API issue
+- Retried by posting the saved definition JSON directly → got 202 Accepted
+- Operation completed successfully. Model ID: `1cf17038-a2a6-45f8-90d8-080c28038cb7`
+- TakeOver + DirectLake refresh completed instantly (DirectLakeFraming type)
+
+**Step 2 — Linguistic Schema (`configure-linguistic-schema.py`):**
+- Dry-run verified: 55 table synonyms, 68 column synonyms, 55 value synonyms, 57 lines of AI instructions
+- Live run: fetched existing 16 definition parts, merged to 20, uploaded successfully
+- Q&A / Copilot enabled in model settings
+
+**Learnings:**
+- Fabric `POST /semanticModels` can return transient 404s even when the workspace is valid — retry logic is essential
+- The 202 async pattern is the normal response; 200/201 is rare
+- DirectLakeFraming refresh type completes in under 1 second when data already exists
+- Linguistic schema is additive — fetches existing definition, merges new Copilot/ parts, uploads combined
+
+**Workspace:** AAP-RewardsLoyalty-POC (e7f4acfe-90d7-4685-864a-b5f1216fe614)
+**Model:** AAP Rewards Loyalty Model (1cf17038-a2a6-45f8-90d8-080c28038cb7)
+**Status:** ✅ Both deployed and verified

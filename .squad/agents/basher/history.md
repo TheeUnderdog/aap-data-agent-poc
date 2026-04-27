@@ -10,6 +10,29 @@
 
 ## Learnings
 
+### Replace MSAL with ChainedTokenCredential (2026-07)
+- **Scope:** Removed all MSAL auth code flow; replaced with server-side `ChainedTokenCredential` (ManagedIdentity → AzureCli → DeviceCode)
+- **Trigger:** Dave wants simplest possible auth — no app registration, no client secrets, no login routes, no sessions. Just `python server.py` using his Azure credentials.
+- **Files changed:**
+  - `web/server.py` — Removed msal import, secrets, session, redirect, url_for, time as _time. Removed ENTRA_* config, SESSION_SECRET, FABRIC_DELEGATED_SCOPE. Removed _get_msal_app, auth_login, auth_callback, auth_logout routes. Removed app.secret_key and session cookie config. Added ChainedTokenCredential with 3 credentials. get_fabric_token() now calls credential chain directly. auth_status/get_user always return authenticated. health returns "credential_chain".
+  - `web/requirements.txt` — Removed `msal==1.32.0`
+  - `web/.env` — Stripped to FABRIC_WORKSPACE_ID + FABRIC_API_BASE only (removed ENTRA_* and SESSION_SECRET)
+  - `web/.env.example` — Same cleanup
+- **Key insight:** This is the third auth iteration (DefaultAzureCredential → MSAL → ChainedTokenCredential). The explicit chain is better than DefaultAzureCredential because it controls the order and avoids unexpected credential types. DeviceCodeCredential handles Docker/headless without needing volume mounts.
+
+### Restore MSAL Delegated Browser Auth (2026-07)
+- **Scope:** Reversed the DefaultAzureCredential simplification; restored MSAL authorization code flow for delegated browser auth
+- **Trigger:** Dave wants to log in with Microsoft credentials via browser redirect. User's delegated token (with Fabric scope) used to call Fabric API directly — simpler than separate identity + Fabric flows.
+- **Files changed:**
+  - `web/server.py` — Full auth rewrite: removed ChainedTokenCredential/SharedTokenCacheCredential/ManagedIdentityCredential imports, added msal + Flask session imports. New MSAL ConfidentialClientApplication (lazy init). New routes: `/auth/login` (initiate_auth_code_flow), `/auth/callback` (exchange code for tokens), `/auth/logout` (clear session). `get_fabric_token()` now pulls from session with MSAL refresh; falls back to AzureCliCredential for local dev (no ENTRA_CLIENT_ID). Updated auth_status/get_user/health endpoints to reflect auth mode.
+  - `web/requirements.txt` — Added `msal==1.32.0`
+  - `web/.env` — Added ENTRA_CLIENT_ID, ENTRA_CLIENT_SECRET, ENTRA_AUTHORITY, SESSION_SECRET
+  - `web/.env.example` — Updated template with MSAL vars
+  - `docker-compose.yml` — Removed `~/.azure` volume mount (no longer needed with MSAL)
+- **Critical bug avoided:** MSAL's `initiate_auth_code_flow` auto-adds openid/profile/offline_access scopes. Passing them explicitly causes `ValueError: You cannot use any scope value that is reserved`. Only pass `["https://api.fabric.microsoft.com/Item.Execute.All"]`.
+- **Architecture:** Single flow — user hits app → redirect to Microsoft login → callback exchanges code for tokens (including Fabric scope) → tokens stored in Flask session → `get_fabric_token()` pulls from session, refreshes via MSAL if expired
+- **Authority:** `https://login.microsoftonline.com/common` (multi-tenant, works for any Azure AD user)
+
 ### Auth Simplification — DefaultAzureCredential (2026-07)
 - **Scope:** Removed all MSAL auth code; replaced with stateless `DefaultAzureCredential`
 - **Trigger:** Dave plans to deploy app + Fabric Data Agents in same FDPO tenant. Local dev uses `az login` on corporate laptop. No cross-tenant complexity needed.
