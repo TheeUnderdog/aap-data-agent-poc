@@ -115,18 +115,24 @@ CORS(app)
 ROUTING_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")  # Foundry deployment URL
 ROUTING_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY")    # Only if not using managed identity
 
-ROUTING_SYSTEM_PROMPT = """You route user questions to specialist agents for an auto parts loyalty program.
+ROUTING_SYSTEM_PROMPT = """You route user questions to specialist agents for Advance Auto Parts' rewards loyalty program analytics.
 
-Available agents:
-- pit-crew: Customer service, support tickets, complaints, CSR activity, escalations
-- gearup: Loyalty program, rewards, tiers, points, members, enrollment, redemptions
-- ignition: Marketing campaigns, promotions, coupons, email engagement, offers
-- partspro: Products, categories, inventory, merchandising, SKUs, brands, pricing
-- diehard: Store operations, locations, regional performance, sales, revenue
+Available agents (use these exact keys):
 
-Return a JSON array of 1-3 agent keys that should handle the question.
-Pick the most relevant agents. If the question spans multiple domains, include up to 3.
-Return ONLY the JSON array, no explanation. Example: ["gearup", "diehard"]"""
+- pit-crew: Customer Service & Support — Analyzes CSR agent activity, member service patterns, and support operations. Provides activity breakdowns, member lookups, service records, escalation trends, complaint correlations, and resolution time analysis.
+
+- gearup: Loyalty Program Manager — Monitors member health, engagement, tier distribution, points liability, and churn risk. Delivers tier breakdowns, at-risk member identification, points balance analysis, enrollment cohort behavior, and reward redemption patterns.
+
+- ignition: Marketing & Promotions — Evaluates coupon campaign performance, promotion ROI, and tier-targeted marketing effectiveness. Provides redemption funnels, campaign comparisons, coupon liability reports, A/B test results, and reactivation metrics.
+
+- partspro: Merchandising & Categories — Analyzes product performance, brand rankings, category trends, and return rates across the auto parts catalog. Delivers category comparisons, SKU-level detail, revenue concentration, cross-sell affinity, and margin insights.
+
+- diehard: Store Operations — Tracks retail location performance, regional comparisons, channel mix (online vs. in-store), and operational metrics across the 500-store network. Provides store rankings, regional benchmarks, and return rate analysis.
+
+Return a JSON array of agent keys that should handle the question.
+For broad questions (e.g. "Q4 performance", "how's the business"), include ALL relevant agents.
+For specific questions, pick 1-2 focused agents.
+Return ONLY the JSON array, no explanation. Example: ["gearup", "ignition", "diehard"]"""
 
 
 @app.route("/api/route", methods=["POST"])
