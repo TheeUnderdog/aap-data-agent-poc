@@ -4,6 +4,28 @@
 
 Structured test scripts for a Computer Use Agent (CUA) to validate the Advance Insights web application. The CUA reads these `.feature` files as step-by-step instructions, opens a browser, and executes them visually.
 
+## Strategy: Gherkin for LLMs
+
+We use Gherkin's `Given/When/Then` structure because it provides clear, deterministic steps — but we write the step text in **natural language optimized for LLM comprehension**, not traditional regex-matched step definitions. This means:
+
+- Steps describe *intent and visual outcomes* rather than DOM selectors or programmatic assertions
+- Verification steps say things like "I should see the agent name displayed" rather than `element('#agent-name').should('exist')`
+- Context is embedded directly in the step text (e.g., "Given I am on the Crew Chief tab" rather than requiring a step definition lookup)
+- Comments (`#`) provide additional context a CUA might need (e.g., expected colors, layout hints, what "success" looks like visually)
+
+The result: `.feature` files that any LLM-based agent can execute without step-definition bindings, while still benefiting from Gherkin's structured scenario organization, tagging (`@smoke`, `@core`), and `Background` reuse.
+
+## Test Format — Gherkin / Cucumber
+
+Tests are written in **Gherkin** syntax (`.feature` files) — the same structured language used by Cucumber, Behave, SpecFlow, and other BDD frameworks. Key concepts:
+
+- **`.feature` files** — Human-readable test specifications using `Feature`, `Scenario`, `Given/When/Then` keywords. Located in `features/`.
+- **Gherkin** — The language/grammar that `.feature` files are written in. Designed so non-technical stakeholders can read and validate test intent.
+- **Cucumber** — The original BDD test runner that executes Gherkin. Our CUA acts as the "runner" here — reading the steps and executing them visually in a browser instead of through code bindings.
+- **Pickle** — In Cucumber's internal architecture, a "pickle" is the compiled/parsed representation of a Gherkin scenario after variable substitution and example expansion. We don't generate pickle files directly — the CUA interprets `.feature` files as-is — but the concept applies: each scenario is an independent, fully-resolved test case.
+
+Our approach uses Gherkin as the specification format but replaces traditional step-definition code with CUA visual execution. This means the same `.feature` files could later be wired to a Playwright/Selenium runner with step definitions if automated regression is needed.
+
 ## How the CUA Should Use These Files
 
 1. Read the `.feature` file for the test suite you want to run

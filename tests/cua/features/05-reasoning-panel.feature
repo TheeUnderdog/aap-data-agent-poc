@@ -9,18 +9,21 @@ Feature: Reasoning Panel
     Given I open my browser to http://localhost:5000
     And I wait for the page to fully load
 
+  @id:05-reasoning-panel-toggle-open
   Scenario: Toggle reasoning panel open via header button
     When I click the reasoning toggle button in the header (brain/info icon)
     Then a panel should slide out from the right side of the screen
     And the panel should have a header or title like "Agent Reasoning"
     And the chat area should resize to make room for the panel
 
+  @id:05-reasoning-panel-toggle-closed
   Scenario: Toggle reasoning panel closed
     Given the reasoning panel is open
     When I click the reasoning toggle button again
     Then the panel should slide closed (hide to the right)
     And the chat area should expand back to full width
 
+  @id:05-reasoning-panel-steps-appear
   Scenario: Reasoning steps appear after asking a question
     Given I am on the "GearUp" tab
     And the reasoning panel is open
@@ -31,6 +34,7 @@ Feature: Reasoning Panel
     And each step should show text describing what the agent did
     And each step should show a duration (e.g., "2.3s" or similar timing)
 
+  @id:05-reasoning-panel-groups-collapsible
   Scenario: Reasoning groups are collapsible
     Given I have asked at least 2 questions and received responses
     And the reasoning panel is open
@@ -40,6 +44,7 @@ Feature: Reasoning Panel
     When I click it again
     Then it should expand (show its steps again)
 
+  @id:05-reasoning-panel-token-usage
   Scenario: Token usage is displayed
     Given I have asked a question and received a response
     And the reasoning panel is open
@@ -47,6 +52,7 @@ Feature: Reasoning Panel
     # Token info shows prompt tokens, completion tokens, and total
     And the numbers should be reasonable (hundreds to thousands)
 
+  @id:05-reasoning-panel-avatar-open
   Scenario: Click agent avatar to open reasoning for that interaction
     Given I have asked a question and received a response
     And the reasoning panel is CLOSED
@@ -55,6 +61,7 @@ Feature: Reasoning Panel
     And it should scroll to (or highlight) the reasoning group for that specific response
     # This connects the chat bubble to its reasoning entry
 
+  @id:05-reasoning-panel-methodology
   Scenario: Methodology extraction appears in reasoning
     # When an agent says "How I got these numbers:" or similar,
     # that content moves from the chat bubble to the reasoning panel
@@ -66,6 +73,7 @@ Feature: Reasoning Panel
     Then that methodology should appear in the reasoning panel (not in the chat bubble)
     # The chat bubble shows the clean answer; reasoning panel shows the "show your work"
 
+  @id:05-reasoning-panel-multi-agent
   Scenario: Multiple agents show separate reasoning when Crew Chief routes
     Given I am on the "Crew Chief" tab
     And the reasoning panel is open

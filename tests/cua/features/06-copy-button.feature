@@ -8,6 +8,7 @@ Feature: Copy Button on Agent Responses
     Given I open my browser to http://localhost:5000
     And I wait for the page to fully load
 
+  @id:06-copy-button-visible
   Scenario: Copy button is visible on agent response
     Given I am on the "GearUp" tab
     When I send "How many total members are in the program?"
@@ -16,6 +17,7 @@ Feature: Copy Button on Agent Responses
     # The copy button is typically a clipboard/copy icon that appears
     # on hover or is always visible near the agent message
 
+  @id:06-copy-button-copies-text
   Scenario: Click copy button copies response text
     Given there is an agent response with a copy button visible
     When I click the copy button on the agent response
@@ -25,6 +27,7 @@ Feature: Copy Button on Agent Responses
     When I click into the chat input and press Ctrl+V (or Cmd+V)
     Then the pasted content should match the agent's response text
 
+  @id:06-copy-button-tables
   Scenario: Copy button works on responses with tables
     Given I am on the "PartsPro" tab
     When I send "Show me top 5 product categories by revenue"
@@ -33,6 +36,7 @@ Feature: Copy Button on Agent Responses
     Then the copied content should include the table data
     # When pasted, it should be readable text (not HTML tags)
 
+  @id:06-copy-button-per-response
   Scenario: Each response has its own copy button
     Given I am on any agent tab
     When I send two questions and receive two responses
@@ -40,6 +44,7 @@ Feature: Copy Button on Agent Responses
     And clicking copy on the second response should only copy that response
     # Not the entire conversation
 
+  @id:06-copy-button-no-user-bubble
   Scenario: Copy button does not copy user messages
     Given there is a conversation with user and agent messages
     Then only the agent response bubbles should have copy buttons

@@ -8,6 +8,7 @@ Feature: Chat Flow — Send and Receive Messages
     Given I open my browser to http://localhost:5000
     And I wait for the page to fully load
 
+  @id:03-chat-flow-send-gearup
   Scenario: Send a simple question to GearUp (Loyalty agent)
     Given I click the "GearUp" tab
     When I click into the text input at the bottom
@@ -19,6 +20,7 @@ Feature: Chat Flow — Send and Receive Messages
     And the response should contain text (not be empty)
     And the response should mention numbers or member-related information
 
+  @id:03-chat-flow-enter-key
   Scenario: Send a question using Enter key
     Given I am on the "Pit Crew" tab
     When I click into the text input
@@ -28,12 +30,14 @@ Feature: Chat Flow — Send and Receive Messages
     And a user bubble with my question appears in the chat
     And within 30 seconds, an agent response appears
 
+  @id:03-chat-flow-input-clears
   Scenario: Input clears after sending
     Given I am on any agent tab
     When I type "test question" in the input and send it
     Then the input field should be empty after sending
     And the input should remain focused and ready for another question
 
+  @id:03-chat-flow-empty-guard
   Scenario: Cannot send empty message
     Given I am on any agent tab
     And the input field is empty
@@ -41,6 +45,7 @@ Feature: Chat Flow — Send and Receive Messages
     Then no message should be sent
     And no new bubbles should appear in the chat area
 
+  @id:03-chat-flow-formatted-response
   Scenario: Agent response includes formatted content
     Given I am on the "PartsPro" tab
     When I send "Show me the top 10 selling products this month"
@@ -49,6 +54,7 @@ Feature: Chat Flow — Send and Receive Messages
     # Responses may include tables, bullet lists, bold text, or numbered items
     And the response should not be raw markdown (it should be rendered HTML)
 
+  @id:03-chat-flow-conversation-thread
   Scenario: Multiple messages create a conversation thread
     Given I am on the "GearUp" tab
     When I send "How many members are in Gold tier?"
@@ -59,6 +65,7 @@ Feature: Chat Flow — Send and Receive Messages
     And they should be in chronological order (top to bottom)
     And the second response should understand the context of the first question
 
+  @id:03-chat-flow-new-chat-clears
   Scenario: New Chat button clears conversation
     Given I am on any tab with an existing conversation (at least one exchange)
     When I click the New Chat button (+ icon in the header)
@@ -66,6 +73,7 @@ Feature: Chat Flow — Send and Receive Messages
     And only the welcome message should remain
     And the input should be empty and ready
 
+  @id:03-chat-flow-long-response
   Scenario: Long response renders without breaking layout
     Given I am on the "Crew Chief" tab
     When I send "Give me a cross-department summary of Q4 performance"
