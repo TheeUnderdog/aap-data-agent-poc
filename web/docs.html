@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentation — AAP Data Agent POC</title>
+    <title>Documentation — AAP Data Agent Prototype</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -325,6 +325,23 @@
             max-width: 100%;
             border-radius: 6px;
         }
+        figure.screenshot {
+            margin: 16px 0;
+            text-align: center;
+        }
+        figure.screenshot img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        figure.screenshot figcaption {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+        }
 
         /* ── Talking-point callout ── */
         .callout {
@@ -441,7 +458,7 @@
         <img src="img/aap-logo.svg" alt="AAP" class="top-bar-logo">
         <span class="top-bar-title">DOCUMENTATION</span>
         <span class="top-bar-divider"></span>
-        <span class="top-bar-subtitle">AAP Data Agent POC</span>
+        <span class="top-bar-subtitle">AAP Data Agent Prototype</span>
     </div>
     <div class="top-bar-right">
         <a href="index.html">
@@ -491,7 +508,7 @@
 <div class="page-wrapper">
 <main class="main-content">
 
-<h1>AAP Data Agent <span class="highlight">POC</span></h1>
+<h1>AAP Data Agent <span class="highlight">Prototype</span></h1>
 <p class="doc-subtitle">Advance Auto Parts — Rewards & Loyalty Intelligence Platform</p>
 
 <div style="margin: 32px 0 40px; text-align: center;">
@@ -529,20 +546,20 @@
 <ul>
     <li><strong>Ask your data, don't query it.</strong> Business users get answers in plain English. No SQL, no analyst queue, no report request.</li>
     <li><strong>Six experts, one interface.</strong> Each agent is specialized — loyalty, marketing, merchandising, stores, customer service — and knows the domain vocabulary. The orchestrator connects them.</li>
-    <li><strong>Data stays in Fabric.</strong> No data leaves the Microsoft environment. Fabric Data Agents run inside the workspace, querying the Lakehouse directly.</li>
-    <li><strong>Swap the data, keep the app.</strong> Built against placeholder data. When the real Snowflake connection is made, the semantic views are remapped. The web app, agents, and user experience don't change.</li>
-    <li><strong>Built in weeks, not months.</strong> The full POC — data model, five agents, branded web app — was built in under a month using Fabric's native capabilities.</li>
-    <li><strong>Works alongside Power BI.</strong> The semantic model serves both the Data Agents and traditional Power BI reports — conversational analytics <em>and</em> dashboards from the same data.</li>
+    <li><strong>Data remains in the system of record.</strong> Fabric Mirroring provides a read-only replica in the Lakehouse without requiring data extraction or migration. Fabric Data Agents query the mirrored Lakehouse directly — nothing leaves the Microsoft environment.</li>
+    <li><strong>Componentized and schema-abstracted.</strong> The application is built against a semantic view layer that decouples the web app and agents from the underlying data model. As the data schema evolves, only the view definitions are updated — the experience layer remains unchanged.</li>
+    <li><strong>Built in days, not months.</strong> This prototype — data model, five specialized agents, branded web app — was built in three days of part-time effort using Fabric's native capabilities.</li>
+    <li><strong>Works alongside Power BI.</strong> The semantic model serves both the Data Agents and traditional Power BI reports — conversational analytics <em>and</em> dashboards from the same data and effort.</li>
 </ul>
 
 <h2 id="production-path">Production Path</h2>
 
-<p>Steps to move from POC to production:</p>
+<p>Steps to move from prototype to production:</p>
 
 <table>
     <tr><th>Step</th><th>Who</th><th>What</th></tr>
-    <tr><td>1. Snowflake access</td><td>IT</td><td>Grant Fabric mirroring access to the loyalty/rewards Snowflake databases</td></tr>
-    <tr><td>2. Schema mapping</td><td>Joint</td><td>Map real Snowflake tables to the semantic views (7 migration prompts ready)</td></tr>
+    <tr><td>1. Data access</td><td>IT</td><td>Grant Fabric mirroring access to loyalty/rewards Postgres or Snowflake data</td></tr>
+    <tr><td>2. Schema mapping</td><td>Joint</td><td>Map real data tables to the semantic views (7 migration prompts ready)</td></tr>
     <tr><td>3. Fabric workspace</td><td>Microsoft</td><td>Deploy workspace in production tenant, configure mirroring, load data</td></tr>
     <tr><td>4. Agent tuning</td><td>Microsoft</td><td>Update agent instructions for real column names, business rules, edge cases</td></tr>
     <tr><td>5. UAT</td><td>Marketing</td><td>Test with real questions from the marketing team, iterate on agent accuracy</td></tr>
@@ -752,39 +769,39 @@
 
 <h2 id="screenshots">Screenshots</h2>
 
-<div class="screenshot-placeholder">
-    <p>📷 <strong>Main chat interface</strong> — Agent tabs, welcome screen with sample questions, chat input with dice and lightbulb icons</p>
-    <p><em>Screenshot will be captured by browser automation agent</em></p>
-</div>
+<figure class="screenshot">
+    <img src="docs-screenshots/01-main-chat-interface.png" alt="Main chat interface">
+    <figcaption>📷 <strong>Main chat interface</strong> — Agent tabs, welcome screen with sample questions, chat input with dice and lightbulb icons</figcaption>
+</figure>
 
-<div class="screenshot-placeholder">
-    <p>📷 <strong>Agent response with data table</strong> — Markdown-rendered response showing a results table with formatted data</p>
-    <p><em>Screenshot will be captured by browser automation agent</em></p>
-</div>
+<figure class="screenshot">
+    <img src="docs-screenshots/02-data-table.png" alt="Agent response with data table">
+    <figcaption>📷 <strong>Agent response with data table</strong> — Markdown-rendered response showing a results table with formatted data</figcaption>
+</figure>
 
-<div class="screenshot-placeholder">
-    <p>📷 <strong>Reasoning panel expanded</strong> — Chain-of-thought steps, per-step timing, token usage per question</p>
-    <p><em>Screenshot will be captured by browser automation agent</em></p>
-</div>
+<figure class="screenshot">
+    <img src="docs-screenshots/03-reasoning-panel.png" alt="Reasoning panel expanded">
+    <figcaption>📷 <strong>Reasoning panel expanded</strong> — Chain-of-thought steps, per-step timing, token usage per question</figcaption>
+</figure>
 
-<div class="screenshot-placeholder">
-    <p>📷 <strong>Crew Chief multi-agent response</strong> — Cross-functional question routed to multiple specialists with synthesized answer</p>
-    <p><em>Screenshot will be captured by browser automation agent</em></p>
-</div>
+<figure class="screenshot">
+    <img src="docs-screenshots/04-crew-chief-multi-agent.png" alt="Crew Chief multi-agent response">
+    <figcaption>📷 <strong>Crew Chief multi-agent response</strong> — Cross-functional question routed to multiple specialists with synthesized answer</figcaption>
+</figure>
 
-<div class="screenshot-placeholder">
-    <p>📷 <strong>Mystery dice and lightbulb suggestions</strong> — Dice spinning animation, lightbulb slide-out panel with sample questions</p>
-    <p><em>Screenshot will be captured by browser automation agent</em></p>
-</div>
+<figure class="screenshot">
+    <img src="docs-screenshots/05-suggestions-panel.png" alt="Mystery dice and lightbulb suggestions">
+    <figcaption>📷 <strong>Mystery dice and lightbulb suggestions</strong> — Dice spinning animation, lightbulb slide-out panel with sample questions</figcaption>
+</figure>
 
-<div class="screenshot-placeholder">
-    <p>📷 <strong>Mobile responsive view</strong> — Hamburger menu, sidebar agent selection, compact layout</p>
-    <p><em>Screenshot will be captured by browser automation agent</em></p>
-</div>
+<figure class="screenshot">
+    <img src="docs-screenshots/06-mobile-responsive.png" alt="Mobile responsive view">
+    <figcaption>📷 <strong>Mobile responsive view</strong> — Hamburger menu, sidebar agent selection, compact layout</figcaption>
+</figure>
 
 <h2 id="synthetic-data">Synthetic Data</h2>
 
-<p>The POC runs on generated data that mirrors the Advance Auto Parts loyalty program schema. The data is statistically realistic — not random — with distributions tuned to reflect a real auto parts retail business.</p>
+<p>The prototype runs on generated data that mirrors the Advance Auto Parts loyalty program schema. The data is statistically realistic — not random — with distributions tuned to reflect a real auto parts retail business.</p>
 
 <table>
     <tr><th>Dataset</th><th>Volume</th><th>Key Characteristics</th></tr>
@@ -916,7 +933,7 @@
 <h3>✅ Complete</h3>
 <table>
     <tr><th>Component</th><th>Status</th></tr>
-    <tr><td>Fabric workspace (<code>AAP-RewardsLoyalty-POC</code>)</td><td>Provisioned</td></tr>
+    <tr><td>Fabric workspace (<code>AAP-RewardsLoyalty-Prototype</code>)</td><td>Provisioned</td></tr>
     <tr><td>Lakehouse (<code>RewardsLoyaltyData</code>) with SQL endpoint</td><td>Created, data loaded</td></tr>
     <tr><td>Sample data notebook — 10 tables, ~2.8M rows</td><td>Loaded and verified</td></tr>
     <tr><td>Data sanity check notebook — 4-block validation</td><td>Passing</td></tr>
@@ -1038,7 +1055,7 @@ sequenceDiagram
 
 <!-- ════════════════════════ FOOTER ════════════════════════ -->
 <footer class="page-footer">
-    <span>AAP Data Agent POC — July 2025</span>
+    <span>AAP Data Agent Prototype — July 2025</span>
     <a href="index.html">← Back to Advance Insights</a>
 </footer>
 
