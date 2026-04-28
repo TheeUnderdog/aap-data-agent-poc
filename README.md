@@ -25,7 +25,11 @@ Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
 ```
 web/               Vanilla JS SPA + Flask backend — chat UI with 6 agent tabs
   server.py        Flask app (API proxy + Entra ID auth + SSE streaming)
-  docs.html        Interactive documentation page
+  js/auth.js       MSAL.js 2.x wrapper (login, token acquisition, refresh)
+  js/app.js        SPA controller (routing, UI state, agent switching)
+  js/agent-client.js  Fabric Data Agent API client (SSE streaming)
+  config.js        App configuration (auth mode, workspace ID, agent GUIDs)
+  docs.html        Interactive documentation page (Mermaid diagrams)
 agents/            5 Fabric Data Agent configs + instruction files
 reports/           Power BI PBIR report definition (LoyaltyOverview)
 scripts/           Semantic model definition, sample data generator
@@ -84,27 +88,52 @@ python web/server.py
 
 No Azure deployment required. The Flask server serves both the static frontend and the API proxy. Authentication uses your `az login` credentials automatically.
 
-### Auth (Local Development)
+## Authentication
 
-The Flask server authenticates to the Fabric Data Agent API using `ChainedTokenCredential` with this fallback chain:
+All Fabric API access uses the **user's own credential** — the Data Agent executes queries under the authenticated user's identity (OBO pattern). Two auth paths are supported:
 
-1. `ManagedIdentityCredential` — for future Azure Container Apps deployment
+### Option 1: Direct Credential (Local Dev)
+
+The user runs `az login` before starting the server. The server's `ChainedTokenCredential` resolves the user's identity and acquires Fabric tokens on their behalf.
+
+```
+User → az login → Server (AzureCliCredential) → Fabric Data Agent
+```
+
+**Credential chain fallback order:**
+1. `ManagedIdentityCredential` — for Azure-hosted deployment
 2. `AzureCliCredential` — **primary for local dev** (uses your `az login` session)
 3. `DeviceCodeCredential` — headless/Docker fallback
 
-No MSAL, no login screen, no app registration needed for local development. Just `az login` and go.
+No app registration, no login screen, no MSAL. Just `az login` and go.
 
-### Future: Production Deployment
+### Option 2: MSAL Redirect (Production)
 
-> **Not yet implemented.** The sections below describe the planned Azure Container Apps deployment.
+The app handles login via an Entra ID app registration. The browser redirects to Entra ID, MSAL acquires a Fabric-scoped access token, and the server forwards it to Fabric — true pass-through.
 
-The app is designed to deploy as an **Azure Container App** — a single container running Flask + gunicorn that serves both static files and the API proxy, secured by Entra ID (MSAL).
+```
+User → Browser Sign-In → Entra ID → MSAL token → Server → Fabric Data Agent
+```
 
-See **[web/SETUP.md](web/SETUP.md)** for the full deployment guide including:
-- Container App setup (§3)
-- Entra ID app registration / MSAL auth (§4)
-- Fabric workspace access via service principal (§5)
-- CI/CD via GitHub Actions (§6)
+Requires an Entra ID app registration (`clientId` + `tenantId` in `config.js`). The MSAL.js 2.x wrapper in `web/js/auth.js` is fully built — fill in the config values to enable.
+
+### Configuration
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `FABRIC_WORKSPACE_ID` | Target Fabric workspace | Both modes |
+| `ENTRA_TENANT_ID` | Entra tenant ID | MSAL mode only |
+| `ENTRA_CLIENT_ID` | App registration client ID | MSAL mode only |
+
+Toggle between modes via `useProxy` in `web/config.js` — `true` uses the server credential chain (Option 1), `false` enables MSAL browser auth (Option 2).
+
+### Security Properties
+
+- **User identity end-to-end** — user's credential reaches Fabric in both modes. No shared service accounts.
+- **No stored secrets** — no client secrets, API keys, or service principal credentials for data access.
+- **Short-lived tokens** — access tokens expire in ~1 hour with automatic renewal.
+- **Fabric-managed permissions** — access control enforced by Fabric based on user identity.
+- **HTTPS enforced** — Azure Static Web Apps provides built-in HTTPS in production.
 
 ## Fabric Workspace Setup
 
@@ -129,16 +158,16 @@ See **[web/SETUP.md](web/SETUP.md)** for the full deployment guide including:
 
 ## Tech Stack
 
-- **Frontend:** Vanilla HTML/CSS/JS (no framework — POC simplicity)
-- **Backend:** Flask (Python) — `web/server.py`
-- **Hosting:** Local Flask dev server (Azure Container Apps planned for production)
-- **Auth:** Azure Entra ID via `ChainedTokenCredential` (`az login` for local dev)
-- **Data Platform:** Microsoft Fabric (Lakehouse, Semantic Model, Data Agent)
-- **Source DB:** Azure PostgreSQL (mirrored via Fabric)
-
-## Security
-
-The Flask server authenticates to the Fabric Data Agent API using `ChainedTokenCredential` (ManagedIdentity → AzureCli → DeviceCode). In local development, your `az login` session provides the token. For production deployment, see [Security in SETUP.md](web/SETUP.md#security).
+| Layer | Technology | Details |
+|-------|-----------|---------|
+| **Frontend** | Vanilla HTML/CSS/JS | Single-page app — no build step, no framework. MSAL.js 2.x for browser auth. Mermaid.js for diagrams. |
+| **Backend** | Flask (Python) | `web/server.py` — API proxy, SSE streaming, static file server |
+| **Auth** | Azure Entra ID | `ChainedTokenCredential` (local) or MSAL redirect (production) |
+| **Hosting (local)** | Flask dev server | `python web/server.py` at localhost:5000 |
+| **Hosting (prod)** | Azure Static Web Apps | Built-in Entra ID auth integration, HTTPS, CDN |
+| **Data Platform** | Microsoft Fabric | Lakehouse (Direct Lake), Semantic Model, Data Agent API |
+| **Source DB** | Azure PostgreSQL | Mirrored to Fabric via Fabric Mirroring |
+| **AI Layer** | Fabric Data Agent | NL → DAX query generation, per-agent instruction tuning |
 
 ## License
 
