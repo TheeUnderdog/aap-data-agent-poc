@@ -31,7 +31,6 @@ web/               Vanilla JS SPA + Flask backend — chat UI with 6 agent tabs
   config.js        App configuration (auth mode, workspace ID, agent GUIDs)
   docs.html        Interactive documentation page (Mermaid diagrams)
 agents/            5 Fabric Data Agent configs + instruction files
-reports/           Power BI PBIR report definition (LoyaltyOverview)
 scripts/           Semantic model definition, sample data generator
 notebooks/         Fabric notebooks for data pipeline
 docs/              Architecture, schema, semantic model docs
@@ -138,11 +137,10 @@ Toggle between modes via `useProxy` in `web/config.js` — `true` uses the serve
 ## Fabric Workspace Setup
 
 1. **Create workspace** in [Fabric Portal](https://msit.powerbi.com)
-2. **Connect git** to this repo for git sync (semantic model, reports)
+2. **Connect git** to this repo for git sync (semantic model)
 3. **Run sample data generator:** `python scripts/generate_sample_data.py`
 4. **Load data** via notebooks in `notebooks/`
 5. **Configure Data Agents** using configs in `agents/*/config.json`
-6. **Deploy report** — `reports/LoyaltyOverview.Report/` syncs via git integration
 
 ## Key Docs
 
@@ -154,7 +152,6 @@ Toggle between modes via `useProxy` in `web/config.js` — `true` uses the serve
 | [Semantic Model](docs/semantic-model-architecture.md) | Model review, DAX measures, AI readiness |
 | [Web Setup](web/SETUP.md) | Deployment guide (local + future Container Apps) |
 | [CUA Tests](tests/cua/README.md) | Visual test suite — 42 Gherkin scenarios |
-| [Report README](reports/LoyaltyOverview.Report/README.md) | PBIR report + verified answer mapping |
 
 ## Tech Stack
 
