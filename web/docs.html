@@ -945,15 +945,18 @@
     <tr><td>Python proxy server — auth + SSE streaming</td><td>Working</td></tr>
 </table>
 
-<h3>🔧 Remaining</h3>
+<h3>🔧 Remaining — PostgreSQL Mirroring & Schema Fitting</h3>
 <table>
     <tr><th>Task</th><th>Effort</th><th>Blocked By</th></tr>
-    <tr><td>Import agent instructions into Fabric portal</td><td>~30 min (manual portal work)</td><td>Nothing</td></tr>
-    <tr><td>Entra ID app registration</td><td>~15 min</td><td>Tenant admin access</td></tr>
-    <tr><td>Azure Static Web Apps deployment</td><td>~1 hour</td><td>App registration</td></tr>
-    <tr><td>Snowflake mirroring setup</td><td>~2 hours</td><td>AAP Snowflake access</td></tr>
-    <tr><td>Schema migration (view remapping)</td><td>~1 day</td><td>Real schema from AAP</td></tr>
-    <tr><td>Agent instruction tuning for real data</td><td>~1 day</td><td>Real data loaded</td></tr>
+    <tr><td>Enable logical replication on PostgreSQL (<code>wal_level = logical</code>)</td><td>~15 min</td><td>DBA access to source server</td></tr>
+    <tr><td>Create Fabric Mirrored Database (PostgreSQL connector)</td><td>~30 min</td><td>PostgreSQL connection credentials + network access</td></tr>
+    <tr><td>Map real tables to semantic contract views</td><td>~4 hours</td><td>Full schema DDL from AAP</td></tr>
+    <tr><td>Rewrite <code>create-semantic-views.sql</code> for real column names</td><td>~1 day</td><td>Column mapping complete</td></tr>
+    <tr><td>Update semantic model (TMDL) for new table structure</td><td>~4 hours</td><td>Views deployed and verified</td></tr>
+    <tr><td>Refresh linguistic schema (synonyms for new columns)</td><td>~2 hours</td><td>Model updated</td></tr>
+    <tr><td>Tune agent instructions for real data patterns</td><td>~1 day</td><td>Real data loaded and queryable</td></tr>
+    <tr><td>Import agent instructions into Fabric portal</td><td>~30 min</td><td>Instructions finalized</td></tr>
+    <tr><td>Entra ID app registration (production auth)</td><td>~15 min</td><td>Tenant admin access</td></tr>
     <tr><td>UAT with AAP marketing team</td><td>~1 week</td><td>Deployed with real data</td></tr>
 </table>
 
@@ -974,10 +977,11 @@
 </table>
 
 <h3>Migration Path</h3>
-<p>When the real Snowflake schema arrives, the migration follows this sequence:</p>
+<p>When the real PostgreSQL schema is mirrored into Fabric, the migration follows this sequence:</p>
 <ol>
-    <li><strong>Map columns</strong> — Identify which Snowflake tables/columns correspond to each semantic view</li>
-    <li><strong>Rewrite views</strong> — Update the 9 <code>v_*</code> view definitions to point at real tables</li>
+    <li><strong>Mirror database</strong> — Create a Fabric Mirrored Database pointing at the customer's Azure PostgreSQL instance</li>
+    <li><strong>Map columns</strong> — Identify which mirrored tables/columns correspond to each semantic view</li>
+    <li><strong>Rewrite views</strong> — Update the <code>v_*</code> view definitions to point at real tables</li>
     <li><strong>Update semantic model</strong> — Adjust table definitions, relationships, DAX measures for new column names</li>
     <li><strong>Refresh linguistic schema</strong> — Update synonyms for renamed tables/columns</li>
     <li><strong>Tune agent instructions</strong> — Update domain-specific query patterns where they reference column names</li>
