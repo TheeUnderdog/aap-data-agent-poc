@@ -991,63 +991,71 @@
 <h2 id="identity-security">Identity &amp; Security</h2>
 
 <h3>Overview</h3>
-<p>The application handles two distinct authentication concerns: <strong>user identity</strong> (who is using the app) and <strong>Fabric API access</strong> (how requests reach Microsoft Fabric). User login flows through Entra ID using a standard authorization-code grant to establish identity. Fabric API access is <strong>pass-through</strong> — the user's own access token is forwarded to Fabric, so Data Agent queries execute under the user's identity with Fabric-managed permissions. All resources (app registration, Fabric workspace, users) live in a single Entra tenant.</p>
+<p>All Fabric API access uses the <strong>user's own credential</strong> — regardless of how that credential is obtained. The system supports two authentication paths, both resulting in the same on-behalf-of (OBO) behavior where the Data Agent executes queries under the user's identity:</p>
+<ol>
+    <li><strong>Direct credential (local development)</strong> — The user authenticates directly via <code>az login</code>. The server uses that credential to call Fabric on behalf of the user. No app registration required.</li>
+    <li><strong>MSAL redirect (production)</strong> — The app handles login via an Entra ID app registration. The browser redirects to Entra ID, acquires a user token, and the server forwards it to Fabric. Requires a registered <code>clientId</code>.</li>
+</ol>
+<p>In both cases, Fabric enforces permissions based on the authenticated user's identity. No service principal secrets are needed for data access. All resources live in a single Entra tenant.</p>
 
-<h3>User Login Flow</h3>
-<p>The browser redirects to Entra ID, the user authenticates, and the API validates the auth code and creates a server-side session. The login establishes identity only — no Fabric tokens are involved.</p>
+<h3>Option 1: Direct Credential (Local Dev)</h3>
+<p>The user runs <code>az login</code> before starting the server. The server's credential chain resolves the user's identity and acquires Fabric tokens on their behalf. No browser login flow, no app registration.</p>
 <div class="mermaid">
 sequenceDiagram
     participant U as User
-    participant B as Browser
-    participant API as API Server
-    participant E as Entra ID
-
-    U->>B: Click "Sign In"
-    B->>API: GET /auth/login
-    API->>B: 302 Redirect to Entra ID
-    B->>E: Authorization request
-    E->>U: Login prompt (MFA if configured)
-    U->>E: Credentials
-    E->>B: 302 Redirect with auth code
-    B->>API: GET /auth/callback?code=...
-    API->>E: Exchange code for tokens
-    E->>API: ID token + refresh token
-    API->>API: Validate claims, create session
-    API->>B: 302 Redirect to app (set session cookie)
-</div>
-
-<h3>Fabric API Authentication</h3>
-<p>Fabric API authentication is <strong>pass-through</strong>. When a chat request arrives, the API forwards the user's own access token to Fabric — no separate service principal or client_credentials grant is needed. The user's identity flows end-to-end from browser to Data Agent, and Fabric enforces permissions based on that identity.</p>
-<div class="mermaid">
-sequenceDiagram
-    participant B as Browser
+    participant CLI as az login
     participant API as API Server
     participant F as Fabric Data Agent
 
-    B->>API: POST /api/chat (session cookie + user token)
-    API->>API: Validate session
-    API->>F: Query with user's access token
+    U->>CLI: az login (one-time)
+    CLI->>CLI: Cache user credential
+    U->>API: POST /api/chat
+    API->>API: Resolve credential (AzureCliCredential)
+    API->>F: Query with user's token
+    F->>F: Fabric enforces user permissions
+    F->>API: Response data
+    API->>U: JSON response
+</div>
+
+<h3>Option 2: MSAL Redirect (Production)</h3>
+<p>The app registration handles the login experience. The browser redirects to Entra ID, the user authenticates, and MSAL acquires a Fabric-scoped access token. The server forwards that token to Fabric — true pass-through.</p>
+<div class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant B as Browser (MSAL)
+    participant E as Entra ID
+    participant API as API Server
+    participant F as Fabric Data Agent
+
+    U->>B: Click "Sign In"
+    B->>E: Redirect to Entra ID login
+    E->>U: Login prompt (MFA if configured)
+    U->>E: Credentials
+    E->>B: Access token (Fabric scope)
+    B->>API: POST /api/chat + Bearer token
+    API->>F: Forward user's token
     F->>F: Fabric enforces user permissions
     F->>API: Response data
     API->>B: JSON response
 </div>
 
 <h3>Configuration</h3>
-<p>The following environment variables control authentication:</p>
+<p>Configuration varies by auth mode:</p>
 <table>
-    <tr><th>Variable</th><th>Purpose</th><th>Example</th></tr>
-    <tr><td><code>ENTRA_CLIENT_ID</code></td><td>App registration client ID</td><td><code>176f52b8-...</code></td></tr>
-    <tr><td><code>ENTRA_TENANT_ID</code></td><td>Entra tenant (login + Fabric)</td><td><code>16b3c013-...</code></td></tr>
-    <tr><td><code>FABRIC_WORKSPACE_ID</code></td><td>Target Fabric workspace</td><td><code>e7f4acfe-...</code></td></tr>
+    <tr><th>Variable</th><th>Purpose</th><th>Required</th></tr>
+    <tr><td><code>FABRIC_WORKSPACE_ID</code></td><td>Target Fabric workspace</td><td>Both modes</td></tr>
+    <tr><td><code>ENTRA_TENANT_ID</code></td><td>Entra tenant ID</td><td>MSAL mode</td></tr>
+    <tr><td><code>ENTRA_CLIENT_ID</code></td><td>App registration client ID</td><td>MSAL mode</td></tr>
 </table>
+<p>For local development with <code>az login</code>, only <code>FABRIC_WORKSPACE_ID</code> is required. The credential chain handles the rest.</p>
 
 <h3>Security Properties</h3>
 <ul>
-    <li><strong>Short-lived tokens</strong> — All access tokens expire in ~1 hour; MSAL handles caching and silent renewal automatically.</li>
-    <li><strong>Secure session cookies</strong> — HttpOnly, Secure, SameSite=Lax. No token data is accessible to frontend JavaScript.</li>
-    <li><strong>Pass-through identity</strong> — The user's own token authenticates to Fabric. No service principal secrets are needed for data access.</li>
-    <li><strong>HTTPS enforced</strong> — Azure Container Apps enforces HTTPS in production via ingress configuration.</li>
-    <li><strong>Fabric-managed permissions</strong> — Access control is enforced by Fabric based on the user's identity — no custom RBAC layer needed.</li>
+    <li><strong>User identity end-to-end</strong> — The user's own credential reaches Fabric in both modes. Queries execute under their identity, not a shared service account.</li>
+    <li><strong>No stored secrets</strong> — No client secrets, API keys, or service principal credentials are needed for data access. Authentication is credential-based (CLI) or token-based (MSAL).</li>
+    <li><strong>Short-lived tokens</strong> — Access tokens expire in ~1 hour. MSAL handles silent renewal; the CLI credential chain refreshes automatically.</li>
+    <li><strong>Fabric-managed permissions</strong> — Access control is enforced by Fabric based on the user's identity. No custom RBAC layer required.</li>
+    <li><strong>HTTPS enforced</strong> — Azure Static Web Apps provides built-in HTTPS with automatic certificate management in production.</li>
 </ul>
 
 <!-- ════════════════════════ FOOTER ════════════════════════ -->
