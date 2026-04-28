@@ -1,0 +1,119 @@
+[
+  {
+    "uri": "features/01-page-load.feature",
+    "keyword": "Feature",
+    "name": "Page Load and Basic Rendering",
+    "tags": [
+      { "name": "@smoke", "line": 1 },
+      { "name": "@ui", "line": 1 }
+    ],
+    "elements": [
+      {
+        "id": "01-page-load-title",
+        "keyword": "Scenario",
+        "name": "Page title shows the app name",
+        "type": "scenario",
+        "line": 14,
+        "tags": [{ "name": "@id:01-page-load-title", "line": 13 }],
+        "steps": [
+          { "keyword": "Given ", "name": "I open my browser to http://localhost:5000", "line": 8, "result": { "status": "passed", "duration": 1200000000 } },
+          { "keyword": "And ", "name": "I wait for the page to fully load (network activity stops)", "line": 9, "result": { "status": "passed", "duration": 700000000 } },
+          { "keyword": "Then ", "name": "the browser tab title should contain \"Advance Insights\"", "line": 15, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-title.png" }] }
+        ]
+      },
+      {
+        "id": "01-page-load-header-branding",
+        "keyword": "Scenario",
+        "name": "Header bar displays AAP branding",
+        "type": "scenario",
+        "line": 18,
+        "tags": [{ "name": "@id:01-page-load-header-branding", "line": 17 }],
+        "steps": [
+          { "keyword": "Then ", "name": "I should see a header bar at the top of the page", "line": 19, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the header contains the AAP logo (red/black automotive logo on the left)", "line": 20, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the header shows the text \"ADVANCE\" in bold", "line": 21, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the header shows the text \"INSIGHTS\" next to it", "line": 22, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the header shows \"Rewards & Loyalty Intelligence\" as a tagline", "line": 23, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-header-branding.png" }] }
+        ]
+      },
+      {
+        "id": "01-page-load-tabs-visible",
+        "keyword": "Scenario",
+        "name": "All 6 agent tabs are visible in the left sidebar",
+        "type": "scenario",
+        "line": 26,
+        "tags": [{ "name": "@id:01-page-load-tabs-visible", "line": 25 }],
+        "steps": [
+          { "keyword": "Then ", "name": "I should see a vertical tab strip on the left side", "line": 27, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the following tabs are listed (top to bottom)", "line": 28, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "\"Crew Chief\" is the currently selected tab (highlighted or active state)", "line": 36, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-tabs-visible.png" }] }
+        ]
+      },
+      {
+        "id": "01-page-load-input-ready",
+        "keyword": "Scenario",
+        "name": "Chat input area is ready for typing",
+        "type": "scenario",
+        "line": 39,
+        "tags": [{ "name": "@id:01-page-load-input-ready", "line": 38 }],
+        "steps": [
+          { "keyword": "Then ", "name": "I should see a text input area at the bottom of the page", "line": 40, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the input has placeholder text \"Ask a question...\"", "line": 41, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the input is not disabled (I can click into it)", "line": 42, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "there is a send button (arrow icon) to the right of the input", "line": 43, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-input-ready.png" }] }
+        ]
+      },
+      {
+        "id": "01-page-load-header-buttons",
+        "keyword": "Scenario",
+        "name": "Header action buttons are present",
+        "type": "scenario",
+        "line": 46,
+        "tags": [{ "name": "@id:01-page-load-header-buttons", "line": 45 }],
+        "steps": [
+          { "keyword": "Then ", "name": "in the top-right area of the header I should see New Chat, Show Reasoning, Documentation buttons", "line": 47, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "I should see a user name or \"Connected\" text", "line": 52, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "I should see a \"Sign out\" text button", "line": 53, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-header-buttons.png" }] }
+        ]
+      },
+      {
+        "id": "01-page-load-suggestions-button",
+        "keyword": "Scenario",
+        "name": "Suggestions button is available",
+        "type": "scenario",
+        "line": 56,
+        "tags": [{ "name": "@id:01-page-load-suggestions-button", "line": 55 }],
+        "steps": [
+          { "keyword": "Then ", "name": "near the input area I should see a lightbulb icon button", "line": 57, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "this button has the label or title \"Suggestions\"", "line": 58, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-suggestions-button.png" }] }
+        ]
+      },
+      {
+        "id": "01-page-load-welcome-message",
+        "keyword": "Scenario",
+        "name": "Welcome message is displayed for default agent",
+        "type": "scenario",
+        "line": 61,
+        "tags": [{ "name": "@id:01-page-load-welcome-message", "line": 60 }],
+        "steps": [
+          { "keyword": "Then ", "name": "in the chat area I should see a welcome message", "line": 62, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the welcome message says something like \"I coordinate the full team\"", "line": 63, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-welcome-message.png" }] }
+        ]
+      },
+      {
+        "id": "01-page-load-no-errors",
+        "keyword": "Scenario",
+        "name": "No error messages or broken elements",
+        "type": "scenario",
+        "line": 67,
+        "tags": [{ "name": "@id:01-page-load-no-errors", "line": 66 }],
+        "steps": [
+          { "keyword": "Then ", "name": "I should NOT see any JavaScript error dialogs", "line": 68, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "I should NOT see any \"Setup Required\" message", "line": 69, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "I should NOT see any broken image icons (missing images)", "line": 70, "result": { "status": "passed", "duration": 200000000 } },
+          { "keyword": "And ", "name": "the page should NOT show a login screen (since proxy mode is active)", "line": 71, "result": { "status": "passed", "duration": 200000000 }, "embeddings": [{ "mime_type": "image/png", "data": "evidence/2026-04-27T20-54-00Z/01-page-load-no-errors.png" }] }
+        ]
+      }
+    ]
+  }
+]

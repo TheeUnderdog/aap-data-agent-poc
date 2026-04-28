@@ -991,7 +991,7 @@
 <h2 id="identity-security">Identity &amp; Security</h2>
 
 <h3>Overview</h3>
-<p>The application handles two distinct authentication concerns: <strong>user identity</strong> (who is using the app) and <strong>Fabric API access</strong> (how the backend talks to Microsoft Fabric). User login flows through Entra ID using a standard authorization-code grant to establish identity. Fabric API access uses the OAuth 2.0 client_credentials grant — the service principal authenticates directly to Fabric in the same tenant. All resources (app registration, Fabric workspace, users) live in a single Entra tenant.</p>
+<p>The application handles two distinct authentication concerns: <strong>user identity</strong> (who is using the app) and <strong>Fabric API access</strong> (how requests reach Microsoft Fabric). User login flows through Entra ID using a standard authorization-code grant to establish identity. Fabric API access is <strong>pass-through</strong> — the user's own access token is forwarded to Fabric, so Data Agent queries execute under the user's identity with Fabric-managed permissions. All resources (app registration, Fabric workspace, users) live in a single Entra tenant.</p>
 
 <h3>User Login Flow</h3>
 <p>The browser redirects to Entra ID, the user authenticates, and the API validates the auth code and creates a server-side session. The login establishes identity only — no Fabric tokens are involved.</p>
@@ -1017,19 +1017,17 @@ sequenceDiagram
 </div>
 
 <h3>Fabric API Authentication</h3>
-<p>When a chat request arrives, the API authenticates to Fabric independently using the service principal's credentials via the client_credentials grant. The user's identity is established at login but is <em>not</em> forwarded to Fabric — all Data Agent queries execute under the SP's identity.</p>
+<p>Fabric API authentication is <strong>pass-through</strong>. When a chat request arrives, the API forwards the user's own access token to Fabric — no separate service principal or client_credentials grant is needed. The user's identity flows end-to-end from browser to Data Agent, and Fabric enforces permissions based on that identity.</p>
 <div class="mermaid">
 sequenceDiagram
     participant B as Browser
     participant API as API Server
-    participant E as Entra ID
     participant F as Fabric Data Agent
 
-    B->>API: POST /api/chat (session cookie)
+    B->>API: POST /api/chat (session cookie + user token)
     API->>API: Validate session
-    API->>E: client_credentials grant<br/>(SP client ID + secret,<br/>scope: Fabric API)
-    E->>API: Access token (SP identity)
-    API->>F: Query with SP token
+    API->>F: Query with user's access token
+    F->>F: Fabric enforces user permissions
     F->>API: Response data
     API->>B: JSON response
 </div>
@@ -1039,7 +1037,6 @@ sequenceDiagram
 <table>
     <tr><th>Variable</th><th>Purpose</th><th>Example</th></tr>
     <tr><td><code>ENTRA_CLIENT_ID</code></td><td>App registration client ID</td><td><code>176f52b8-...</code></td></tr>
-    <tr><td><code>ENTRA_CLIENT_SECRET</code></td><td>App registration client secret</td><td>(secret)</td></tr>
     <tr><td><code>ENTRA_TENANT_ID</code></td><td>Entra tenant (login + Fabric)</td><td><code>16b3c013-...</code></td></tr>
     <tr><td><code>FABRIC_WORKSPACE_ID</code></td><td>Target Fabric workspace</td><td><code>e7f4acfe-...</code></td></tr>
 </table>
@@ -1048,9 +1045,9 @@ sequenceDiagram
 <ul>
     <li><strong>Short-lived tokens</strong> — All access tokens expire in ~1 hour; MSAL handles caching and silent renewal automatically.</li>
     <li><strong>Secure session cookies</strong> — HttpOnly, Secure, SameSite=Lax. No token data is accessible to frontend JavaScript.</li>
-    <li><strong>No secrets in frontend</strong> — All authentication is server-side. The browser never sees client secrets or Fabric tokens.</li>
+    <li><strong>Pass-through identity</strong> — The user's own token authenticates to Fabric. No service principal secrets are needed for data access.</li>
     <li><strong>HTTPS enforced</strong> — Azure Container Apps enforces HTTPS in production via ingress configuration.</li>
-    <li><strong>Least-privilege SP</strong> — The service principal requires only Contributor role on the specific Fabric workspace (not tenant-wide permissions).</li>
+    <li><strong>Fabric-managed permissions</strong> — Access control is enforced by Fabric based on the user's identity — no custom RBAC layer needed.</li>
 </ul>
 
 <!-- ════════════════════════ FOOTER ════════════════════════ -->

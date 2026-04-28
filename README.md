@@ -23,10 +23,9 @@ Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
 ## What's Inside
 
 ```
-web/               Frontend + Flask backend — chat UI with 6 agent tabs
-  server.py        Flask app (API proxy + static files)
+web/               Vanilla JS SPA + Flask backend — chat UI with 6 agent tabs
+  server.py        Flask app (API proxy + Entra ID auth + SSE streaming)
   docs.html        Interactive documentation page
-api/               Azure Functions backend (legacy/reference only — not active)
 agents/            5 Fabric Data Agent configs + instruction files
 reports/           Power BI PBIR report definition (LoyaltyOverview)
 scripts/           Semantic model definition, sample data generator

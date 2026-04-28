@@ -1,0 +1,26 @@
+{
+  "run_id": "2026-04-27T20-54-00Z",
+  "started_at": "2026-04-27T20:54:00Z",
+  "finished_at": "2026-04-27T20:55:30Z",
+  "scope": "Re-run of feature 01 (Page Load and Basic Rendering) only, after CUA-PROMPT.md spec correction clarifying that desktop uses a horizontal tab strip below the header and mobile uses a hamburger + vertical sidebar.",
+  "env": {
+    "url": "http://localhost:5000",
+    "viewport": "1440x900",
+    "browser": "chromium"
+  },
+  "totals": {
+    "scenarios": 8,
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0
+  },
+  "headline": "8/8 passed. Tab-strip layout matches the corrected spec (horizontal below header at ≥1024px); previous layout-deviation observation is now resolved.",
+  "root_causes": [],
+  "failures": [],
+  "skipped": [],
+  "observations": [
+    "CUA-PROMPT.md now correctly describes desktop = horizontal tab strip below header, and mobile = hamburger menu + vertical sidebar. App behavior matches.",
+    "Scenario 01-page-load-tabs-visible is interpreted against the corrected CUA-PROMPT spec; the literal step text in the .feature file ('vertical tab strip on the left side') still uses the pre-correction wording. The scenario still passes because the visible state matches the corrected spec at desktop, but consider rewording the step to 'agent tab strip with all 6 agents visible' so the .feature file aligns with the prompt spec across viewport sizes.",
+    "Other features (02-06) were not re-run in this pass; their results from run 2026-04-27T18-41-00Z remain valid except for the same step-wording note on 02-agent-tabs.feature ('left sidebar')."
+  ]
+}

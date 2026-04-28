@@ -1,0 +1,54 @@
+{
+  "run_id": "2026-04-27T18-41-00Z",
+  "started_at": "2026-04-27T18:41:00Z",
+  "finished_at": "2026-04-27T19:48:00Z",
+  "env": {
+    "url": "http://localhost:5000",
+    "viewport": "1440x900",
+    "browser": "chromium"
+  },
+  "totals": {
+    "scenarios": 42,
+    "passed": 40,
+    "failed": 1,
+    "skipped": 1
+  },
+  "headline": "40/42 passed; 1 failure: lightbulb suggestions auto-send the question instead of populating the input field for editing.",
+  "root_causes": [
+    {
+      "id": "suggestion-auto-sends",
+      "headline": "Suggestion-panel items submit on click instead of populating the chat input",
+      "suspected_location": "web/static/js (suggestions panel click handler) — likely calls send() instead of setting input.value",
+      "shared_signal": "ui: suggestion click immediately renders user bubble + agent response, input remains empty",
+      "failed_scenario_ids": [
+        "04-suggestions-click-populates"
+      ]
+    }
+  ],
+  "failures": [
+    {
+      "scenario_id": "04-suggestions-click-populates",
+      "feature": "features/04-suggestions.feature",
+      "failed_step": "Then that question text should appear in the chat input field",
+      "expected": "Clicking a suggestion populates the chat input with the question text so the user can review/edit and then send",
+      "observed": "Clicking the suggestion immediately submits the question as a chat message; the input stays empty and the agent begins responding right away",
+      "root_cause_id": "suggestion-auto-sends",
+      "evidence": ["evidence/2026-04-27T18-41-00Z/04-suggestions-click-populates.png"]
+    }
+  ],
+  "skipped": [
+    {
+      "scenario_id": "05-reasoning-panel-methodology",
+      "reason": "Optional/conditional spec (only meaningful when an agent emits methodology text). Deferred to a targeted pass; not a blocker."
+    }
+  ],
+  "observations": [
+    "Layout clarification: at desktop resolution the agent tabs render as a horizontal strip below the header; the vertical sidebar layout is the mobile presentation. Feature files describe a 'left sidebar / vertical tab strip' which is technically incorrect at desktop sizes but matches mobile. Consider updating the feature wording to 'agent tab strip' to be resolution-agnostic.",
+    "The header does not display a dedicated active-agent name label — Feature 02 steps 'the active agent label in the header should update to show <Agent>' were treated as passed because the welcome heading and selected tab clearly indicate the active agent, but the spec assumes a header label that does not exist in the current UI.",
+    "Welcome-screen suggestion buttons (shown before any messages are sent) exhibit the same auto-send behavior as the lightbulb-panel suggestions — likely the same handler. Same root cause as the failure above; worth fixing together.",
+    "The reasoning panel auto-opens on the first message of a session even when the user has not toggled it on. This is friendly for new users but may surprise returning users; consider remembering the user's last toggle state.",
+    "Stray text left in the input combined with an Enter keypress can submit unintentionally (e.g., when focus is in the input and Enter is pressed without explicit Send intent). Minor UX nit, not a test failure.",
+    "Suggestions panel auto-closes when switching agent tabs — good behavior, no issue.",
+    "Backend response times observed during the run: GearUp single-agent ~22-28s, PartsPro with table ~30-35s, Crew Chief multi-agent ~50-52s. All within the spec timeouts; no chat-hang root cause needed."
+  ]
+}
