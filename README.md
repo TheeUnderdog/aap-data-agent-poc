@@ -24,11 +24,12 @@ Azure PostgreSQL  →  Fabric Mirroring  →  OneLake Lakehouse
 
 ```
 web/               Vanilla JS SPA + Flask backend — chat UI with 6 agent tabs
-  server.py        Flask app (API proxy + Entra ID auth + SSE streaming)
+  server.py        Flask app (API proxy + Entra ID auth + SSE streaming + /api/agents)
   js/auth.js       MSAL.js 2.x wrapper (login, token acquisition, refresh)
   js/app.js        SPA controller (routing, UI state, agent switching)
   js/agent-client.js  Fabric Data Agent API client (SSE streaming)
-  config.js        App configuration (auth mode, workspace ID, agent GUIDs)
+  app.json         Global config (branding, auth, theme, workspace)
+  agents/          Per-agent config folders (agent.json + icon.svg + tests/)
   docs.html        Interactive documentation page (Mermaid diagrams)
 agents/            5 Fabric Data Agent configs + instruction files
 scripts/           Semantic model definition, sample data generator
@@ -70,6 +71,60 @@ See `scripts/configure-linguistic-schema.py` for the full synonym map.
 - **Data access scope** — which tables the agent queries and how
 - **Response format rules** — headline metrics first, markdown tables, actionable insights
 - **Verified answer examples** — pre-validated Q&A pairs in `verified-answers-*.json`
+
+## Configurable UX Architecture
+
+The web app is **100% configuration-driven** — add, remove, or rebrand agents with zero code changes. Each agent is a self-contained folder:
+
+```
+web/
+  app.json              Global config (name, theme, auth, workspace)
+  agents/
+    _order.json         Which agents appear and in what tab order
+    crew-chief/
+      agent.json        Name, accent color, samples, welcome, routing keywords
+      icon.svg          Tab icon
+      tests/agent.feature   Gherkin tests for this agent
+    gearup/
+      ...
+    ignition/
+      ...
+```
+
+### How it works
+
+1. **`GET /api/agents`** — Flask reads `app.json` + `_order.json` + each agent folder and returns a single combined config object.
+2. **`app.js`** calls this endpoint at startup (falls back to loading files individually if the API is unavailable).
+3. **Tabs, routing, branding, and behavior** are all derived from the JSON — nothing is hardcoded in JS.
+
+### Common operations
+
+| Task | What to change |
+|------|---------------|
+| **Remove an agent** | Delete its slug from `_order.json` — the folder stays "parked" |
+| **Add a new agent** | Create `agents/{slug}/agent.json` + `icon.svg`, add slug to `_order.json` |
+| **Reorder tabs** | Reorder the array in `_order.json` |
+| **Rebrand for a different customer** | Replace `app.json` (name, theme, logo) + swap agent folders |
+| **Run with fewer agents** | Set `_order.json` to a subset, e.g. `["crew-chief", "gearup", "ignition"]` |
+
+### Agent config schema (`agent.json`)
+
+```json
+{
+  "id": "fabric-agent-guid-here",   // null = client-side orchestrator
+  "name": "GearUp",
+  "description": "Loyalty Program Manager",
+  "accent": "#2ecc71",
+  "welcome": "Welcome message shown on first load",
+  "samples": ["Example question 1", "Example question 2"],
+  "mysteryPrompt": "A surprise prompt the user can trigger",
+  "routingKeywords": ["loyalty", "members", "points", "churn"]
+}
+```
+
+### Per-agent tests
+
+Each agent folder includes `tests/agent.feature` — Gherkin BDD scenarios testing welcome message, sample questions, chat response, and mystery prompt. Run with any Cucumber-compatible runner using `@agent @{slug}` tags.
 
 ## Quick Start
 
@@ -124,7 +179,7 @@ Requires an Entra ID app registration (`clientId` + `tenantId` in `config.js`). 
 | `ENTRA_TENANT_ID` | Entra tenant ID | MSAL mode only |
 | `ENTRA_CLIENT_ID` | App registration client ID | MSAL mode only |
 
-Toggle between modes via `useProxy` in `web/config.js` — `true` uses the server credential chain (Option 1), `false` enables MSAL browser auth (Option 2).
+Toggle between modes via `useProxy` in `web/app.json` — `true` uses the server credential chain (Option 1), `false` enables MSAL browser auth (Option 2).
 
 ### Security Properties
 
