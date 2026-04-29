@@ -1,0 +1,20 @@
+{
+  "id": null,
+  "name": "Crew Chief",
+  "description": "Executive orchestrator",
+  "shortDesc": "Ask anything",
+  "about": "Coordinates all specialist agents to deliver cross-functional insights across loyalty, marketing, merchandising, store operations, and customer service for the AAP rewards program.",
+  "welcome": "I coordinate the full team. Ask me anything \u2014 I'll get the right agent on it.",
+  "accent": "#1E1E1E",
+  "textColor": "#1E1E1E",
+  "sampleQuestions": [
+    "How are our top-tier loyalty members responding to the holiday promo?",
+    "Which stores have the highest revenue and most reward redemptions?",
+    "What's our overall member retention rate vs. last quarter?",
+    "Show me a cross-department summary of Q4 performance",
+    "Which product categories drive the most reward redemptions?",
+    "Compare campaign engagement rates across our top 10 stores"
+  ],
+  "mysteryPrompt": "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative cross-functional question a VP might ask that spans at least two of: loyalty tiers, campaign performance, store operations, merchandising, or customer service. Think about comparisons, correlations, or surprising angles.",
+  "routingKeywords": []
+}

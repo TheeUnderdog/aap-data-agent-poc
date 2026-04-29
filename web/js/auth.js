@@ -43,11 +43,16 @@
          */
         initialize: function () {
             if (!window.msal) throw new Error(TAG + " msal-browser not loaded. Include the CDN script before auth.js.");
-            if (!window.APP_CONFIG) throw new Error(TAG + " APP_CONFIG not found. Include config.js before auth.js.");
+            if (!window.APP_CONFIG) throw new Error(TAG + " APP_CONFIG not found. Load config before initializing auth.");
 
             var cfg = window.APP_CONFIG.msalConfig && window.APP_CONFIG.msalConfig.auth;
-            if (!cfg || !cfg.clientId || cfg.clientId === 'YOUR_CLIENT_ID') {
+            if (!cfg || !cfg.clientId || cfg.clientId === 'YOUR_CLIENT_ID' || cfg.clientId === 'TODO_CLIENT_ID') {
                 warn("MSAL not configured — skipping initialization.");
+                return Promise.resolve();
+            }
+
+            if (!cfg.authority || cfg.authority.indexOf('YOUR_TENANT_ID') !== -1 || cfg.authority.indexOf('TODO_TENANT_ID') !== -1) {
+                warn("MSAL authority not configured — skipping initialization.");
                 return Promise.resolve();
             }
 

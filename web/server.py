@@ -189,6 +189,85 @@ def route_question():
 
 # -- API: Chat Proxy (SSE streaming) -----------------------------------
 
+@app.route("/api/agents", methods=["GET"])
+def get_agents():
+    """Return the combined runtime agent configuration for the frontend."""
+    def load_json_file(path, label):
+        if not os.path.exists(path):
+            rel_path = os.path.relpath(path, WEB_DIR)
+            raise FileNotFoundError(f"{label} not found: {rel_path}")
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                return json.load(handle)
+        except json.JSONDecodeError as exc:
+            rel_path = os.path.relpath(path, WEB_DIR)
+            raise ValueError(f"{label} contains invalid JSON: {rel_path}") from exc
+
+    try:
+        app_config = load_json_file(os.path.join(WEB_DIR, "app.json"), "Global config")
+        agent_order = load_json_file(os.path.join(WEB_DIR, "agents", "_order.json"), "Agent order config")
+
+        if not isinstance(app_config, dict):
+            return jsonify({"error": "Invalid app config: app.json must contain a JSON object"}), 500
+        if not isinstance(agent_order, list):
+            return jsonify({"error": "Invalid agent order config: agents/_order.json must contain a JSON array"}), 500
+
+        agents = {}
+        executive_routing = {}
+
+        for slug in agent_order:
+            if not isinstance(slug, str) or not slug:
+                return jsonify({"error": "Invalid agent order config: agents/_order.json must contain non-empty agent slugs"}), 500
+
+            agent_config = load_json_file(
+                os.path.join(WEB_DIR, "agents", slug, "agent.json"),
+                f"Agent config for '{slug}'",
+            )
+            if not isinstance(agent_config, dict):
+                return jsonify({"error": f"Invalid agent config: agents/{slug}/agent.json must contain a JSON object"}), 500
+
+            agent_response = dict(agent_config)
+            agent_response["icon"] = f"agents/{slug}/icon.svg"
+            agents[slug] = agent_response
+
+            routing_keywords = agent_config.get("routingKeywords") or []
+            if routing_keywords:
+                executive_routing[slug] = routing_keywords
+
+        workspace = app_config.get("workspace") or {}
+        auth = app_config.get("auth") or {}
+        routing = app_config.get("routing") or {}
+        llm_routing = routing.get("llmRouting")
+        if llm_routing is None:
+            llm_routing = routing.get("llm")
+        if llm_routing is None and any(key in routing for key in ("llmEndpoint", "endpoint", "useProxy", "apiKey")):
+            llm_routing = {
+                "endpoint": routing.get("llmEndpoint", routing.get("endpoint")),
+                "useProxy": routing.get("useProxy"),
+                "apiKey": routing.get("apiKey"),
+            }
+        if llm_routing is None:
+            llm_routing = app_config.get("llmRouting") or {}
+
+        response = dict(app_config)
+        response["workspace"] = workspace
+        response["auth"] = auth
+        response["routing"] = routing
+        response["agents"] = agents
+        response["agentOrder"] = agent_order
+        response["useProxy"] = auth.get("useProxy", app_config.get("useProxy"))
+        response["workspaceId"] = workspace.get("id", app_config.get("workspaceId"))
+        response["fabricScopes"] = workspace.get("fabricScopes", app_config.get("fabricScopes", []))
+        response["routingMode"] = routing.get("mode", app_config.get("routingMode"))
+        response["llmRouting"] = llm_routing
+        response["executiveRouting"] = executive_routing
+        return jsonify(response)
+    except FileNotFoundError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 500
+
+
 @app.route("/api/chat", methods=["POST"])
 def chat_proxy():
     """

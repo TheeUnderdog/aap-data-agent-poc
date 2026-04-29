@@ -5,8 +5,8 @@
 (function () {
     'use strict';
 
-    const config = window.APP_CONFIG;
-    let activeAgent = config.agentOrder[0]; // Default to Crew Chief
+    let config = {};
+    let activeAgent = 'crew-chief';
     let chatHistories = {};   // agentKey → [{role, content, timestamp}]
     let unreadAgents = {};    // agentKey → boolean
     let isWaiting = false;
@@ -19,7 +19,9 @@
 
     const svgCache = {};
 
-    async function injectSvgIcon(container, agent, className) {
+    async function injectSvgIcon(container, agent) {
+        if (!container || !agent || !agent.icon) return;
+
         const color = agent.textColor || agent.accent;
         container.style.color = color;
 
@@ -38,6 +40,147 @@
         }
     }
 
+    function buildRuntimeConfig(appConfig, agentOrder, agentConfigs) {
+        const agents = {};
+        for (const agentConfig of agentConfigs) {
+            const { slug, ...rest } = agentConfig;
+            agents[slug] = rest;
+        }
+
+        return {
+            ...appConfig,
+            useProxy: appConfig.auth.useProxy,
+            workspaceId: appConfig.workspace.id,
+            fabricScopes: appConfig.workspace.fabricScopes,
+            msalConfig: appConfig.auth.useProxy ? null : {
+                auth: {
+                    clientId: appConfig.auth.msalConfig.clientId,
+                    authority: appConfig.auth.msalConfig.authority,
+                    redirectUri: window.location.origin
+                },
+                cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
+            },
+            agents,
+            agentOrder,
+            routingMode: appConfig.routing.mode,
+            llmRouting: {
+                endpoint: appConfig.routing.llmEndpoint,
+                useProxy: typeof appConfig.routing.useProxy === 'boolean' ? appConfig.routing.useProxy : true,
+                apiKey: appConfig.routing.apiKey || null
+            },
+            executiveRouting: Object.fromEntries(
+                agentOrder
+                    .filter(slug => agents[slug].routingKeywords && agents[slug].routingKeywords.length > 0)
+                    .map(slug => [slug, agents[slug].routingKeywords])
+            )
+        };
+    }
+
+    function normalizeLoadedConfig(loadedConfig) {
+        if (!loadedConfig || !loadedConfig.agents || !loadedConfig.agentOrder) {
+            return loadedConfig;
+        }
+
+        const agents = Object.fromEntries(
+            loadedConfig.agentOrder.map((slug) => [
+                slug,
+                {
+                    ...loadedConfig.agents[slug],
+                    icon: `agents/${slug}/icon.svg`
+                }
+            ])
+        );
+
+        return {
+            ...loadedConfig,
+            agents,
+            executiveRouting: Object.fromEntries(
+                loadedConfig.agentOrder
+                    .filter(slug => agents[slug] && agents[slug].routingKeywords && agents[slug].routingKeywords.length > 0)
+                    .map(slug => [slug, agents[slug].routingKeywords])
+            )
+        };
+    }
+
+    async function loadConfig() {
+        try {
+            const res = await fetch('/api/agents');
+            if (res.ok) {
+                return normalizeLoadedConfig(await res.json());
+            }
+        } catch (e) {
+            console.warn('[Config] /api/agents unavailable, falling back to static files');
+        }
+
+        const appRes = await fetch('app.json');
+        const appConfig = await appRes.json();
+
+        const orderRes = await fetch('agents/_order.json');
+        const agentOrder = await orderRes.json();
+
+        const agentConfigs = await Promise.all(
+            agentOrder.map(async (slug) => {
+                const res = await fetch(`agents/${slug}/agent.json`);
+                const agentConfig = await res.json();
+                return { slug, ...agentConfig, icon: `agents/${slug}/icon.svg` };
+            })
+        );
+
+        return buildRuntimeConfig(appConfig, agentOrder, agentConfigs);
+    }
+
+    function applyTheme(theme) {
+        if (!theme) return;
+
+        const root = document.documentElement;
+        if (theme.primaryColor) root.style.setProperty('--aap-red', theme.primaryColor);
+        if (theme.backgroundColor) root.style.setProperty('--bg-chat', theme.backgroundColor);
+        if (theme.borderRadius) root.style.setProperty('--radius-md', theme.borderRadius);
+        if (theme.fontFamily) document.body.style.fontFamily = theme.fontFamily;
+
+        if (theme.headingFont) {
+            document.querySelectorAll('.wordmark-primary, .wordmark-secondary').forEach((el) => {
+                el.style.fontFamily = theme.headingFont;
+            });
+        }
+    }
+
+    function applyBranding() {
+        if (!config || !config.name) return;
+
+        document.title = config.name;
+
+        const nameParts = config.name.split(' ');
+        const primary = nameParts.shift() || config.name;
+        const secondary = nameParts.join(' ');
+
+        const primaryEl = document.querySelector('.wordmark-primary');
+        const secondaryEl = document.querySelector('.wordmark-secondary');
+        const taglineEl = document.querySelector('.wordmark-tagline');
+        const loginTitleEl = document.querySelector('.login-card h1');
+        const loginTaglineEl = document.querySelector('.login-card p');
+        const loginLogoEl = document.querySelector('.login-logo');
+        const topLogoEl = document.querySelector('.top-bar-logo');
+
+        if (primaryEl) primaryEl.textContent = primary;
+        if (secondaryEl) secondaryEl.textContent = secondary || '';
+        if (taglineEl && config.tagline) taglineEl.textContent = config.tagline;
+        if (loginTitleEl) loginTitleEl.textContent = config.name;
+        if (loginTaglineEl && config.tagline) loginTaglineEl.textContent = config.tagline;
+        if (loginLogoEl && config.logo) loginLogoEl.src = config.logo;
+        if (topLogoEl && config.logo) topLogoEl.src = config.logo;
+        if (loginLogoEl && config.name) loginLogoEl.alt = config.name;
+        if (topLogoEl && config.name) topLogoEl.alt = config.name;
+
+        if (config.favicon) {
+            document.querySelectorAll('link[rel="icon"]').forEach((link) => {
+                link.href = config.favicon;
+            });
+        }
+
+        applyTheme(config.theme);
+    }
+
     // ── Initialization ──────────────────────────────────────────
 
     function isConfigured() {
@@ -46,12 +189,17 @@
 
         var cfg = config.msalConfig && config.msalConfig.auth;
         if (!cfg) return false;
-        if (!cfg.clientId || cfg.clientId === 'YOUR_CLIENT_ID') return false;
-        if (!cfg.authority || cfg.authority.indexOf('YOUR_TENANT_ID') !== -1) return false;
+        if (!cfg.clientId || cfg.clientId === 'YOUR_CLIENT_ID' || cfg.clientId === 'TODO_CLIENT_ID') return false;
+        if (!cfg.authority || cfg.authority.indexOf('YOUR_TENANT_ID') !== -1 || cfg.authority.indexOf('TODO_TENANT_ID') !== -1) return false;
         return true;
     }
 
     async function init() {
+        config = await loadConfig();
+        window.APP_CONFIG = config;
+        activeAgent = config.agentOrder[0];
+        applyBranding();
+
         if (!isConfigured()) {
             showSetupRequired();
             return;
@@ -82,16 +230,18 @@
         var btn = document.getElementById('login-btn');
         if (btn) btn.style.display = 'none';
 
+        if (card.querySelector('.setup-notice')) return;
+
         var notice = document.createElement('div');
         notice.className = 'setup-notice';
         notice.innerHTML =
             '<h3>⚙️ Setup Required</h3>' +
-            '<p>Edit <code>config.js</code> with your Entra ID and Fabric settings:</p>' +
+            '<p>Update <code>app.json</code> with your Entra ID and Fabric settings:</p>' +
             '<ol style="text-align:left;font-size:0.9rem;line-height:1.8">' +
-            '<li><strong>clientId</strong> — from your Entra ID app registration</li>' +
-            '<li><strong>authority</strong> — replace YOUR_TENANT_ID with your tenant</li>' +
-            '<li><strong>workspaceId</strong> — from the Fabric portal URL</li>' +
-            '<li><strong>Agent GUIDs</strong> — from each published Data Agent</li>' +
+            '<li><strong>auth.msalConfig.clientId</strong> — from your Entra ID app registration</li>' +
+            '<li><strong>auth.msalConfig.authority</strong> — replace TODO_TENANT_ID with your tenant</li>' +
+            '<li><strong>workspace.id</strong> — from the Fabric portal URL</li>' +
+            '<li><strong>agents/*/agent.json</strong> — set each published Data Agent GUID</li>' +
             '</ol>' +
             '<p style="margin-top:1rem;font-size:0.85rem;color:#666">See <code>SETUP.md</code> for full instructions.</p>';
         card.appendChild(notice);

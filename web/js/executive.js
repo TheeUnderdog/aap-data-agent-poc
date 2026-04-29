@@ -6,14 +6,22 @@
 (function () {
     'use strict';
 
-    const config = window.APP_CONFIG;
-    const routing = config.executiveRouting;
+    let config;
+    let routing;
+
+    function ensureConfig() {
+        if (!config) {
+            config = window.APP_CONFIG;
+            routing = config.executiveRouting;
+        }
+    }
 
     /**
      * Classify a user question into one or more specialist agent keys
      * based on keyword matching from the routing config.
      */
     function classifyQuestionKeyword(question) {
+        ensureConfig();
         const lower = question.toLowerCase();
         const scores = {};
 
@@ -50,6 +58,7 @@
      * Falls back to keyword routing on any error.
      */
     async function classifyQuestionLLM(question) {
+        ensureConfig();
         try {
             const res = await fetch('/api/route', {
                 method: 'POST',
@@ -75,6 +84,7 @@
      * Route using the configured mode (keyword or llm).
      */
     async function classifyQuestion(question) {
+        ensureConfig();
         if (config.routingMode === 'llm') {
             return classifyQuestionLLM(question);
         }
@@ -85,6 +95,7 @@
      * Get a friendly name for attribution in the response
      */
     function agentDisplayName(agentKey) {
+        ensureConfig();
         const agent = config.agents[agentKey];
         return agent ? agent.name : agentKey;
     }
@@ -95,6 +106,7 @@
      * @returns {Promise<string>} - Synthesized executive response
      */
     async function askCrewChief(question) {
+        ensureConfig();
         const client = window.AgentClient;
         const targets = await classifyQuestion(question);
 

@@ -1,0 +1,29 @@
+{
+  "id": "b03579f9-1074-4578-8165-6954a83b31c5",
+  "name": "GearUp",
+  "description": "Loyalty Program Manager",
+  "shortDesc": "Loyalty & rewards",
+  "about": "Monitors member health, engagement, tier distribution, points liability, and churn risk for the AAP rewards loyalty program. Delivers tier breakdowns, at-risk member identification, and points balance analysis.",
+  "welcome": "Let's check in on the loyalty program. What do you want to know?",
+  "accent": "#FFCC00",
+  "textColor": "#B38600",
+  "sampleQuestions": [
+    "How many active loyalty members do we have?",
+    "What's the breakdown of members by tier?",
+    "Show me the top 10 members by lifetime points earned",
+    "What's our monthly enrollment trend this year?",
+    "How many points were redeemed last quarter?",
+    "Which rewards are most popular among Gold tier members?"
+  ],
+  "mysteryPrompt": "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative loyalty program question a rewards program manager might ask. Think about: tier migration patterns, churn risk signals, points liability trends, enrollment cohort behavior, engagement drop-offs, or reward redemption anomalies.",
+  "routingKeywords": [
+    "loyalty",
+    "reward",
+    "tier",
+    "gear",
+    "points",
+    "member",
+    "enroll",
+    "redeem"
+  ]
+}

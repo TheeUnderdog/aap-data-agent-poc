@@ -1,0 +1,29 @@
+{
+  "id": "1062ac57-5132-4cf1-afbd-71e1e973fbc8",
+  "name": "PartsPro",
+  "description": "Merchandising & Categories",
+  "shortDesc": "Products & merch",
+  "about": "Analyzes product performance, brand rankings, category trends, and return rates across the AAP auto parts catalog. Delivers category comparisons, SKU-level detail, and revenue concentration insights.",
+  "welcome": "Products, categories, inventory trends \u2014 ask away.",
+  "accent": "#2D8A4E",
+  "textColor": "#2D8A4E",
+  "sampleQuestions": [
+    "What are our top 10 selling products this month?",
+    "Show me revenue by product category",
+    "Which brands have the highest average transaction value?",
+    "What products are trending up in sales vs. last quarter?",
+    "List categories with declining sales over 3 months",
+    "What's the average basket size by product category?"
+  ],
+  "mysteryPrompt": "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative merchandising question a category manager might ask. Think about: product return rate patterns by category, brand concentration risk, SKU-level margin outliers, cross-sell affinity between categories, seasonal product mix shifts, or inventory velocity by region.",
+  "routingKeywords": [
+    "product",
+    "category",
+    "inventory",
+    "merchand",
+    "sku",
+    "brand",
+    "price",
+    "item"
+  ]
+}

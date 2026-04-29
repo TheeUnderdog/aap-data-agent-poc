@@ -1,0 +1,29 @@
+{
+  "id": "f0272a61-7e54-408f-bf70-28495982567b",
+  "name": "Ignition",
+  "description": "Marketing & Promotions",
+  "shortDesc": "Campaigns & promos",
+  "about": "Evaluates coupon campaign performance, promotion ROI, and tier-targeted marketing effectiveness for the AAP rewards program. Provides redemption funnels, campaign comparisons, and coupon liability reports.",
+  "welcome": "Campaigns, promotions, engagement \u2014 what are we analyzing?",
+  "accent": "#E86C00",
+  "textColor": "#E86C00",
+  "sampleQuestions": [
+    "Which campaign had the highest redemption rate this quarter?",
+    "What's the redemption rate by campaign name?",
+    "How many customers redeemed the latest coupon offer?",
+    "Compare redemption rates across our active campaigns",
+    "What's the ROI on our top 5 campaigns?",
+    "Which tier responds best to targeted coupon offers?"
+  ],
+  "mysteryPrompt": "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative marketing question a campaign manager might ask. Think about: coupon redemption funnels, campaign A/B comparisons, tier-targeted promo lift, seasonal campaign timing, discount type effectiveness (% off vs. fixed $), or dormant member reactivation.",
+  "routingKeywords": [
+    "campaign",
+    "promo",
+    "market",
+    "email",
+    "engag",
+    "coupon",
+    "offer",
+    "response"
+  ]
+}

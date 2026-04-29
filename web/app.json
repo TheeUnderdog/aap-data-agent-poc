@@ -1,0 +1,32 @@
+{
+  "name": "Advance Insights",
+  "tagline": "Rewards & Loyalty Intelligence",
+  "logo": "img/aap-logo.svg",
+  "favicon": "img/favicon.png",
+  "theme": {
+    "primaryColor": "#CC0000",
+    "backgroundColor": "#F5F5F5",
+    "fontFamily": "Open Sans, sans-serif",
+    "headingFont": "Bebas Neue, sans-serif",
+    "borderRadius": "12px"
+  },
+  "workspace": {
+    "id": "82f53636-206f-4825-821b-bdaa8e089893",
+    "fabricScopes": [
+      "https://api.fabric.microsoft.com/.default"
+    ]
+  },
+  "auth": {
+    "useProxy": true,
+    "msalConfig": {
+      "clientId": "TODO_CLIENT_ID",
+      "authority": "https://login.microsoftonline.com/TODO_TENANT_ID"
+    }
+  },
+  "routing": {
+    "mode": "llm",
+    "llmEndpoint": null,
+    "useProxy": true,
+    "apiKey": null
+  }
+}

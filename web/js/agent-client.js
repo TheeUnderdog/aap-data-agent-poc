@@ -14,8 +14,9 @@
     const LOG_PREFIX = "[AgentClient]";
     const FABRIC_API = "https://api.fabric.microsoft.com/v1/workspaces";
 
-    // When running behind the local proxy, use relative URL
-    const USE_PROXY = window.APP_CONFIG && window.APP_CONFIG.useProxy;
+    function useProxy() {
+        return !!(window.APP_CONFIG && window.APP_CONFIG.useProxy);
+    }
 
     // ── Custom error for auth failures (401/403) ──
 
@@ -70,7 +71,7 @@
 
             let url, headers, body;
 
-            if (USE_PROXY) {
+            if (useProxy()) {
                 // Local proxy handles auth — returns SSE stream with reasoning + response
                 url = "/api/chat";
                 headers = { "Content-Type": "application/json" };

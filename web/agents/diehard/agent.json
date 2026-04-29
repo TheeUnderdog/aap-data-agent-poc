@@ -1,0 +1,29 @@
+{
+  "id": "e8fc166b-360e-4b0a-922b-05ca8bba3ff4",
+  "name": "DieHard",
+  "description": "Store Operations",
+  "shortDesc": "Stores & ops",
+  "about": "Tracks retail location performance, regional comparisons, channel mix, and operational metrics across AAP's 500-store network. Provides store rankings, regional benchmarks, and return rate analysis.",
+  "welcome": "Store performance, operations data \u2014 what do you need?",
+  "accent": "#B6121B",
+  "textColor": "#B6121B",
+  "sampleQuestions": [
+    "What are our top 5 stores by revenue?",
+    "Show me store performance by region",
+    "Which stores had the biggest sales increase this quarter?",
+    "Compare weekend vs. weekday sales across regions",
+    "What's the average transaction value by store?",
+    "Which locations have the highest return rates?"
+  ],
+  "mysteryPrompt": "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative store operations question a district manager might ask. Think about: store-level return rate outliers, regional revenue variance, channel mix (online vs. in-store) shifts, weekend vs. weekday patterns, new store ramp-up benchmarks, or underperforming locations relative to their market.",
+  "routingKeywords": [
+    "store",
+    "location",
+    "operat",
+    "perform",
+    "region",
+    "district",
+    "sales",
+    "revenue"
+  ]
+}

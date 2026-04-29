@@ -1,0 +1,30 @@
+{
+  "id": "e2cf8db6-2e51-45b6-bb2d-edfeeeb8b38a",
+  "name": "Pit Crew",
+  "description": "Customer Service & Support",
+  "shortDesc": "Service & support",
+  "about": "Analyzes CSR agent activity, member service patterns, and support operations for the AAP rewards program. Provides activity breakdowns, member lookups, and service records.",
+  "welcome": "Ready to dig into service data. What can I look up?",
+  "accent": "#2B6CB0",
+  "textColor": "#2B6CB0",
+  "sampleQuestions": [
+    "How many CSR activities were logged this month?",
+    "What are the most common CSR activity types this quarter?",
+    "Which CSR department handles the most member interactions?",
+    "Which CSRs have the highest activity volume this quarter?",
+    "Show me the trend of tier overrides over the past 6 months",
+    "Which members have had the most status changes this year?"
+  ],
+  "mysteryPrompt": "You help demo an Advance Auto Parts loyalty analytics app. Generate ONE specific, creative customer service question a support manager might ask. Think about: CSR agent performance patterns, service escalation trends, complaint correlations with product categories or stores, resolution time outliers, or member tier vs. support experience.",
+  "routingKeywords": [
+    "service",
+    "support",
+    "complaint",
+    "call",
+    "agent",
+    "csr",
+    "ticket",
+    "escalat",
+    "audit"
+  ]
+}
