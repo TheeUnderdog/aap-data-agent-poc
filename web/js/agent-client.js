@@ -60,14 +60,36 @@
          * @returns {Promise<string>} The assistant's response content
          */
         async sendMessage(agentKey, userMessage) {
+            this._requireAgent(agentKey);
+            const history = this._history[agentKey];
+            history.push({ role: "user", content: userMessage });
+
+            try {
+                const reply = await this._sendMessages(agentKey, history, { storeAssistantReply: false });
+                history.push({ role: "assistant", content: reply });
+                return reply;
+            } catch (err) {
+                if (history[history.length - 1]?.role === "user" && history[history.length - 1]?.content === userMessage) {
+                    history.pop();
+                }
+                throw err;
+            }
+        }
+
+        /**
+         * Send a one-off message through the configured transport without
+         * persisting it into the visible conversation history.
+         */
+        async sendOneOffMessage(agentKey, userMessage) {
+            return this._sendMessages(agentKey, [{ role: "user", content: userMessage }], { storeAssistantReply: false });
+        }
+
+        async _sendMessages(agentKey, messages, options = {}) {
             const agent = this._requireAgent(agentKey);
 
             if (!agent.id) {
                 throw new Error(`${LOG_PREFIX} Agent "${agentKey}" has no Fabric agent ID.`);
             }
-
-            // Append the user turn before sending
-            this._history[agentKey].push({ role: "user", content: userMessage });
 
             let url, headers, body;
 
@@ -77,7 +99,7 @@
                 headers = { "Content-Type": "application/json" };
                 body = JSON.stringify({
                     agentId: agent.id,
-                    messages: this._history[agentKey],
+                    messages: messages,
                 });
             } else {
                 // Direct Fabric API call (requires MSAL token)
@@ -87,7 +109,7 @@
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 };
-                body = JSON.stringify({ messages: this._history[agentKey] });
+                body = JSON.stringify({ messages: messages });
             }
 
             try {
@@ -102,30 +124,17 @@
                 }
 
                 const contentType = res.headers.get("content-type") || "";
-
-                // Handle SSE stream from proxy (has reasoning + status + content events)
                 if (contentType.includes("text/event-stream")) {
-                    return await this._handleSSEResponse(res, agentKey);
+                    return await this._handleSSEResponse(res, agentKey, options);
                 }
 
-                // Handle plain JSON (direct Fabric API or fallback)
                 const data = await res.json();
-                const reply =
-                    data.content ??
-                    data.choices?.[0]?.message?.content ??
-                    data.result ??
-                    JSON.stringify(data);
-
-                // Append the assistant turn
-                this._history[agentKey].push({ role: "assistant", content: reply });
-
-                return reply;
+                return data.content ?? data.choices?.[0]?.message?.content ?? data.result ?? JSON.stringify(data);
             } catch (err) {
-                // If we already threw a structured error, re-throw as-is
                 if (err instanceof AuthError || err.message.startsWith(LOG_PREFIX)) {
                     throw err;
                 }
-                // Network / unexpected errors
+
                 const msg = `${LOG_PREFIX} Request to "${agentKey}" failed: ${err.message}`;
                 console.error(msg);
                 throw new Error(msg);
@@ -136,7 +145,7 @@
          * Parse an SSE stream from the proxy. Fires reasoning events via
          * window.addReasoningStep and returns the final response text.
          */
-        async _handleSSEResponse(res, agentKey) {
+        async _handleSSEResponse(res, agentKey, options = {}) {
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
             let buffer = "";
@@ -210,7 +219,9 @@
                 reply = "The agent completed but returned no response.";
             }
 
-            this._history[agentKey].push({ role: "assistant", content: reply });
+            if (options.storeAssistantReply !== false) {
+                this._history[agentKey].push({ role: "assistant", content: reply });
+            }
             return reply;
         }
 

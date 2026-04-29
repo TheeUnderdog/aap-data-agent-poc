@@ -24,9 +24,6 @@
     }
   },
   "routing": {
-    "mode": "llm",
-    "llmEndpoint": null,
-    "useProxy": true,
-    "apiKey": null
+    "mode": "llm"
   }
 }

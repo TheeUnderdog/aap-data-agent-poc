@@ -80,6 +80,11 @@
 
         /** Sign out and redirect to the app origin. */
         logout: function () {
+            if (!msalInstance) {
+                warn("MSAL not initialized — skipping logout redirect.");
+                return Promise.resolve();
+            }
+
             return msalInstance.logoutRedirect({
                 postLogoutRedirectUri: window.location.origin
             });

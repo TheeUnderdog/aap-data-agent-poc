@@ -227,7 +227,8 @@ web/                          # Single-container app
 ├── requirements.txt          # Python dependencies
 ├── server.py                 # Flask app (API + static files + auth)
 ├── index.html                # SPA entry point
-├── config.js                 # Agent config (workspace, agent IDs)
+├── app.json                  # Shared app config (branding, auth, routing)
+├── agents/                   # Per-agent config, prompts, and icons
 ├── css/                      # Stylesheets
 ├── js/                       # Application JavaScript
 └── img/                      # Images & icons

@@ -109,7 +109,8 @@ app = Flask(__name__, static_folder=WEB_DIR)
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 CORS(app)
 
-
+
+
 # -- API: LLM Routing (GPT-4o-mini via Foundry) ---------------------------
 
 ROUTING_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")  # Foundry deployment URL
@@ -237,17 +238,19 @@ def get_agents():
         workspace = app_config.get("workspace") or {}
         auth = app_config.get("auth") or {}
         routing = app_config.get("routing") or {}
-        llm_routing = routing.get("llmRouting")
-        if llm_routing is None:
-            llm_routing = routing.get("llm")
-        if llm_routing is None and any(key in routing for key in ("llmEndpoint", "endpoint", "useProxy", "apiKey")):
-            llm_routing = {
-                "endpoint": routing.get("llmEndpoint", routing.get("endpoint")),
-                "useProxy": routing.get("useProxy"),
-                "apiKey": routing.get("apiKey"),
-            }
-        if llm_routing is None:
-            llm_routing = app_config.get("llmRouting") or {}
+        use_proxy = auth.get("useProxy", app_config.get("useProxy"))
+        raw_msal_config = auth.get("msalConfig") or {}
+        msal_config = None if use_proxy else {
+            "auth": {
+                "clientId": raw_msal_config.get("clientId"),
+                "authority": raw_msal_config.get("authority"),
+                "redirectUri": request.host_url.rstrip("/"),
+            },
+            "cache": {
+                "cacheLocation": "sessionStorage",
+                "storeAuthStateInCookie": False,
+            },
+        }
 
         response = dict(app_config)
         response["workspace"] = workspace
@@ -255,11 +258,11 @@ def get_agents():
         response["routing"] = routing
         response["agents"] = agents
         response["agentOrder"] = agent_order
-        response["useProxy"] = auth.get("useProxy", app_config.get("useProxy"))
+        response["useProxy"] = use_proxy
         response["workspaceId"] = workspace.get("id", app_config.get("workspaceId"))
         response["fabricScopes"] = workspace.get("fabricScopes", app_config.get("fabricScopes", []))
+        response["msalConfig"] = msal_config
         response["routingMode"] = routing.get("mode", app_config.get("routingMode"))
-        response["llmRouting"] = llm_routing
         response["executiveRouting"] = executive_routing
         return jsonify(response)
     except FileNotFoundError as exc:

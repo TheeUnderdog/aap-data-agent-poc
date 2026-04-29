@@ -100,6 +100,12 @@
         return agent ? agent.name : agentKey;
     }
 
+    function getCoordinatorKey() {
+        ensureConfig();
+        return config.agentOrder.find((agentKey) => config.agents[agentKey]?.role === 'coordinator')
+            || config.agentOrder[0];
+    }
+
     /**
      * Send a question to the Crew Chief. Classifies, fans out, synthesizes.
      * @param {string} question - The user's question
@@ -115,7 +121,7 @@
 
         // Add reasoning step for routing decision
         if (window.addReasoningStep) {
-            window.addReasoningStep('routing', 'crew-chief',
+            window.addReasoningStep('routing', getCoordinatorKey(),
                 `Routing to ${targetNames}`);
         }
 
@@ -178,7 +184,7 @@
 
         // Add synthesis reasoning step
         if (window.addReasoningStep) {
-            window.addReasoningStep('thinking', 'crew-chief',
+            window.addReasoningStep('thinking', getCoordinatorKey(),
                 `Synthesizing ${successful.length} response(s)...`);
         }
 

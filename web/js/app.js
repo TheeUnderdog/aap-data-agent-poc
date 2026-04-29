@@ -6,7 +6,7 @@
     'use strict';
 
     let config = {};
-    let activeAgent = 'crew-chief';
+    let activeAgent = null;
     let chatHistories = {};   // agentKey → [{role, content, timestamp}]
     let unreadAgents = {};    // agentKey → boolean
     let isWaiting = false;
@@ -63,11 +63,6 @@
             agents,
             agentOrder,
             routingMode: appConfig.routing.mode,
-            llmRouting: {
-                endpoint: appConfig.routing.llmEndpoint,
-                useProxy: typeof appConfig.routing.useProxy === 'boolean' ? appConfig.routing.useProxy : true,
-                apiKey: appConfig.routing.apiKey || null
-            },
             executiveRouting: Object.fromEntries(
                 agentOrder
                     .filter(slug => agents[slug].routingKeywords && agents[slug].routingKeywords.length > 0)
@@ -127,6 +122,18 @@
         );
 
         return buildRuntimeConfig(appConfig, agentOrder, agentConfigs);
+    }
+
+    function getCoordinatorKey() {
+        if (!config || !Array.isArray(config.agentOrder)) return null;
+
+        return config.agentOrder.find((agentKey) => config.agents[agentKey]?.role === 'coordinator')
+            || config.agentOrder[0]
+            || null;
+    }
+
+    function isCoordinator(agentKey) {
+        return config.agents[agentKey]?.role === 'coordinator';
     }
 
     function applyTheme(theme) {
@@ -197,7 +204,7 @@
     async function init() {
         config = await loadConfig();
         window.APP_CONFIG = config;
-        activeAgent = config.agentOrder[0];
+        activeAgent = getCoordinatorKey();
         applyBranding();
 
         if (!isConfigured()) {
@@ -512,7 +519,10 @@
 
         // Start a new reasoning group for this question — collapse previous groups
         for (const g of reasoningGroups) g.collapsed = true;
-        const agentLabel = agentKey === 'crew-chief' ? 'Crew Chief' : agent.name;
+        const coordinatorKey = getCoordinatorKey();
+        const agentLabel = isCoordinator(agentKey)
+            ? config.agents[coordinatorKey]?.name || agent.name
+            : agent.name;
         reasoningGroups.push({
             question: text,
             agentKey: agentKey,
@@ -525,13 +535,13 @@
 
         // Add initial reasoning step — no fake narration, just the facts
         addReasoningStep('thinking', agentKey,
-            agentKey === 'crew-chief'
+            isCoordinator(agentKey)
                 ? 'Classifying query for routing...'
                 : `Sending to ${agent.name}...`);
 
         try {
             let response;
-            if (agentKey === 'crew-chief') {
+            if (isCoordinator(agentKey)) {
                 response = await window.Executive.askCrewChief(text);
             } else {
                 addReasoningStep('agent-call', agentKey, `Calling ${agent.name}...`);
@@ -973,6 +983,10 @@
     };
 
     window.handleLogout = function () {
+        if (config.useProxy) {
+            window.location.reload();
+            return;
+        }
         window.AuthManager.logout();
     };
 
@@ -1160,60 +1174,14 @@
         const prompt = `${basePrompt}\n\nDo NOT repeat or rephrase any of these existing questions: ${existing}\n\nReply with ONLY the question text — no numbering, no quotes, no explanation.`;
 
         try {
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    agentId: targetAgent.id,
-                    messages: [{ role: 'user', content: prompt }],
-                }),
-            });
-
-            if (!res.ok) throw new Error(`API returned ${res.status}`);
-
-            const contentType = res.headers.get('content-type') || '';
-            let question = '';
-
-            if (contentType.includes('text/event-stream')) {
-                // Parse SSE stream using streaming reader (same pattern as agent-client)
-                const reader = res.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-
-                    const events = buffer.split('\n\n');
-                    buffer = events.pop();
-
-                    for (const event of events) {
-                        const dataLine = event.trim();
-                        if (!dataLine.startsWith('data: ')) continue;
-                        try {
-                            const payload = JSON.parse(dataLine.slice(6));
-                            if (payload.content) question += payload.content;
-                            else if (payload.type === 'content' && payload.data) question += payload.data;
-                            else if (payload.type === 'done' && payload.data) question = payload.data;
-                        } catch (_) { /* skip non-JSON */ }
-                    }
-                }
-            } else {
-                const data = await res.json();
-                question = data.content
-                    ?? data.choices?.[0]?.message?.content
-                    ?? data.result
-                    ?? '';
-            }
-
+            let question = await window.AgentClient.sendOneOffMessage(targetKey, prompt);
             question = question.replace(/^["'\s]+|["'\s]+$/g, '').trim();
-            if (question) {
-                input.value = question;
-                input.style.height = 'auto';
-                input.style.height = input.scrollHeight + 'px';
-                input.focus();
-            }
+            if (!question) throw new Error('No question generated');
+
+            input.value = question;
+            input.style.height = 'auto';
+            input.style.height = input.scrollHeight + 'px';
+            input.focus();
         } catch (err) {
             console.error('[Mystery] Failed to generate question:', err);
             // Fallback: pick a random sample question the user hasn't seen

@@ -603,3 +603,21 @@ When schema changes: update view mapping, zero changes to Data Agent or app code
 - Container Apps docs preserved but clearly marked as future — don't delete useful reference material
 
 **Files Modified:** README.md, web/SETUP.md, LICENSE (new), .squad/agents/danny/history.md, .squad/decisions/inbox/danny-public-repo-prep.md
+
+### 2026-07: Web Application Consistency Review
+
+**What I Did:**
+- Reviewed the Flask server contract (`web/server.py`), runtime app config (`web/app.json`, `web/agents/_order.json`, all 6 `agent.json` files), and the client runtime (`web/js/app.js`, `auth.js`, `agent-client.js`, `executive.js`, `index.html`) for schema and integration consistency.
+- Checked config shape, JS ↔ config alignment, server ↔ client contract, auth-mode behavior, executive routing behavior, and stale references.
+
+**Key Findings:**
+1. **Agent configs are structurally aligned** — all 6 `agent.json` files use the same keys and ordering, with one intentional type exception: `crew-chief` uses `"id": null` while specialists use Fabric GUID strings.
+2. **`/api/agents` is not fully compatible with direct-auth mode** — it returns `useProxy`, `workspaceId`, and `fabricScopes`, but not the top-level `msalConfig` object that `auth.js` and `app.js:isConfigured()` expect.
+3. **Mystery Question generation bypasses auth mode** — `app.js` always posts to `/api/chat`, so non-proxy/MSAL mode would fail or behave inconsistently even though normal chat uses `AgentClient`.
+4. **Crew Chief keyword routing is config-driven, but LLM routing is hardcoded in the server** — `/api/route` duplicates specialist definitions and valid agent keys instead of deriving them from `agent.json` + `_order.json`.
+5. **Proxy-mode logout is inconsistent** — the UI still exposes Sign out, but `handleLogout()` always calls `AuthManager.logout()` even when proxy mode never initialized MSAL.
+6. **A few config fields are effectively dead today** — `app.json.routing.llmEndpoint`, `routing.useProxy`, and `routing.apiKey` are surfaced to the client but never consumed by `executive.js`; server env vars drive `/api/route` instead.
+7. **There are stale documentation references to old config naming outside the main runtime path** — e.g. `web/SETUP.md` still references `config.js`.
+
+**Architectural Takeaway:**
+- The web app is close to consistent in proxy mode, but the runtime contract is not single-sourced yet. The next cleanup should make `/api/agents` the canonical runtime shape for both auth modes and generate LLM routing metadata from the same agent config files that drive the UI.

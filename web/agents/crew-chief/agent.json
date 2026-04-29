@@ -1,5 +1,6 @@
 {
   "id": null,
+  "role": "coordinator",
   "name": "Crew Chief",
   "description": "Executive orchestrator",
   "shortDesc": "Ask anything",
